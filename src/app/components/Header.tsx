@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Button } from './ui/button';
-import imgFlagIcon from "figma:asset/931d54a4b25c0576599d8d5399c4280f06c9318a.png";
+import imgFlagIcon from '../../assets/931d54a4b25c0576599d8d5399c4280f06c9318a.png';
 
 export function Header() {
   return (

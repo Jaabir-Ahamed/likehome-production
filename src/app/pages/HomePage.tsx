@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { SearchComponent } from '../components/SearchComponent';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import imgHeroBackground from "figma:asset/910a43fa90ece96610082739bbdb02f24d6b7f70.png";
+import imgHeroBackground from '../../assets/910a43fa90ece96610082739bbdb02f24d6b7f70.png';
 
 // Trending destinations data
 const trendingDestinations = [

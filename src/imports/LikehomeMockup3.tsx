@@ -1,5 +1,5 @@
-import imgRectangle17 from "figma:asset/910a43fa90ece96610082739bbdb02f24d6b7f70.png";
-import imgImage1 from "figma:asset/931d54a4b25c0576599d8d5399c4280f06c9318a.png";
+import imgRectangle17 from '../assets/910a43fa90ece96610082739bbdb02f24d6b7f70.png';
+import imgImage1 from '../assets/931d54a4b25c0576599d8d5399c4280f06c9318a.png';
 
 export default function LikehomeMockup() {
   return (
