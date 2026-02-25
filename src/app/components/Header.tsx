@@ -109,7 +109,12 @@ export function Header() {
                       <span>Settings</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
+                    <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                        }}
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Logout</span>
                     </DropdownMenuItem>
