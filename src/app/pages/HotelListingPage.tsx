@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ChevronDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -151,6 +152,18 @@ const amenityIcons = {
 };
 
 export function HotelListingPage() {
+  const [searchParams] = useSearchParams();
+  const locationParam = searchParams.get('location')?.toLowerCase() || '';
+  const checkInParam = searchParams.get('checkIn');
+  const checkOutParam = searchParams.get('checkOut');
+  const guestsParam = searchParams.get('guests');
+  
+  const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
+
+  useEffect(() => {
+    setLocationFilter(searchParams.get('location')?.toLowerCase() || '');
+  }, [searchParams]);
+
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -171,11 +184,14 @@ export function HotelListingPage() {
   // Filter and sort hotels
   const filteredHotels = hotels
     .filter(hotel => {
+      const hotelLocationParts = hotel.location.toLowerCase().split(',').map(part => part.trim());
+      const locationMatch = locationFilter ? hotelLocationParts.some(part => part.includes(locationFilter) || hotel.neighborhood.toLowerCase().includes(locationFilter)) : true;
+
       const priceMatch = hotel.price >= priceRange[0] && hotel.price <= priceRange[1];
       const starMatch = selectedStars.length === 0 || selectedStars.includes(hotel.stars);
       const amenityMatch = selectedAmenities.length === 0 || 
         selectedAmenities.every(amenity => hotel.amenities.includes(amenity));
-      return priceMatch && starMatch && amenityMatch;
+      return locationMatch && priceMatch && starMatch && amenityMatch;
     })
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
@@ -287,6 +303,7 @@ export function HotelListingPage() {
                 variant="outline" 
                 className="w-full mt-6"
                 onClick={() => {
+                  setLocationFilter('');
                   setPriceRange([0, 500]);
                   setSelectedStars([]);
                   setSelectedAmenities([]);
@@ -408,6 +425,7 @@ export function HotelListingPage() {
                 <Button 
                   variant="outline"
                   onClick={() => {
+                    setLocationFilter('');
                     setPriceRange([0, 500]);
                     setSelectedStars([]);
                     setSelectedAmenities([]);
