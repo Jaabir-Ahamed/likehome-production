@@ -21,18 +21,9 @@ export function SearchComponent() {
     return `${year}-${month}-${day}`;
   };
 
-  const getDayAfter = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate() + 1).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  }
-
   const localToday = getToday();
 
   const handleSearch = () => {
-    //console.log({ location, checkIn, checkOut, guests });\
     const queryParams = new URLSearchParams({
       location: location.trim(),
       checkIn,
@@ -40,8 +31,7 @@ export function SearchComponent() {
       guests: guests.toString(),
     });
 
-    //navigate(`/hotels?${queryParams.toString()}`);
-    window.location.href = `/hotels?${queryParams.toString()}`;
+    navigate(`/hotels?${queryParams.toString()}`);
   };
 
   return (
