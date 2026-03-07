@@ -1,0 +1,44 @@
+import { createBrowserRouter } from "react-router";
+import { RootLayout } from "./layouts/RootLayout";
+import { HomePage } from "./pages/HomePage";
+import { HotelListingPage } from "./pages/HotelListingPage";
+import { HotelDetailsPage } from "./pages/HotelDetailsPage";
+import { PaymentPage } from "./pages/PaymentPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { MyBookingsPage } from "./pages/MyBookingsPage";
+import { FavoritesPage } from "./pages/FavoritesPage";
+import { PaymentsPage } from "./pages/PaymentsPage";
+import { CitiesPage } from "./pages/CitiesPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: RootLayout,
+    children: [
+      { index: true, Component: HomePage },
+      { path: "hotels", Component: HotelListingPage },
+      { path: "hotel/:id", Component: HotelDetailsPage },
+      { path: "payment/:id", Component: PaymentPage },
+      { path: "profile", Component: ProfilePage },
+      { path: "bookings", Component: MyBookingsPage },
+      { path: "favorites", Component: FavoritesPage },
+      { path: "payments", Component: PaymentsPage },
+      { path: "cities", Component: CitiesPage },
+      { path: "settings", Component: SettingsPage },
+      { path: "*", Component: NotFoundPage },
+    ],
+  },
+  // Auth pages without layout
+  {
+    path: "login",
+    Component: LoginPage,
+  },
+  {
+    path: "signup",
+    Component: SignupPage,
+  },
+]);

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ChevronDown } from 'lucide-react';
+import { Link } from 'react-router';
+import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ChevronDown, Map } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
 import { Label } from '../components/ui/label';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { SearchComponent } from '../components/SearchComponent';
+import { MapComponent } from '../components/MapComponent';
 import {
   Select,
   SelectContent,
@@ -152,12 +156,13 @@ const amenityIcons = {
 };
 
 export function HotelListingPage() {
+  const { convertPrice, getCurrencySymbol } = useCurrency();
   const [searchParams] = useSearchParams();
   const locationParam = searchParams.get('location')?.toLowerCase() || '';
   const checkInParam = searchParams.get('checkIn');
   const checkOutParam = searchParams.get('checkOut');
   const guestsParam = searchParams.get('guests');
-  
+
   const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
   useEffect(() => {
@@ -167,7 +172,11 @@ export function HotelListingPage() {
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
+  const [guestRating, setGuestRating] = useState<number>(0);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('recommended');
+  const [showMap, setShowMap] = useState(true);
 
   const handleStarToggle = (star: number) => {
     setSelectedStars(prev => 
@@ -181,6 +190,21 @@ export function HotelListingPage() {
     );
   };
 
+  const handleNeighborhoodToggle = (neighborhood: string) => {
+    setSelectedNeighborhoods(prev =>
+      prev.includes(neighborhood) ? prev.filter(n => n !== neighborhood) : [...prev, neighborhood]
+    );
+  };
+
+  const handlePropertyTypeToggle = (type: string) => {
+    setPropertyTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  // Get unique neighborhoods from hotels
+  const neighborhoods = Array.from(new Set(hotels.map(h => h.neighborhood)));
+
   // Filter and sort hotels
   const filteredHotels = hotels
     .filter(hotel => {
@@ -191,7 +215,10 @@ export function HotelListingPage() {
       const starMatch = selectedStars.length === 0 || selectedStars.includes(hotel.stars);
       const amenityMatch = selectedAmenities.length === 0 || 
         selectedAmenities.every(amenity => hotel.amenities.includes(amenity));
-      return locationMatch && priceMatch && starMatch && amenityMatch;
+      const neighborhoodMatch = selectedNeighborhoods.length === 0 ||
+        selectedNeighborhoods.includes(hotel.neighborhood);
+      const ratingMatch = hotel.rating >= guestRating;
+      return locationMatch && priceMatch && starMatch && amenityMatch && neighborhoodMatch && ratingMatch;
     })
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
@@ -213,11 +240,27 @@ export function HotelListingPage() {
           </p>
         </div>
 
+        {/* Search Component */}
+        <div className="mb-8">
+          <SearchComponent />
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar - Filters */}
           <aside className="w-full lg:w-1/4">
             <Card className="p-6 sticky top-28">
-              <h2 className="text-xl font-bold text-[#1f2937] mb-6">Filters</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-[#1f2937]">Filters</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowMap(!showMap)}
+                  className="text-[#2563eb]"
+                >
+                  <Map className="w-4 h-4 mr-2" />
+                  {showMap ? 'Hide Map' : 'Show Map'}
+                </Button>
+              </div>
 
               <Accordion type="multiple" defaultValue={['price', 'stars', 'amenities']} className="w-full">
                 {/* Price Range Filter */}
@@ -270,6 +313,58 @@ export function HotelListingPage() {
                   </AccordionContent>
                 </AccordionItem>
 
+                {/* Guest Rating Filter */}
+                <AccordionItem value="guestRating">
+                  <AccordionTrigger className="text-base font-medium">
+                    Guest Rating
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 pt-2">
+                      {[
+                        { value: 4.5, label: '4.5+ Excellent' },
+                        { value: 4.0, label: '4.0+ Very Good' },
+                        { value: 3.5, label: '3.5+ Good' },
+                        { value: 3.0, label: '3.0+ Average' },
+                        { value: 0, label: 'All Ratings' },
+                      ].map((rating) => (
+                        <div key={rating.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`rating-${rating.value}`}
+                            checked={guestRating === rating.value}
+                            onCheckedChange={() => setGuestRating(rating.value)}
+                          />
+                          <Label htmlFor={`rating-${rating.value}`} className="cursor-pointer">
+                            {rating.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Neighborhood Filter */}
+                <AccordionItem value="neighborhoods">
+                  <AccordionTrigger className="text-base font-medium">
+                    Neighborhoods
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 pt-2 max-h-48 overflow-y-auto">
+                      {neighborhoods.map((neighborhood) => (
+                        <div key={neighborhood} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`neighborhood-${neighborhood}`}
+                            checked={selectedNeighborhoods.includes(neighborhood)}
+                            onCheckedChange={() => handleNeighborhoodToggle(neighborhood)}
+                          />
+                          <Label htmlFor={`neighborhood-${neighborhood}`} className="cursor-pointer text-sm">
+                            {neighborhood}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
                 {/* Amenities Filter */}
                 <AccordionItem value="amenities">
                   <AccordionTrigger className="text-base font-medium">
@@ -297,6 +392,35 @@ export function HotelListingPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
+
+                {/* Property Type Filter */}
+                <AccordionItem value="propertyType">
+                  <AccordionTrigger className="text-base font-medium">
+                    Property Type
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 pt-2">
+                      {[
+                        { id: 'hotel', label: 'Hotel' },
+                        { id: 'resort', label: 'Resort' },
+                        { id: 'boutique', label: 'Boutique Hotel' },
+                        { id: 'suite', label: 'Suite' },
+                        { id: 'lodge', label: 'Lodge' },
+                      ].map((type) => (
+                        <div key={type.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={type.id}
+                            checked={propertyTypes.includes(type.id)}
+                            onCheckedChange={() => handlePropertyTypeToggle(type.id)}
+                          />
+                          <Label htmlFor={type.id} className="cursor-pointer">
+                            {type.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
 
               <Button 
@@ -307,6 +431,9 @@ export function HotelListingPage() {
                   setPriceRange([0, 500]);
                   setSelectedStars([]);
                   setSelectedAmenities([]);
+                  setSelectedNeighborhoods([]);
+                  setGuestRating(0);
+                  setPropertyTypes([]);
                 }}
               >
                 Clear All Filters
@@ -314,8 +441,19 @@ export function HotelListingPage() {
             </Card>
           </aside>
 
-          {/* Main Content - Hotel Results */}
+          {/* Main Content - Hotel Results and Map */}
           <main className="flex-1">
+            {/* Map Section */}
+            {showMap && (
+              <div className="mb-6">
+                <MapComponent
+                  location="Hotels in Various Locations"
+                  height="500px"
+                  className="w-full"
+                />
+              </div>
+            )}
+
             {/* Sorting Bar */}
             <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="text-sm text-[#717182]">
@@ -405,12 +543,12 @@ export function HotelListingPage() {
                         <div>
                           <p className="text-sm text-[#717182] mb-1">Starting from</p>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-bold text-[#1f2937]">${hotel.price}</span>
+                            <span className="text-3xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
                             <span className="text-sm text-[#717182]">/night</span>
                           </div>
                         </div>
-                        <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white px-8">
-                          View Details
+                        <Button asChild className="bg-[#2563eb] hover:bg-[#1e40af] text-white px-8">
+                          <Link to={`/hotel/${hotel.id}`}>View Details</Link>
                         </Button>
                       </div>
                     </div>

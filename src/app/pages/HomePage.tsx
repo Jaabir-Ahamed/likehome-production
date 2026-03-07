@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { SearchComponent } from '../components/SearchComponent';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { useCurrency } from '../contexts/CurrencyContext';
 import imgHeroBackground from '../../assets/910a43fa90ece96610082739bbdb02f24d6b7f70.png';
 
 // Trending destinations data
@@ -115,7 +116,49 @@ const topRatedHotels = [
   },
 ];
 
+// Recommended hotels data
+const recommendedHotels = [
+  {
+    id: 9,
+    name: 'Serenity Spa Resort',
+    location: 'Santorini, Greece',
+    rating: 4.9,
+    price: 310,
+    image: 'https://images.unsplash.com/photo-1759223198981-661cadbbff36?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBob3RlbCUyMHN1aXRlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzcyNTU2ODU3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    reviews: 876,
+  },
+  {
+    id: 10,
+    name: 'Vista Heights Hotel',
+    location: 'San Francisco, USA',
+    rating: 4.7,
+    price: 265,
+    image: 'https://images.unsplash.com/photo-1764642498023-8547a9558d47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMHJvb2Z0b3AlMjB2aWV3fGVufDF8fHx8MTc3MjY4MjQ4Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    reviews: 543,
+  },
+  {
+    id: 11,
+    name: 'Artisan Boutique Stay',
+    location: 'Copenhagen, Denmark',
+    rating: 4.8,
+    price: 245,
+    image: 'https://images.unsplash.com/photo-1759264244746-140bbbc54e1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxib3V0aXF1ZSUyMGhvdGVsJTIwYmVkcm9vbSUyMGRlc2lnbnxlbnwxfHx8fDE3NzI2ODI0ODN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    reviews: 621,
+  },
+  {
+    id: 12,
+    name: 'Azure Grand Hotel',
+    location: 'Monaco',
+    rating: 4.9,
+    price: 420,
+    image: 'https://images.unsplash.com/photo-1741506131058-533fcf894483?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1cHNjYWxlJTIwaG90ZWwlMjBsb3VuZ2V8ZW58MXx8fHwxNzcyNjgyNDgzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    reviews: 712,
+  },
+];
+
 export function HomePage() {
+  const { convertPrice, getCurrencySymbol } = useCurrency();
+
   return (
     <div className="w-full">
       {/* Hero Section */}
@@ -142,15 +185,23 @@ export function HomePage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
-            <Link 
-              to="/hotels"
-              className="backdrop-blur-sm bg-white/20 border-white text-white hover:bg-white/30 px-8 py-6 text-lg rounded-2xl border inline-flex items-center justify-center transition-colors"
+            <Button
+              asChild
+              variant="outline"
+              className="backdrop-blur-sm bg-white/20 border-white text-white hover:bg-white/30 px-8 py-6 text-lg rounded-2xl"
             >
-              Search for Hotels
-            </Link>
-            <button className="bg-black/80 hover:bg-black text-white px-8 py-6 text-lg rounded-2xl border border-white transition-colors">
-              Find a City
-            </button>
+              <Link to="/hotels">
+                Search for Hotels
+              </Link>
+            </Button>
+            <Button
+              asChild
+              className="backdrop-blur-sm bg-black/70 hover:bg-white/90 hover:text-[#1f2937] text-white px-8 py-6 text-lg rounded-2xl border border-white/40 transition-all duration-300"
+            >
+              <Link to="/cities">
+                Find a City
+              </Link>
+            </Button>
           </div>
 
           {/* Search Component */}
@@ -172,12 +223,12 @@ export function HomePage() {
                 Discover the most popular travel destinations
               </p>
             </div>
-            <Link to="/hotels">
-              <Button variant="ghost" className="hidden md:flex items-center gap-2 text-[#2563eb] hover:text-[#1e40af]">
+            <Button asChild variant="ghost" className="hidden md:flex items-center gap-2 text-[#2563eb] hover:text-[#1e40af]">
+              <Link to="/hotels">
                 View All
                 <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -219,50 +270,120 @@ export function HomePage() {
                 Hand-picked hotels with exceptional reviews
               </p>
             </div>
-            <Link to="/hotels">
-              <Button variant="ghost" className="hidden md:flex items-center gap-2 text-[#2563eb] hover:text-[#1e40af]">
+            <Button asChild variant="ghost" className="hidden md:flex items-center gap-2 text-[#2563eb] hover:text-[#1e40af]">
+              <Link to="/hotels">
                 View All
                 <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
 
           <div className="overflow-x-auto pb-4 -mx-4 px-4">
             <div className="flex gap-6 w-max">
               {topRatedHotels.map((hotel) => (
-                <Card 
-                  key={hotel.id} 
-                  className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 w-[320px] md:w-[360px]"
+                <Link
+                  key={hotel.id}
+                  to={`/hotel/${hotel.id}`}
                 >
-                  <div className="relative h-64 overflow-hidden">
-                    <img 
-                      src={hotel.image} 
-                      alt={hotel.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]" />
-                      <span className="font-bold text-[#1f2937]">{hotel.rating}</span>
-                      <span className="text-xs text-[#717182]">({hotel.reviews})</span>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
-                    <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      {hotel.location}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-2xl font-bold text-[#1f2937]">${hotel.price}</span>
-                        <span className="text-sm text-[#717182]">/night</span>
+                  <Card
+                    className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 w-[320px] md:w-[360px]"
+                  >
+                    <div className="relative h-64 overflow-hidden">
+                      <img
+                        src={hotel.image}
+                        alt={hotel.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]" />
+                        <span className="font-bold text-[#1f2937]">{hotel.rating}</span>
+                        <span className="text-xs text-[#717182]">({hotel.reviews})</span>
                       </div>
-                      <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
-                        Quick View
-                      </Button>
                     </div>
-                  </div>
-                </Card>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
+                      <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {hotel.location}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                          <span className="text-sm text-[#717182]">/night</span>
+                        </div>
+                        <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+                          Quick View
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Recommended for You Section */}
+      <section className="py-16 md:py-24 bg-gray-50">
+        <div className="container mx-auto px-4 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                Recommended for You
+              </h2>
+              <p className="text-lg text-[#717182]">
+                Handpicked hotels based on your preferences
+              </p>
+            </div>
+            <Button asChild variant="ghost" className="hidden md:flex items-center gap-2 text-[#2563eb] hover:text-[#1e40af]">
+              <Link to="/hotels">
+                View All
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="flex gap-6 w-max">
+              {recommendedHotels.map((hotel) => (
+                <Link
+                  key={hotel.id}
+                  to={`/hotel/${hotel.id}`}
+                >
+                  <Card
+                    className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 w-[320px] md:w-[360px]"
+                  >
+                    <div className="relative h-64 overflow-hidden">
+                      <img
+                        src={hotel.image}
+                        alt={hotel.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]" />
+                        <span className="font-bold text-[#1f2937]">{hotel.rating}</span>
+                        <span className="text-xs text-[#717182]">({hotel.reviews})</span>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
+                      <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {hotel.location}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                          <span className="text-sm text-[#717182]">/night</span>
+                        </div>
+                        <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+                          Quick View
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>
@@ -278,14 +399,15 @@ export function HomePage() {
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Join thousands of travelers who trust LikeHome for their perfect stay
           </p>
-          <Link to="/hotels">
-            <Button 
-              size="lg" 
-              className="bg-[#f59e0b] hover:bg-[#d97706] text-white px-12 py-6 text-lg rounded-xl"
-            >
+          <Button
+            asChild
+            size="lg"
+            className="bg-[#f59e0b] hover:bg-[#d97706] text-white px-12 py-6 text-lg rounded-xl"
+          >
+            <Link to="/hotels">
               Explore Hotels
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </section>
     </div>

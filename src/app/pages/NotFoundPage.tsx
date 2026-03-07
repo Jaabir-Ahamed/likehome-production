@@ -16,12 +16,12 @@ export function NotFoundPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/" className="inline-block">
-            <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+          <Button asChild className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+            <Link to="/">
               <Home className="w-5 h-5 mr-2" />
               Go Home
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => window.history.back()}

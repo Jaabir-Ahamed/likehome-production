@@ -43,9 +43,9 @@ export function SearchComponent() {
 
   return (
     <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
         {/* Location */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Location</label>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
@@ -133,13 +133,13 @@ export function SearchComponent() {
         </div>
 
         {/* Search Button */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 flex items-end">
           <Button 
             onClick={handleSearch}
-            className="w-full h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-lg transition-colors"
+            className="w-full h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-lg transition-colors px-4"
           >
-            <Search className="w-5 h-5 mr-2" />
-            Search
+            <Search className="w-5 h-5" />
+            <span className="hidden lg:inline ml-2">Search</span>
           </Button>
         </div>
       </div>
