@@ -2,15 +2,43 @@ import { MapPin, Calendar, Users, Search } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 export function SearchComponent() {
+  const navigate = useNavigate();
+
   const [location, setLocation] = useState('');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
 
+  const getToday = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const localToday = getToday();
+
+  function dateToString(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   const handleSearch = () => {
-    console.log({ location, checkIn, checkOut, guests });
+    const queryParams = new URLSearchParams({
+      location: location.trim(),
+      checkIn,
+      checkOut,
+      guests: guests.toString(),
+    });
+
+    navigate(`/hotels?${queryParams.toString()}`);
   };
 
   return (
@@ -40,6 +68,18 @@ export function SearchComponent() {
               type="date"
               value={checkIn}
               onChange={(e) => setCheckIn(e.target.value)}
+              onBlur={() => {
+                let newCheckIn = checkIn;
+                if (!checkIn || checkIn < localToday) {
+                  newCheckIn = localToday;
+                  setCheckIn(localToday);
+                }
+                const tmp = new Date(newCheckIn + "T00:00:00");
+                tmp.setDate(tmp.getDate() + 1);
+                if (!checkOut || checkOut < dateToString(tmp)) {
+                  setCheckOut(dateToString(tmp));
+                }
+              }}
               className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
@@ -54,6 +94,14 @@ export function SearchComponent() {
               type="date"
               value={checkOut}
               onChange={(e) => setCheckOut(e.target.value)}
+              onBlur={() => {
+                const minDate = checkIn || localToday;
+                const tmp = new Date(minDate + "T00:00:00");
+                tmp.setDate(tmp.getDate() + 1);
+                if (!checkOut || checkOut < dateToString(tmp)) {
+                  setCheckOut(dateToString(tmp)); // auto-correct to check-in or today + 1
+                }
+              }}
               className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
