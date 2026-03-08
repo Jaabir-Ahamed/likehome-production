@@ -1,11 +1,8 @@
-import { Navigate } from "react-router";
+
+import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 
-interface Props {
-    children: React.ReactNode;
-}
-
-export function ProtectedRoute({ children }: Props) {
+export function ProtectedLayout() {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -20,6 +17,5 @@ export function ProtectedRoute({ children }: Props) {
         return <Navigate to="/" replace />;
     }
 
-    return <>{children}</>;
+    return <Outlet />;
 }
-

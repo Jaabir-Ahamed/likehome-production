@@ -1,5 +1,8 @@
 import { createBrowserRouter } from "react-router";
+
 import { RootLayout } from "./layouts/RootLayout";
+import { ProtectedLayout } from "./layouts/ProtectedLayout";
+
 import { HomePage } from "./pages/HomePage";
 import { HotelListingPage } from "./pages/HotelListingPage";
 import { HotelDetailsPage } from "./pages/HotelDetailsPage";
@@ -22,23 +25,32 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "hotels", Component: HotelListingPage },
       { path: "hotel/:id", Component: HotelDetailsPage },
-      { path: "payment/:id", Component: PaymentPage },
-      { path: "profile", Component: ProfilePage },
-      { path: "bookings", Component: MyBookingsPage },
-      { path: "favorites", Component: FavoritesPage },
-      { path: "payments", Component: PaymentsPage },
       { path: "cities", Component: CitiesPage },
-      { path: "settings", Component: SettingsPage },
+
+      // ✅ Protected routes grouped together
+      {
+        Component: ProtectedLayout,
+        children: [
+          { path: "payment/:id", Component: PaymentPage },
+          { path: "profile", Component: ProfilePage },
+          { path: "bookings", Component: MyBookingsPage },
+          { path: "favorites", Component: FavoritesPage },
+          { path: "payments", Component: PaymentsPage },
+          { path: "settings", Component: SettingsPage },
+        ],
+      },
+
       { path: "*", Component: NotFoundPage },
     ],
   },
-  // Auth pages without layout
+
+  // ✅ Auth routes outside main layout
   {
-    path: "login",
+    path: "/login",
     Component: LoginPage,
   },
   {
-    path: "signup",
+    path: "/signup",
     Component: SignupPage,
   },
 ]);
