@@ -56,11 +56,10 @@ export function SignupPage() {
                 },
             });
 
-            // if (error) {
-            //     throw error;
-            // }
+            if (error) {
+                throw error;
+            }
 
-            console.log("Signup success:", data);
             setSignupSuccess(true);
 
         } catch (error: any) {
@@ -232,11 +231,11 @@ export function SignupPage() {
 
                                 <p className="text-[#6b7280]">
                                     We've sent a verification link to
-                                    <br />
+                                    <br/>
                                     <span className="font-medium text-[#1f2937]">
           {formData.email}
         </span>
-                                    <br />
+                                    <br/>
                                     Please verify your account before signing in.
                                 </p>
 
