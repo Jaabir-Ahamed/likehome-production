@@ -22,4 +22,10 @@ export const api = {
         if (error) throw error;
         return data;
     },
+
+    getFacilities: async () => {
+        const {data, error} = await supabase.functions.invoke("list-facilities");
+        if (error) throw error;
+        return data;
+    },
 };

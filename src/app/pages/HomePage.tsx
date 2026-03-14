@@ -170,13 +170,26 @@ export function HomePage() {
         const loadCountries = async () => {
             try {
                 const data = await api.getCountries();
-                console.log(data);
+
             } catch (err) {
                 console.error(err);
             }
         };
 
         loadCountries();
+
+        // TODO: take this out, just example to call apis
+        const loadFacilities = async () => {
+            try {
+                const facilities = await api.getFacilities();
+                console.log(facilities?.data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        loadFacilities();
+
+
     }, []);
 
 
