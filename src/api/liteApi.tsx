@@ -28,4 +28,12 @@ export const api = {
         if (error) throw error;
         return data;
     },
+
+    getHotelDetails: async (hotelId: string) => {
+        const {data, error} = await supabase.functions.invoke(
+            `hotel-details?hotelId=${encodeURIComponent(hotelId)}`
+        )
+        if (error) throw error
+        return data
+    }
 };
