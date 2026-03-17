@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { Link } from 'react-router';
-import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ChevronDown, Map } from 'lucide-react';
+import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, Map } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Slider } from '../components/ui/slider';
@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { SearchComponent } from '../components/SearchComponent';
 import { MapComponent } from '../components/MapComponent';
+import { useHotelSearch } from '../../hooks/useHotelSearch';
 import {
   Select,
   SelectContent,
@@ -155,13 +156,37 @@ const amenityIcons = {
   gym: Dumbbell,
 };
 
+type HotelCardItem = {
+  id: number | string;
+  name: string;
+  location: string;
+  neighborhood: string;
+  rating: number;
+  reviews: number;
+  price: number;
+  images: string[];
+  stars: number;
+  amenities: string[];
+  description: string;
+};
+
 export function HotelListingPage() {
   const { convertPrice, getCurrencySymbol } = useCurrency();
   const [searchParams] = useSearchParams();
-  const locationParam = searchParams.get('location')?.toLowerCase() || '';
-  const checkInParam = searchParams.get('checkIn');
-  const checkOutParam = searchParams.get('checkOut');
+  const locationParam = searchParams.get('location')?.trim() ?? '';
+  const checkInParam = searchParams.get('checkIn') ?? '';
+  const checkOutParam = searchParams.get('checkOut') ?? '';
   const guestsParam = searchParams.get('guests');
+
+  const hasSearchParams = Boolean(locationParam && checkInParam && checkOutParam);
+  const guests = Math.max(1, parseInt(guestsParam ?? '2', 10) || 2);
+
+  const { hotels: apiHotels, loading: searchLoading, error: searchError, refetch: refetchSearch } = useHotelSearch({
+    location: locationParam,
+    checkIn: checkInParam,
+    checkOut: checkOutParam,
+    guests,
+  });
 
   const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
@@ -202,21 +227,41 @@ export function HotelListingPage() {
     );
   };
 
-  // Get unique neighborhoods from hotels
-  const neighborhoods = Array.from(new Set(hotels.map(h => h.neighborhood)));
+  const displayHotels: HotelCardItem[] = useMemo(() => {
+    if (hasSearchParams && apiHotels.length >= 0) {
+      return apiHotels.map((h): HotelCardItem => ({
+        id: h.id,
+        name: h.name,
+        location: h.location,
+        neighborhood: '',
+        rating: h.rating,
+        reviews: h.reviewCount,
+        price: h.price,
+        images: h.image ? [h.image] : [],
+        stars: h.stars,
+        amenities: [],
+        description: '',
+      }));
+    }
+    return hotels as HotelCardItem[];
+  }, [hasSearchParams, apiHotels, hotels]);
 
-  // Filter and sort hotels
-  const filteredHotels = hotels
+  const neighborhoods = useMemo(
+    () => Array.from(new Set(displayHotels.map(h => h.neighborhood).filter(Boolean))),
+    [displayHotels]
+  );
+
+  const filteredHotels = displayHotels
     .filter(hotel => {
       const hotelLocationParts = hotel.location.toLowerCase().split(',').map(part => part.trim());
-      const locationMatch = locationFilter ? hotelLocationParts.some(part => part.includes(locationFilter) || hotel.neighborhood.toLowerCase().includes(locationFilter)) : true;
+      const locationMatch = locationFilter ? hotelLocationParts.some(part => part.includes(locationFilter) || (hotel.neighborhood && hotel.neighborhood.toLowerCase().includes(locationFilter))) : true;
 
       const priceMatch = hotel.price >= priceRange[0] && hotel.price <= priceRange[1];
       const starMatch = selectedStars.length === 0 || selectedStars.includes(hotel.stars);
-      const amenityMatch = selectedAmenities.length === 0 || 
+      const amenityMatch = selectedAmenities.length === 0 ||
         selectedAmenities.every(amenity => hotel.amenities.includes(amenity));
       const neighborhoodMatch = selectedNeighborhoods.length === 0 ||
-        selectedNeighborhoods.includes(hotel.neighborhood);
+        (hotel.neighborhood ? selectedNeighborhoods.includes(hotel.neighborhood) : true);
       const ratingMatch = hotel.rating >= guestRating;
       return locationMatch && priceMatch && starMatch && amenityMatch && neighborhoodMatch && ratingMatch;
     })
@@ -224,7 +269,7 @@ export function HotelListingPage() {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
-      return 0; // recommended
+      return 0;
     });
 
   return (
@@ -454,7 +499,27 @@ export function HotelListingPage() {
               </div>
             )}
 
-            {/* Sorting Bar */}
+            {/* Search loading state */}
+            {hasSearchParams && searchLoading && (
+              <Card className="p-12 text-center mb-6">
+                <p className="text-lg text-[#717182]">Searching for hotels…</p>
+                <div className="mt-4 h-8 w-8 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin mx-auto" />
+              </Card>
+            )}
+
+            {/* Search error state */}
+            {hasSearchParams && searchError && !searchLoading && (
+              <Card className="p-12 text-center mb-6">
+                <p className="text-lg text-red-600 mb-2">Unable to load results</p>
+                <p className="text-sm text-[#717182] mb-4">{searchError}</p>
+                <Button onClick={() => refetchSearch()} className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+                  Try again
+                </Button>
+              </Card>
+            )}
+
+            {/* Sorting Bar - hide when search is in progress */}
+            {(!hasSearchParams || !searchLoading) && (
             <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="text-sm text-[#717182]">
                 Showing {filteredHotels.length} properties
@@ -474,8 +539,10 @@ export function HotelListingPage() {
                 </Select>
               </div>
             </div>
+            )}
 
-            {/* Hotel Cards */}
+            {/* Hotel Cards - hide when search is in progress */}
+            {(!hasSearchParams || !searchLoading) && (
             <div className="space-y-6">
               {filteredHotels.map((hotel) => (
                 <Card key={hotel.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
@@ -556,8 +623,9 @@ export function HotelListingPage() {
                 </Card>
               ))}
             </div>
+            )}
 
-            {filteredHotels.length === 0 && (
+            {filteredHotels.length === 0 && !(hasSearchParams && searchLoading) && (
               <Card className="p-12 text-center">
                 <p className="text-xl text-[#717182] mb-4">No hotels found matching your criteria</p>
                 <Button 

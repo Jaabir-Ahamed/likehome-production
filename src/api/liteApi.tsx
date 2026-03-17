@@ -1,4 +1,38 @@
-import {supabase} from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
+
+export interface SearchHotelRatesParams {
+  location: string;
+  checkIn: string;
+  checkOut: string;
+  guests?: number;
+  currency?: string;
+  guestNationality?: string;
+}
+
+export interface SearchHotelRatesResponse {
+  data?: Array<{
+    hotelId?: string;
+    hotel?: {
+      name?: string;
+      main_photo?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      rating?: number;
+      reviewCount?: number;
+      stars?: number;
+    };
+    roomTypes?: Array<{
+      name?: string;
+      offerId?: string;
+      rates?: Array<{
+        retailRate?: { total?: Array<{ amount?: number; currency?: string }> };
+        commission?: Array<{ amount?: number; currency?: string }>;
+      }>;
+    }>;
+  }>;
+  error?: string;
+}
 
 export const api = {
     getCountries: async () => {
@@ -30,10 +64,25 @@ export const api = {
     },
 
     getHotelDetails: async (hotelId: string) => {
-        const {data, error} = await supabase.functions.invoke(
+        const { data, error } = await supabase.functions.invoke(
             `hotel-details?hotelId=${encodeURIComponent(hotelId)}`
-        )
-        if (error) throw error
-        return data
-    }
+        );
+        if (error) throw error;
+        return data;
+    },
+
+    searchHotelRates: async (params: SearchHotelRatesParams): Promise<SearchHotelRatesResponse> => {
+        const { data, error } = await supabase.functions.invoke("search-hotels", {
+            body: {
+                location: params.location,
+                checkIn: params.checkIn,
+                checkOut: params.checkOut,
+                guests: params.guests ?? 2,
+                currency: params.currency ?? "USD",
+                guestNationality: params.guestNationality ?? "US",
+            },
+        });
+        if (error) throw error;
+        return data ?? { data: [] };
+    },
 };
