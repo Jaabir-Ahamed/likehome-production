@@ -131,15 +131,17 @@ export function SearchComponent() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-        {/* Location with Autocomplete */}
-        <div className="md:col-span-2" ref={dropdownRef}>
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Location</label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182] z-10" />
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="bg-white shadow-md rounded-2xl md:rounded-full p-3 md:p-2">
+        <div className="flex flex-col md:flex-row md:items-stretch">
+          {/* Location with Autocomplete */}
+          <div className="relative flex-1 px-4 py-2 md:py-1 md:pl-6 md:pr-4 md:border-r md:border-gray-200" ref={dropdownRef}>
+            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
+              Location
+            </label>
+            <MapPin className="absolute left-4 md:left-6 top-[34px] md:top-[30px] w-5 h-5 text-[#717182] z-10" />
             {isLoadingPlaces && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182] animate-spin z-10" />
+              <Loader2 className="absolute right-4 top-[34px] md:top-[30px] w-4 h-4 text-[#717182] animate-spin z-10" />
             )}
             <Input
               ref={inputRef}
@@ -151,13 +153,13 @@ export function SearchComponent() {
               onFocus={() => {
                 if (places.length > 0 && !placeId) setShowDropdown(true);
               }}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="h-10 pl-10 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
               autoComplete="off"
             />
 
             {/* Autocomplete Dropdown */}
             {showDropdown && places.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 max-h-64 overflow-y-auto z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-64 overflow-y-auto z-50">
                 {places.map((place, index) => (
                   <button
                     key={place.placeId}
@@ -187,13 +189,13 @@ export function SearchComponent() {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Check-in */}
-        <div className="md:col-span-1">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-in</label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
+          {/* Check-in */}
+          <div className="relative flex-1 px-4 py-2 md:py-1 md:border-r md:border-gray-200">
+            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
+              Check-in
+            </label>
+            <Calendar className="absolute left-4 top-[34px] md:top-[30px] w-5 h-5 text-[#717182]" />
             <Input
               type="date"
               value={checkIn}
@@ -210,16 +212,16 @@ export function SearchComponent() {
                   setCheckOut(dateToString(tmp));
                 }
               }}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="h-10 pl-10 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
             />
           </div>
-        </div>
 
-        {/* Check-out */}
-        <div className="md:col-span-1">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-out</label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
+          {/* Check-out */}
+          <div className="relative flex-1 px-4 py-2 md:py-1 md:border-r md:border-gray-200">
+            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
+              Check-out
+            </label>
+            <Calendar className="absolute left-4 top-[34px] md:top-[30px] w-5 h-5 text-[#717182]" />
             <Input
               type="date"
               value={checkOut}
@@ -232,71 +234,78 @@ export function SearchComponent() {
                   setCheckOut(dateToString(tmp));
                 }
               }}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="h-10 pl-10 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
             />
           </div>
-        </div>
 
-        {/* Adults & Rooms */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Guests</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="relative flex items-center">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182]" />
-              <div className="flex items-center w-full h-12 bg-[#f3f3f5] rounded-lg pl-9 pr-2">
-                <button
-                  onClick={() => setAdults(Math.max(1, adults - 1))}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                  aria-label="Decrease adults"
-                >
-                  -
-                </button>
-                <span className="flex-1 text-center text-sm font-medium">
-                  {adults} {adults === 1 ? 'Adult' : 'Adults'}
-                </span>
-                <button
-                  onClick={() => setAdults(adults + 1)}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                  aria-label="Increase adults"
-                >
-                  +
-                </button>
+          {/* Guests */}
+          <div className="flex-[1.2] px-4 py-2 md:py-1">
+            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
+              Guests
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative flex items-center">
+                <Users className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182]" />
+                <div className="flex items-center w-full h-10 rounded-md pl-6 pr-1 border border-transparent hover:border-gray-200 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => setAdults(Math.max(1, adults - 1))}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                    aria-label="Decrease adults"
+                  >
+                    -
+                  </button>
+                  <span className="flex-1 text-center text-sm font-medium">
+                    {adults} {adults === 1 ? 'Adult' : 'Adults'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setAdults(adults + 1)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                    aria-label="Increase adults"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="relative flex items-center">
-              <div className="flex items-center w-full h-12 bg-[#f3f3f5] rounded-lg px-2">
-                <button
-                  onClick={() => setRooms(Math.max(1, rooms - 1))}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                  aria-label="Decrease rooms"
-                >
-                  -
-                </button>
-                <span className="flex-1 text-center text-sm font-medium">
-                  {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
-                </span>
-                <button
-                  onClick={() => setRooms(rooms + 1)}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                  aria-label="Increase rooms"
-                >
-                  +
-                </button>
+              <div className="flex items-center">
+                <div className="flex items-center w-full h-10 rounded-md px-1 border border-transparent hover:border-gray-200 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => setRooms(Math.max(1, rooms - 1))}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                    aria-label="Decrease rooms"
+                  >
+                    -
+                  </button>
+                  <span className="flex-1 text-center text-sm font-medium">
+                    {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRooms(rooms + 1)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                    aria-label="Increase rooms"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Search Button */}
-        <div className="md:col-span-1 flex items-end">
-          <Button 
-            onClick={handleSearch}
-            className="w-full h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-lg transition-colors px-4"
-          >
-            <Search className="w-5 h-5" />
-            <span className="hidden lg:inline ml-2">Search</span>
-          </Button>
+          {/* Search Button */}
+          <div className="mt-3 md:mt-0 md:pl-2 flex items-center">
+            <Button
+              onClick={handleSearch}
+              className="w-full md:w-12 h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-xl md:rounded-full transition-colors px-4 md:px-0"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+              <span className="md:hidden ml-2">Search</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
