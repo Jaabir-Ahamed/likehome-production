@@ -13,6 +13,15 @@ type HotelSearchParams =
     | { placeId: string; countryCode?: never; cityName?: never }
     | { countryCode: string; cityName: string; placeId?: never }
 
+type HotelRatesParams = {
+    hotelIds: string[];
+    checkin: string;
+    checkout: string;
+    occupancies: { adults: number; children?: number[] }[];
+    currency?: string;
+    guestNationality?: string;
+};
+
 export const api = {
     getCountries: async () => {
         const {data, error} = await supabase.functions.invoke("countries");
