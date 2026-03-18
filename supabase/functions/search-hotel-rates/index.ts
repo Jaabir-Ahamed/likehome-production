@@ -55,7 +55,7 @@ serve(async (req) => {
 
     const body = await req.json();
 
-    // Convert adults + rooms to the occupancies array LiteAPI v1 expects
+    // Convert adults + rooms to the occupancies array LiteAPI expects
     const adults = Number(body.adults ?? 2);
     const rooms = Number(body.rooms ?? 1);
     const occupancies = Array.from({ length: rooms }, () => ({ adults }));
@@ -73,7 +73,7 @@ serve(async (req) => {
     };
 
     const response = await fetch(
-      "https://api.liteapi.travel/v1/hotels/rates",
+      "https://sandbox.liteapi.travel/v3.0/hotels/rates",
       {
         method: "POST",
         headers: {

@@ -39,7 +39,7 @@ serve(async (req) => {
     if (type) params.append("type", type);
 
     const response = await fetch(
-      `https://api.liteapi.travel/v1/data/places?${params.toString()}`,
+      `https://sandbox.liteapi.travel/v3.0/data/places?${params.toString()}`,
       {
         method: "GET",
         headers: {
