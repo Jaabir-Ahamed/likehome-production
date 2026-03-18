@@ -238,12 +238,12 @@ export function SearchComponent() {
         </div>
 
         {/* Adults & Rooms */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Guests</label>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="relative flex items-center">
               <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182]" />
-              <div className="flex items-center w-full h-10 bg-[#f3f3f5] rounded-lg pl-9 pr-2">
+              <div className="flex items-center w-full h-12 bg-[#f3f3f5] rounded-lg pl-9 pr-2">
                 <button
                   onClick={() => setAdults(Math.max(1, adults - 1))}
                   className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
@@ -251,7 +251,9 @@ export function SearchComponent() {
                 >
                   -
                 </button>
-                <span className="flex-1 text-center text-sm font-medium">{adults} {adults === 1 ? 'Adult' : 'Adults'}</span>
+                <span className="flex-1 text-center text-sm font-medium">
+                  {adults} {adults === 1 ? 'Adult' : 'Adults'}
+                </span>
                 <button
                   onClick={() => setAdults(adults + 1)}
                   className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
@@ -261,22 +263,27 @@ export function SearchComponent() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center w-full h-10 bg-[#f3f3f5] rounded-lg pl-9 pr-2">
-              <button
-                onClick={() => setRooms(Math.max(1, rooms - 1))}
-                className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                aria-label="Decrease rooms"
-              >
-                -
-              </button>
-              <span className="flex-1 text-center text-sm font-medium">{rooms} {rooms === 1 ? 'Room' : 'Rooms'}</span>
-              <button
-                onClick={() => setRooms(rooms + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
-                aria-label="Increase rooms"
-              >
-                +
-              </button>
+
+            <div className="relative flex items-center">
+              <div className="flex items-center w-full h-12 bg-[#f3f3f5] rounded-lg px-2">
+                <button
+                  onClick={() => setRooms(Math.max(1, rooms - 1))}
+                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
+                  aria-label="Decrease rooms"
+                >
+                  -
+                </button>
+                <span className="flex-1 text-center text-sm font-medium">
+                  {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
+                </span>
+                <button
+                  onClick={() => setRooms(rooms + 1)}
+                  className="w-7 h-7 flex items-center justify-center rounded bg-white hover:bg-[#e9ebef] transition-colors text-sm"
+                  aria-label="Increase rooms"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
         </div>

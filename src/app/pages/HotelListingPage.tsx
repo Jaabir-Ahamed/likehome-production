@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
-import { Map, Loader2, SearchX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Map, Loader2, SearchX, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Slider } from '../components/ui/slider';
