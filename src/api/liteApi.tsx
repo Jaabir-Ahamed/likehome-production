@@ -22,6 +22,24 @@ type HotelRatesParams = {
     guestNationality?: string;
 };
 
+export type Place = {
+    placeId: string;
+    displayName: string;
+    formattedAddress: string;
+    types: string[];
+};
+
+export type HotelRateSearchParams = {
+    placeId: string;
+    checkin: string;
+    checkout: string;
+    adults: number;
+    rooms: number;
+    currency: string;
+    guestNationality: string;
+    limit?: number;
+};
+
 export const api = {
     getCountries: async () => {
         const {data, error} = await supabase.functions.invoke("countries");
@@ -43,8 +61,9 @@ export const api = {
         if (search.placeId) {
             params.append('placeId', search.placeId)
         } else {
-            params.append('countryCode', encodeURIComponent(search.countryCode))
-            params.append('cityName', encodeURIComponent(search.cityName))
+            const { countryCode, cityName } = search as { countryCode: string; cityName: string };
+            params.append('countryCode', encodeURIComponent(countryCode))
+            params.append('cityName', encodeURIComponent(cityName))
         }
 
         if (options?.limit) params.append('limit', String(options.limit))
@@ -72,5 +91,35 @@ export const api = {
         )
         if (error) throw error
         return data
-    }
+    },
+
+    findPlaces: async (textQuery: string): Promise<Place[]> => {
+        const {data, error} = await supabase.functions.invoke(
+            `search-places?textQuery=${encodeURIComponent(textQuery)}`
+        );
+        if (error) throw error;
+        return data?.data ?? [];
+    },
+
+    searchHotelRates: async (params: HotelRateSearchParams) => {
+        const {data, error} = await supabase.functions.invoke(
+            "search-hotel-rates",
+            {
+                body: {
+                    placeId: params.placeId,
+                    checkin: params.checkin,
+                    checkout: params.checkout,
+                    adults: params.adults,
+                    rooms: params.rooms,
+                    currency: params.currency,
+                    guestNationality: params.guestNationality,
+                    limit: params.limit ?? 20,
+                    includeHotelData: true,
+                    maxRatesPerHotel: 1,
+                },
+            }
+        );
+        if (error) throw error;
+        return data;
+    },
 };
