@@ -96,10 +96,31 @@ export function HotelListingPage() {
           limit: 60,
         });
 
+        console.log('Search Results:', result);
+
         if (cancelled) return;
-        setHotels(result?.data ?? []);
+
+        // Guard: result.data must be an array of hotel objects (have a hotelId field).
+        // If we receive facilities data or any other non-hotel array, discard it.
+        const raw: unknown[] = Array.isArray(result?.data) ? result.data : [];
+        const hotelData = raw.filter(
+          (item): item is NormalizedHotel =>
+            item !== null &&
+            typeof item === 'object' &&
+            'hotelId' in (item as object)
+        );
+
+        if (raw.length > 0 && hotelData.length === 0) {
+          console.warn(
+            'search-hotel-rates returned items that are not hotel objects. First item:',
+            raw[0]
+          );
+        }
+
+        setHotels(hotelData);
       } catch (err) {
         if (cancelled) return;
+        console.error('searchHotelRates error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load hotels. Please try again.');
       } finally {
         if (!cancelled) setIsLoading(false);
