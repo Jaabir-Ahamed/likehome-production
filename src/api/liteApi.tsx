@@ -34,11 +34,11 @@ export type NormalizedHotel = {
     name: string | null;
     image: string | null;
     address: string | null;
-    city: string | null;
-    country: string | null;
+    city?: string | null;
+    country?: string | null;
     starRating: number;
-    reviewRating: number;
-    reviewCount: number;
+    reviewRating?: number;
+    reviewCount?: number;
     price: number | null;
     currency: string;
 };

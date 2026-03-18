@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const LITEAPI_BASE = "https://sandbox.liteapi.travel/v3.0";
+const LITEAPI_BASE = "https://api.liteapi.travel/v3.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,6 @@ function num(v: any): number {
 
 // deno-lint-ignore no-explicit-any
 function resolveAddress(h: any, item: any): { address: string | null; city: string | null; country: string | null } {
-  // address may be a plain string or a nested object
   const addrObj = h?.address ?? item?.address;
   if (addrObj && typeof addrObj === "object") {
     return {
@@ -40,13 +39,11 @@ function resolveAddress(h: any, item: any): { address: string | null; city: stri
 
 // deno-lint-ignore no-explicit-any
 function resolveImage(h: any, item: any): string | null {
-  // Try images array (various shapes)
   const imagesArr: any[] = h?.images ?? item?.images ?? [];
   for (const img of imagesArr) {
     const url = str(img?.url ?? img?.urlMax ?? img?.urlHd ?? img);
     if (url) return url;
   }
-  // Try single photo fields
   return (
     str(h?.mainPhoto ?? h?.photo ?? h?.thumbnail) ??
     str(item?.mainPhoto ?? item?.photo ?? item?.thumbnail) ??
@@ -56,7 +53,6 @@ function resolveImage(h: any, item: any): string | null {
 
 // deno-lint-ignore no-explicit-any
 function resolvePrice(item: any): number | null {
-  // rates[] -> retailRate.total[0].amount
   const rates: any[] = item?.rates ?? item?.rooms ?? [];
   for (const rate of rates) {
     const total = rate?.retailRate?.total ?? rate?.retailRate?.price;
@@ -64,11 +60,9 @@ function resolvePrice(item: any): number | null {
       const amount = total[0]?.amount ?? total[0]?.price ?? total[0];
       if (typeof amount === "number") return amount;
     }
-    // flat amount on rate itself
     if (typeof rate?.amount === "number") return rate.amount;
     if (typeof rate?.price === "number") return rate.price;
   }
-  // top-level fallbacks
   if (typeof item?.lowestRate === "number") return item.lowestRate;
   if (typeof item?.price === "number") return item.price;
   if (typeof item?.minRate === "number") return item.minRate;
@@ -90,31 +84,26 @@ function resolveCurrency(item: any): string {
 
 // deno-lint-ignore no-explicit-any
 function normalizeHotel(item: any) {
-  // hotel data may sit under item.hotel, or directly on item
   const h = (item?.hotel && typeof item.hotel === "object") ? item.hotel : item;
 
   const name =
     str(h?.name ?? h?.hotelName ?? h?.title) ??
     str(item?.name ?? item?.hotelName ?? item?.title) ??
-    null;
+    "Unknown Hotel";
 
-  const image = resolveImage(h, item);
-  const { address, city, country } = resolveAddress(h, item);
+  const { city } = resolveAddress(h, item);
   const price = resolvePrice(item);
   const currency = resolveCurrency(item);
+  const image = resolveImage(h, item);
 
   return {
     hotelId: str(item?.hotelId ?? h?.hotelId ?? h?.id ?? item?.id),
     name,
     image,
-    address,
-    city,
-    country,
-    starRating: num(h?.starRating ?? h?.stars ?? item?.starRating ?? item?.stars),
-    reviewRating: num(h?.reviewRating ?? h?.rating ?? h?.reviewScore ?? item?.reviewRating ?? item?.rating),
-    reviewCount: num(h?.reviewCount ?? h?.numReviews ?? item?.reviewCount ?? item?.numReviews),
     price,
     currency,
+    address: city || "Location unavailable",
+    starRating: num(h?.starRating ?? h?.stars ?? item?.starRating ?? item?.stars),
   };
 }
 
@@ -145,7 +134,7 @@ serve(async (req) => {
       occupancies,
       currency: body.currency ?? "USD",
       guestNationality: body.guestNationality ?? "US",
-      limit: body.limit ?? 30,
+      limit: 20,
       includeHotelData: true,
       maxRatesPerHotel: 1,
     };
@@ -162,7 +151,6 @@ serve(async (req) => {
 
     const raw = await response.json();
 
-    // Log the first item so you can inspect the real shape in Supabase logs
     if (Array.isArray(raw?.data) && raw.data.length > 0) {
       console.log("[search-hotel-rates] first item sample:", JSON.stringify(raw.data[0]));
     } else {

@@ -65,7 +65,7 @@ export function HotelListingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [guestRating, setGuestRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState('recommended');
@@ -146,7 +146,9 @@ export function HotelListingPage() {
         const starMatch =
           selectedStars.length === 0 ||
           selectedStars.includes(Math.round(h.starRating));
-        const ratingMatch = h.reviewRating >= guestRating;
+        // reviewRating may be absent in the API response; default to 0 so
+        // all hotels pass the "All Ratings" (guestRating === 0) check.
+        const ratingMatch = (h.reviewRating ?? 0) >= guestRating;
         return priceMatch && starMatch && ratingMatch;
       })
       .sort((a, b) => {
@@ -215,15 +217,15 @@ export function HotelListingPage() {
                       <div className="space-y-4 pt-2">
                         <Slider
                           min={0}
-                          max={1000}
-                          step={10}
+                          max={5000}
+                          step={25}
                           value={priceRange}
                           onValueChange={(v) => { setPage(1); setPriceRange(v); }}
                           className="w-full"
                         />
                         <div className="flex items-center justify-between text-sm text-[#717182]">
                           <span>{getCurrencySymbol()}{priceRange[0]}</span>
-                          <span>{getCurrencySymbol()}{priceRange[1]}+</span>
+                          <span>{getCurrencySymbol()}{priceRange[1]}{priceRange[1] === 5000 ? '+' : ''}</span>
                         </div>
                       </div>
                     </AccordionContent>
@@ -285,7 +287,7 @@ export function HotelListingPage() {
                   className="w-full mt-6"
                   onClick={() => {
                     setPage(1);
-                    setPriceRange([0, 1000]);
+                    setPriceRange([0, 5000]);
                     setSelectedStars([]);
                     setGuestRating(0);
                   }}
@@ -403,7 +405,7 @@ export function HotelListingPage() {
                                     </div>
                                   )}
                                 </div>
-                                {hotel.reviewRating > 0 && (
+                                {(hotel.reviewRating ?? 0) > 0 && (
                                   <div className="shrink-0 bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
                                     <Star className="w-4 h-4 fill-white" />
                                     <span className="font-bold">{hotel.reviewRating}</span>
@@ -411,9 +413,9 @@ export function HotelListingPage() {
                                 )}
                               </div>
 
-                              {hotel.reviewCount > 0 && (
+                              {(hotel.reviewCount ?? 0) > 0 && (
                                 <p className="text-xs text-[#717182]">
-                                  {hotel.reviewCount.toLocaleString()} reviews
+                                  {hotel.reviewCount!.toLocaleString()} reviews
                                 </p>
                               )}
                             </div>
