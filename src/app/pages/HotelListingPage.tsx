@@ -49,7 +49,7 @@ function SkeletonCard() {
 }
 
 export function HotelListingPage() {
-  const { currency } = useCurrency();
+  const { currency, getCurrencySymbol } = useCurrency();
   const [searchParams] = useSearchParams();
 
   const placeIdParam = searchParams.get('placeId');
