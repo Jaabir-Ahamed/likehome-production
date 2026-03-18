@@ -109,7 +109,7 @@ export const api = {
 
     findPlaces: async (textQuery: string): Promise<Place[]> => {
         const { data, error } = await supabase.functions.invoke(
-            `search-places?textQuery=${encodeURIComponent(textQuery)}`
+            `find-places?textQuery=${encodeURIComponent(textQuery)}`
         );
         if (error) throw error;
         return data?.data ?? data ?? [];
