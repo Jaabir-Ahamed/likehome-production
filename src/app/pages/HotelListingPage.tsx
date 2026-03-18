@@ -25,8 +25,25 @@ import {
 } from '../components/ui/accordion';
 import { api } from '../../api/liteApi';
 
-type HotelRoom = {
-  roomName: string;
+type HotelImage = {
+  url?: string;
+};
+
+type HotelData = {
+  name?: string;
+  hotelName?: string;
+  starRating?: number;
+  address?: string;
+  city?: string;
+  country?: string;
+  images?: HotelImage[];
+  mainPhoto?: string;
+  reviewRating?: number;
+  reviewCount?: number;
+};
+
+type RateEntry = {
+  roomName?: string;
   retailRate?: {
     total?: Array<{ amount: number; currency: string }>;
   };
@@ -34,22 +51,62 @@ type HotelRoom = {
 
 type HotelResult = {
   hotelId: string;
-  hotelName: string;
-  mainPhoto: string;
-  address: string;
-  starRating: number;
-  reviewRating: number;
-  reviewCount: number;
-  city: string;
-  country: string;
-  rooms: HotelRoom[];
+  hotel?: HotelData;
+  hotelName?: string;
+  mainPhoto?: string;
+  address?: string;
+  starRating?: number;
+  reviewRating?: number;
+  reviewCount?: number;
+  city?: string;
+  country?: string;
+  rates?: RateEntry[];
+  rooms?: RateEntry[];
+  lowestRate?: number;
 };
 
-function getLowestPrice(hotel: HotelResult): number | null {
-  const rate = hotel.rooms?.[0]?.retailRate?.total;
-  if (Array.isArray(rate) && rate.length > 0) return rate[0].amount;
+function getHotelName(h: HotelResult): string {
+  return h.hotel?.name ?? h.hotel?.hotelName ?? h.hotelName ?? 'Unnamed Hotel';
+}
+
+function getHotelImage(h: HotelResult): string | undefined {
+  const nestedUrl = h.hotel?.images?.[0]?.url;
+  if (nestedUrl) return nestedUrl;
+  if (h.hotel?.mainPhoto) return h.hotel.mainPhoto;
+  if (h.mainPhoto) return h.mainPhoto;
+  return undefined;
+}
+
+function getHotelAddress(h: HotelResult): string {
+  const parts = [
+    h.hotel?.address ?? h.address,
+    h.hotel?.city ?? h.city,
+    h.hotel?.country ?? h.country,
+  ].filter(Boolean);
+  return parts.join(', ');
+}
+
+function getStarRating(h: HotelResult): number {
+  return Math.round(h.hotel?.starRating ?? h.starRating ?? 0);
+}
+
+function getReviewRating(h: HotelResult): number {
+  return h.hotel?.reviewRating ?? h.reviewRating ?? 0;
+}
+
+function getReviewCount(h: HotelResult): number {
+  return h.hotel?.reviewCount ?? h.reviewCount ?? 0;
+}
+
+function getLowestPrice(h: HotelResult): number | null {
+  const entries = h.rates ?? h.rooms ?? [];
+  const rateTotal = entries[0]?.retailRate?.total;
+  if (Array.isArray(rateTotal) && rateTotal.length > 0) return rateTotal[0].amount;
+  if (typeof h.lowestRate === 'number') return h.lowestRate;
   return null;
 }
+
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1572177215152-32f247303126?w=600';
 
 function SkeletonCard() {
   return (
@@ -137,12 +194,12 @@ export function HotelListingPage() {
 
   const filteredHotels = useMemo(() => {
     return hotels
-      .filter((hotel) => {
-        const price = getLowestPrice(hotel);
+      .filter((h) => {
+        const price = getLowestPrice(h);
         const priceMatch = price === null || (price >= priceRange[0] && price <= priceRange[1]);
         const starMatch =
-          selectedStars.length === 0 || selectedStars.includes(Math.round(hotel.starRating));
-        const ratingMatch = (hotel.reviewRating ?? 0) >= guestRating;
+          selectedStars.length === 0 || selectedStars.includes(getStarRating(h));
+        const ratingMatch = getReviewRating(h) >= guestRating;
         return priceMatch && starMatch && ratingMatch;
       })
       .sort((a, b) => {
@@ -150,7 +207,7 @@ export function HotelListingPage() {
         const priceB = getLowestPrice(b) ?? Infinity;
         if (sortBy === 'price-low') return priceA - priceB;
         if (sortBy === 'price-high') return priceB - priceA;
-        if (sortBy === 'rating') return (b.reviewRating ?? 0) - (a.reviewRating ?? 0);
+        if (sortBy === 'rating') return getReviewRating(b) - getReviewRating(a);
         return 0;
       });
   }, [hotels, priceRange, selectedStars, guestRating, sortBy]);
@@ -364,8 +421,13 @@ export function HotelListingPage() {
               {!isLoading && !error && (
                 <div className="space-y-6">
                   {filteredHotels.map((hotel) => {
+                    const name = getHotelName(hotel);
+                    const image = getHotelImage(hotel);
+                    const address = getHotelAddress(hotel);
+                    const stars = getStarRating(hotel);
+                    const rating = getReviewRating(hotel);
+                    const reviews = getReviewCount(hotel);
                     const price = getLowestPrice(hotel);
-                    const stars = Math.round(hotel.starRating ?? 0);
 
                     return (
                       <Card key={hotel.hotelId} className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
@@ -373,10 +435,13 @@ export function HotelListingPage() {
                           {/* Hotel Image */}
                           <div className="md:w-1/3 relative group">
                             <img
-                              src={hotel.mainPhoto || 'https://images.unsplash.com/photo-1572177215152-32f247303126?w=600'}
-                              alt={hotel.hotelName}
+                              src={image || PLACEHOLDER_IMAGE}
+                              alt={name}
                               className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               loading="lazy"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                              }}
                             />
                             <button
                               className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
@@ -392,14 +457,14 @@ export function HotelListingPage() {
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <h3 className="text-2xl font-bold text-[#1f2937] mb-2">
-                                    {hotel.hotelName}
+                                    {name}
                                   </h3>
-                                  <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
-                                    <MapPin className="w-4 h-4" />
-                                    {[hotel.address, hotel.city, hotel.country]
-                                      .filter(Boolean)
-                                      .join(', ')}
-                                  </p>
+                                  {address && (
+                                    <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
+                                      <MapPin className="w-4 h-4" />
+                                      {address}
+                                    </p>
+                                  )}
                                   {stars > 0 && (
                                     <div className="flex items-center gap-1 mb-3">
                                       {Array.from({ length: stars }).map((_, i) => (
@@ -408,17 +473,17 @@ export function HotelListingPage() {
                                     </div>
                                   )}
                                 </div>
-                                {hotel.reviewRating > 0 && (
+                                {rating > 0 && (
                                   <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
                                     <Star className="w-4 h-4 fill-white" />
-                                    <span className="font-bold">{hotel.reviewRating}</span>
+                                    <span className="font-bold">{rating}</span>
                                   </div>
                                 )}
                               </div>
 
-                              {hotel.reviewCount > 0 && (
+                              {reviews > 0 && (
                                 <p className="text-xs text-[#717182]">
-                                  {hotel.reviewCount.toLocaleString()} reviews
+                                  {reviews.toLocaleString()} reviews
                                 </p>
                               )}
                             </div>
