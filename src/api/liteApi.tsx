@@ -29,6 +29,20 @@ export type Place = {
     types: string[];
 };
 
+export type NormalizedHotel = {
+    hotelId: string | null;
+    name: string | null;
+    image: string | null;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    starRating: number;
+    reviewRating: number;
+    reviewCount: number;
+    price: number | null;
+    currency: string;
+};
+
 export type HotelRateSearchParams = {
     placeId: string;
     checkin: string;
@@ -95,7 +109,7 @@ export const api = {
 
     findPlaces: async (textQuery: string): Promise<Place[]> => {
         const { data, error } = await supabase.functions.invoke(
-            `find-places?textQuery=${encodeURIComponent(textQuery)}` // Changed from search-places to find-places
+            `search-places?textQuery=${encodeURIComponent(textQuery)}`
         );
         if (error) throw error;
         return data?.data ?? data ?? [];
