@@ -94,11 +94,11 @@ export const api = {
     },
 
     findPlaces: async (textQuery: string): Promise<Place[]> => {
-        const {data, error} = await supabase.functions.invoke(
-            `search-places?textQuery=${encodeURIComponent(textQuery)}`
+        const { data, error } = await supabase.functions.invoke(
+            `find-places?textQuery=${encodeURIComponent(textQuery)}` // Changed from search-places to find-places
         );
         if (error) throw error;
-        return data?.data ?? [];
+        return data?.data ?? data ?? [];
     },
 
     searchHotelRates: async (params: HotelRateSearchParams) => {
