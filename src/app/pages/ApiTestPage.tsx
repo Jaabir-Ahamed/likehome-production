@@ -1,9 +1,15 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {api} from "../../api/liteApi";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger,} from "../components/ui/accordion";
 import hotelsRatesMd from "../../../docs/api/hotels-rates.md?raw";
 import ratesPrebookMd from "../../../docs/api/rates-prebook.md?raw";
 import ratesBookMd from "../../../docs/api/rates-book.md?raw";
+import bookingsRetrieveMd from "../../../docs/api/bookings-retrieve.md?raw";
+import listbookingsMd from "../../../docs/api/listbookings.md?raw";
+
+import {supabase} from "../../lib/supabaseClient";
+
+import {FunctionsHttpError} from "@supabase/supabase-js"; // adjust path
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -79,16 +85,33 @@ function parseInline(text: string): React.ReactNode {
         const c = rem.search(/`/);
         const l = rem.search(/\[/);
         const earliest = Math.min(b >= 0 ? b : Infinity, c >= 0 ? c : Infinity, l >= 0 ? l : Infinity);
-        if (!isFinite(earliest)) { parts.push(rem); break; }
+        if (!isFinite(earliest)) {
+            parts.push(rem);
+            break;
+        }
         if (earliest > 0) parts.push(rem.slice(0, earliest));
         rem = rem.slice(earliest);
         const boldM = rem.match(/^\*\*(.*?)\*\*(.*)/s);
-        if (b === earliest && boldM) { parts.push(<strong key={k++}>{boldM[1]}</strong>); rem = boldM[2]; continue; }
+        if (b === earliest && boldM) {
+            parts.push(<strong key={k++}>{boldM[1]}</strong>);
+            rem = boldM[2];
+            continue;
+        }
         const codeM = rem.match(/^`([^`]+)`(.*)/s);
-        if (c === earliest && codeM) { parts.push(<code key={k++} className="bg-gray-100 px-1 rounded text-xs font-mono">{codeM[1]}</code>); rem = codeM[2]; continue; }
+        if (c === earliest && codeM) {
+            parts.push(<code key={k++} className="bg-gray-100 px-1 rounded text-xs font-mono">{codeM[1]}</code>);
+            rem = codeM[2];
+            continue;
+        }
         const linkM = rem.match(/^\[([^\]]+)\]\(([^)]+)\)(.*)/s);
-        if (l === earliest && linkM) { parts.push(<a key={k++} href={linkM[2]} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{linkM[1]}</a>); rem = linkM[3]; continue; }
-        parts.push(rem[0]); rem = rem.slice(1);
+        if (l === earliest && linkM) {
+            parts.push(<a key={k++} href={linkM[2]} target="_blank" rel="noreferrer"
+                          className="text-blue-600 hover:underline">{linkM[1]}</a>);
+            rem = linkM[3];
+            continue;
+        }
+        parts.push(rem[0]);
+        rem = rem.slice(1);
     }
     return <>{parts}</>;
 }
@@ -105,17 +128,42 @@ function SimpleMarkdown({content}: { content: string }) {
         if (line.startsWith('```')) {
             const codeLines: string[] = [];
             i++;
-            while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+            while (i < lines.length && !lines[i].startsWith('```')) {
+                codeLines.push(lines[i]);
+                i++;
+            }
             i++;
-            nodes.push(<pre key={nk()} className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-auto whitespace-pre my-3"><code>{codeLines.join('\n')}</code></pre>);
+            nodes.push(<pre key={nk()}
+                            className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-auto whitespace-pre my-3"><code>{codeLines.join('\n')}</code></pre>);
             continue;
         }
         // HR
-        if (line.match(/^-{3,}$/) || line.match(/^\*{3,}$/)) { nodes.push(<hr key={nk()} className="border-gray-200 my-4"/>); i++; continue; }
+        if (line.match(/^-{3,}$/) || line.match(/^\*{3,}$/)) {
+            nodes.push(<hr key={nk()} className="border-gray-200 my-4"/>);
+            i++;
+            continue;
+        }
         // Headings
-        const h1m = line.match(/^# (.+)/); if (h1m) { nodes.push(<h1 key={nk()} className="text-xl font-bold text-gray-900 mt-6 mb-2">{parseInline(h1m[1])}</h1>); i++; continue; }
-        const h2m = line.match(/^## (.+)/); if (h2m) { nodes.push(<h2 key={nk()} className="text-base font-bold text-gray-800 mt-5 mb-1">{parseInline(h2m[1])}</h2>); i++; continue; }
-        const h3m = line.match(/^### (.+)/); if (h3m) { nodes.push(<h3 key={nk()} className="text-sm font-semibold text-gray-700 mt-4 mb-1">{parseInline(h3m[1])}</h3>); i++; continue; }
+        const h1m = line.match(/^# (.+)/);
+        if (h1m) {
+            nodes.push(<h1 key={nk()} className="text-xl font-bold text-gray-900 mt-6 mb-2">{parseInline(h1m[1])}</h1>);
+            i++;
+            continue;
+        }
+        const h2m = line.match(/^## (.+)/);
+        if (h2m) {
+            nodes.push(<h2 key={nk()}
+                           className="text-base font-bold text-gray-800 mt-5 mb-1">{parseInline(h2m[1])}</h2>);
+            i++;
+            continue;
+        }
+        const h3m = line.match(/^### (.+)/);
+        if (h3m) {
+            nodes.push(<h3 key={nk()}
+                           className="text-sm font-semibold text-gray-700 mt-4 mb-1">{parseInline(h3m[1])}</h3>);
+            i++;
+            continue;
+        }
         // Table
         if (line.startsWith('|')) {
             const rows: string[][] = [];
@@ -127,8 +175,14 @@ function SimpleMarkdown({content}: { content: string }) {
             if (rows.length > 0) nodes.push(
                 <div key={nk()} className="overflow-x-auto my-3">
                     <table className="w-full text-xs border-collapse border border-gray-200 rounded">
-                        <thead><tr className="bg-gray-50">{rows[0].map((cell, ci) => <th key={ci} className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">{parseInline(cell)}</th>)}</tr></thead>
-                        <tbody>{rows.slice(1).map((row, ri) => <tr key={ri} className="hover:bg-gray-50">{row.map((cell, ci) => <td key={ci} className="border border-gray-200 px-3 py-2 text-gray-700">{parseInline(cell)}</td>)}</tr>)}</tbody>
+                        <thead>
+                        <tr className="bg-gray-50">{rows[0].map((cell, ci) => <th key={ci}
+                                                                                  className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">{parseInline(cell)}</th>)}</tr>
+                        </thead>
+                        <tbody>{rows.slice(1).map((row, ri) => <tr key={ri}
+                                                                   className="hover:bg-gray-50">{row.map((cell, ci) =>
+                            <td key={ci}
+                                className="border border-gray-200 px-3 py-2 text-gray-700">{parseInline(cell)}</td>)}</tr>)}</tbody>
                     </table>
                 </div>
             );
@@ -137,12 +191,20 @@ function SimpleMarkdown({content}: { content: string }) {
         // Unordered list
         if (line.match(/^- /)) {
             const items: string[] = [];
-            while (i < lines.length && lines[i].match(/^- /)) { items.push(lines[i].slice(2)); i++; }
-            nodes.push(<ul key={nk()} className="list-disc list-inside space-y-1 text-sm text-gray-700 my-2 ml-2">{items.map((item, ii) => <li key={ii}>{parseInline(item)}</li>)}</ul>);
+            while (i < lines.length && lines[i].match(/^- /)) {
+                items.push(lines[i].slice(2));
+                i++;
+            }
+            nodes.push(<ul key={nk()}
+                           className="list-disc list-inside space-y-1 text-sm text-gray-700 my-2 ml-2">{items.map((item, ii) =>
+                <li key={ii}>{parseInline(item)}</li>)}</ul>);
             continue;
         }
         // Blank line
-        if (line.trim() === '') { i++; continue; }
+        if (line.trim() === '') {
+            i++;
+            continue;
+        }
         // Paragraph
         nodes.push(<p key={nk()} className="text-sm text-gray-700 my-1">{parseInline(line)}</p>);
         i++;
@@ -233,25 +295,48 @@ const API_METHODS = [
         returns: "data.bookingId, data.status",
         doc: "post_rates-book",
     },
+    {
+        name: "getBooking(bookingId)",
+        method: "POST",
+        edge: "bookings-retrieve",
+        description: "Retrieve full booking details from LiteAPI by bookingId.",
+        params: "bookingId: string",
+        returns: "data — full booking object (status, hotel, rooms, holder, etc.)",
+        doc: "get_bookings-bookingid",
+    },
+    {
+        name: "getListBookings(params)",
+        method: "GET",
+        edge: "listbookings",
+        description: "List all bookings for the authenticated user. Defaults clientReference to the logged-in user's ID.",
+        params: "clientReference?: string, guestId?: string, timeout?: number",
+        returns: "data[] — array of booking objects",
+        doc: "get_listbookings",
+    },
 ];
 
 const LITEAPI_DOCS_BASE = "https://docs.liteapi.travel/reference/";
 
 const NAV_ITEMS = [
-    {group: "Docs"},
+    {group: "Overview"},
     {href: "#how-it-works", label: "How Booking Works"},
     {href: "#api-reference", label: "API Reference"},
-    {href: "#doc-hotels-rates", label: "hotels-rates"},
-    {href: "#doc-rates-prebook", label: "rates-prebook"},
-    {href: "#doc-rates-book", label: "rates-book"},
     {group: "Testers"},
     {href: "#test-countries", label: "Countries"},
-    {href: "#test-places", label: "Places (search)"},
     {href: "#test-cities", label: "Cities by country"},
+    {href: "#test-places", label: "Places (search)"},
     {href: "#test-hotels-by-place", label: "Hotels by PlaceID"},
     {href: "#test-hotel-rates", label: "Hotel Rates"},
     {href: "#test-prebook", label: "Prebook"},
     {href: "#test-book", label: "Book"},
+    {href: "#test-retrieve", label: "Retrieve Booking"},
+    {href: "#test-list-bookings", label: "List Bookings"},
+    {group: "Docs"},
+    {href: "#doc-hotels-rates", label: "hotels-rates"},
+    {href: "#doc-rates-prebook", label: "rates-prebook"},
+    {href: "#doc-rates-book", label: "rates-book"},
+    {href: "#doc-bookings-retrieve", label: "bookings-retrieve"},
+    {href: "#doc-listbookings", label: "listbookings"},
 ] as ({ group: string } | { href: string; label: string })[];
 
 export function ApiTestPage() {
@@ -268,7 +353,13 @@ export function ApiTestPage() {
             setCountriesResult(data);
             setCountriesStatus("success");
         } catch (err) {
-            setCountriesResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setCountriesResult({error: errorMessage});
             setCountriesStatus("error");
         }
     }
@@ -277,6 +368,7 @@ export function ApiTestPage() {
     const [placesQuery, setPlacesQuery] = useState("");
     const [placesStatus, setPlacesStatus] = useState<Status>("idle");
     const [placesResult, setPlacesResult] = useState<unknown>(null);
+
     async function handleGetPlaces() {
         if (!placesQuery.trim()) return alert("query is required");
         setPlacesStatus("loading");
@@ -287,7 +379,13 @@ export function ApiTestPage() {
             const firstId = (data as { data?: { placeId?: string }[] })?.data?.[0]?.placeId;
             if (firstId) setPlaceId(firstId);
         } catch (err) {
-            setPlacesResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setPlacesResult({error: errorMessage});
             setPlacesStatus("error");
         }
     }
@@ -305,7 +403,13 @@ export function ApiTestPage() {
             setCitiesResult(data);
             setCitiesStatus("success");
         } catch (err) {
-            setCitiesResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setCitiesResult({error: errorMessage});
             setCitiesStatus("error");
         }
     }
@@ -315,6 +419,7 @@ export function ApiTestPage() {
     const [hotelsLimit, setHotelsLimit] = useState("10");
     const [hotelsStatus, setHotelsStatus] = useState<Status>("idle");
     const [hotelsResult, setHotelsResult] = useState<unknown>(null);
+
     async function handleHotelsByPlace() {
         if (!placeId.trim()) return alert("placeId is required");
         setHotelsStatus("loading");
@@ -328,7 +433,13 @@ export function ApiTestPage() {
             const firstId = (data as { data?: { hotelId?: string }[] })?.data?.[0]?.hotelId;
             if (firstId) setRatesHotelIds(firstId);
         } catch (err) {
-            setHotelsResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setHotelsResult({error: errorMessage});
             setHotelsStatus("error");
         }
     }
@@ -395,7 +506,13 @@ export function ApiTestPage() {
             const firstOffer = (data as RatesData)?.data?.[0]?.roomTypes?.[0]?.rates?.[0]?.offerId;
             if (firstOffer) setOfferId(firstOffer);
         } catch (err) {
-            setRatesResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setRatesResult({error: errorMessage});
             setRatesStatus("error");
         }
     }
@@ -416,7 +533,13 @@ export function ApiTestPage() {
             const id = (data as { data?: { prebookId?: string } })?.data?.prebookId;
             if (id) setPrebookId(id);
         } catch (err) {
-            setPrebookResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setPrebookResult({error: errorMessage});
             setPrebookStatus("error");
         }
     }
@@ -430,6 +553,7 @@ export function ApiTestPage() {
     const [guestLast, setGuestLast] = useState("Doe");
     const [guestEmail, setGuestEmail] = useState("jane@example.com");
     const [paymentMethod, setPaymentMethod] = useState<"CREDIT" | "WALLET" | "ACC_CREDIT_CARD">("CREDIT");
+    const [bookClientRef, setBookClientRef] = useState("");
     const [bookStatus, setBookStatus] = useState<Status>("idle");
     const [bookResult, setBookResult] = useState<unknown>(null);
 
@@ -442,12 +566,87 @@ export function ApiTestPage() {
                 holder: {firstName: holderFirst, lastName: holderLast, email: holderEmail, phone: holderPhone},
                 guests: [{occupancyNumber: 1, firstName: guestFirst, lastName: guestLast, email: guestEmail}],
                 payment: {method: paymentMethod},
+                clientReference: bookClientRef.trim() || undefined,
             });
             setBookResult(data);
             setBookStatus("success");
+            const id = (data as { data?: { bookingId?: string } })?.data?.bookingId;
+            if (id) setRetrieveBookingId(id);
         } catch (err) {
-            setBookResult(err instanceof Error ? {error: err.message} : err);
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setBookResult({error: errorMessage});
             setBookStatus("error");
+        }
+    }
+
+    // ── Retrieve Booking ──────────────────────────────────────
+    const [retrieveBookingId, setRetrieveBookingId] = useState("");
+    const [retrieveStatus, setRetrieveStatus] = useState<Status>("idle");
+    const [retrieveResult, setRetrieveResult] = useState<unknown>(null);
+
+    async function handleRetrieve() {
+        if (!retrieveBookingId.trim()) {
+            alert("bookingId is required");
+            return;
+        }
+
+        setRetrieveStatus("loading");
+
+        try {
+            const data = await api.getBooking(retrieveBookingId.trim());
+            setRetrieveResult(data);
+            setRetrieveStatus("success");
+        } catch (err) {
+            let errorMessage = "Unknown error";
+
+            try {
+                if (err instanceof FunctionsHttpError) {
+                    errorMessage = await err.context.json();
+                } else if (err instanceof Error) {
+                    errorMessage = err.message;
+                } else if (typeof err === "string") {
+                    errorMessage = err;
+                }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+
+            setRetrieveResult({error: errorMessage});
+            setRetrieveStatus("error");
+        }
+    }
+
+    // ── List Bookings ─────────────────────────────────────────
+    const [listBookingsUserId, setListBookingsUserId] = useState("");
+    const [listBookingsStatus, setListBookingsStatus] = useState<Status>("idle");
+    const [listBookingsResult, setListBookingsResult] = useState<unknown>(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({data: {user}}) => {
+            if (user?.id) setListBookingsUserId(user.id);
+        });
+    }, []);
+
+    async function handleListBookings() {
+        setListBookingsStatus("loading");
+        try {
+            const data = await api.getListBookings();
+            setListBookingsResult(data);
+            setListBookingsStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch { errorMessage = "Failed to parse error response"; }
+            setListBookingsResult({error: errorMessage});
+            setListBookingsStatus("error");
         }
     }
 
@@ -683,44 +882,6 @@ const { bookingId, status } = booking.data;`}</pre>
                                     </AccordionContent>
                                 </AccordionItem>
 
-                                {/* Places search */}
-                                <AccordionItem value="places" id="test-places"
-                                               className="scroll-mt-6 px-6 border-t border-gray-200">
-                                    <AccordionTrigger
-                                        className="text-base font-semibold text-gray-800"
-                                        onClick={() => setActiveSection("#test-places")}
-                                    >
-                    <span className="flex items-center gap-2">
-                      <Badge color="blue">GET</Badge>
-                      getPlaces — search destinations by text
-                    </span>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="space-y-3 pb-2">
-                                            <Field
-                                                label="query *"
-                                                value={placesQuery}
-                                                onChange={setPlacesQuery}
-                                                placeholder="e.g. New York, Paris, Tokyo"
-                                            />
-                                            <button
-                                                onClick={handleGetPlaces}
-                                                disabled={placesStatus === "loading"}
-                                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-                                            >
-                                                {placesStatus === "loading" ? "Loading…" : "GET /data/places"}
-                                            </button>
-                                        </div>
-                                        <JsonOutput status={placesStatus} result={placesResult}/>
-                                        {placeId && (
-                                            <p className="mt-2 text-xs text-green-700 bg-green-50 rounded p-2">
-                                                placeId auto-filled in Hotels by PlaceID tester: <strong>{placeId}</strong>
-                                            </p>
-                                        )}
-                                        <p className="mt-2 text-xs text-gray-400">Use a returned <code>placeId</code> in the Hotels by PlaceID tester.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-
                                 {/* Cities by country */}
                                 <AccordionItem value="cities" id="test-cities"
                                                className="scroll-mt-6 px-6 border-t border-gray-200">
@@ -752,6 +913,46 @@ const { bookingId, status } = booking.data;`}</pre>
                                         <JsonOutput status={citiesStatus} result={citiesResult}/>
                                         <p className="mt-2 text-xs text-gray-400">Use a returned <code>placeId</code> in
                                             the Hotels by PlaceID tester below.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* Places search */}
+                                <AccordionItem value="places" id="test-places"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-places")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="blue">GET</Badge>
+                      getPlaces — search destinations by text
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="query *"
+                                                value={placesQuery}
+                                                onChange={setPlacesQuery}
+                                                placeholder="e.g. New York, Paris, Tokyo"
+                                            />
+                                            <button
+                                                onClick={handleGetPlaces}
+                                                disabled={placesStatus === "loading"}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {placesStatus === "loading" ? "Loading…" : "GET /data/places"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={placesStatus} result={placesResult}/>
+                                        {placeId && (
+                                            <p className="mt-2 text-xs text-green-700 bg-green-50 rounded p-2">
+                                                placeId auto-filled in Hotels by PlaceID
+                                                tester: <strong>{placeId}</strong>
+                                            </p>
+                                        )}
+                                        <p className="mt-2 text-xs text-gray-400">Use a returned <code>placeId</code> in
+                                            the Hotels by PlaceID tester.</p>
                                     </AccordionContent>
                                 </AccordionItem>
 
@@ -792,7 +993,8 @@ const { bookingId, status } = booking.data;`}</pre>
                                         <JsonOutput status={hotelsStatus} result={hotelsResult}/>
                                         {ratesHotelIds && (
                                             <p className="mt-2 text-xs text-green-700 bg-green-50 rounded p-2">
-                                                hotelId auto-filled in Hotel Rates tester: <strong>{ratesHotelIds}</strong>
+                                                hotelId auto-filled in Hotel Rates
+                                                tester: <strong>{ratesHotelIds}</strong>
                                             </p>
                                         )}
                                     </AccordionContent>
@@ -827,7 +1029,8 @@ const { bookingId, status } = booking.data;`}</pre>
                                             {/* Occupancies */}
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-xs font-medium text-gray-600">Occupancies *</label>
+                                                    <label className="block text-xs font-medium text-gray-600">Occupancies
+                                                        *</label>
                                                     <button
                                                         type="button"
                                                         onClick={addOccupancy}
@@ -838,11 +1041,13 @@ const { bookingId, status } = booking.data;`}</pre>
                                                 </div>
                                                 <div className="space-y-2">
                                                     {occupancies.map((o, i) => (
-                                                        <div key={i} className="flex gap-2 items-start bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                                        <div key={i}
+                                                             className="flex gap-2 items-start bg-gray-50 rounded-lg p-2 border border-gray-200">
                                                             <div className="flex-1 space-y-1">
                                                                 <div className="grid grid-cols-2 gap-2">
                                                                     <div>
-                                                                        <label className="block text-xs text-gray-500 mb-0.5">Adults</label>
+                                                                        <label
+                                                                            className="block text-xs text-gray-500 mb-0.5">Adults</label>
                                                                         <input
                                                                             type="number"
                                                                             min={1}
@@ -852,7 +1057,9 @@ const { bookingId, status } = booking.data;`}</pre>
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-xs text-gray-500 mb-0.5">Children ages (comma-separated)</label>
+                                                                        <label
+                                                                            className="block text-xs text-gray-500 mb-0.5">Children
+                                                                            ages (comma-separated)</label>
                                                                         <input
                                                                             type="text"
                                                                             value={o.children}
@@ -899,7 +1106,8 @@ const { bookingId, status } = booking.data;`}</pre>
                                                     onChange={(e) => setRatesRoomMapping(e.target.checked)}
                                                     className="rounded"
                                                 />
-                                                <label htmlFor="ratesRoomMapping" className="text-sm text-gray-600">roomMapping</label>
+                                                <label htmlFor="ratesRoomMapping"
+                                                       className="text-sm text-gray-600">roomMapping</label>
                                             </div>
                                             <button
                                                 onClick={handleHotelRates}
@@ -1008,6 +1216,14 @@ const { bookingId, status } = booking.data;`}</pre>
                                             <Field label="Email" value={guestEmail} onChange={setGuestEmail}
                                                    type="email"/>
 
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-1">Reference</p>
+                                            <Field
+                                                label="clientReference (optional)"
+                                                value={bookClientRef}
+                                                onChange={setBookClientRef}
+                                                placeholder="Defaults to your user ID"
+                                            />
+
                                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-1">Payment</p>
                                             <div>
                                                 <label
@@ -1032,6 +1248,84 @@ const { bookingId, status } = booking.data;`}</pre>
                                             </button>
                                         </div>
                                         <JsonOutput status={bookStatus} result={bookResult}/>
+                                        {retrieveBookingId && (
+                                            <p className="mt-2 text-xs text-green-700 bg-green-50 rounded p-2">
+                                                bookingId auto-filled in Retrieve
+                                                tester: <strong>{retrieveBookingId}</strong>
+                                            </p>
+                                        )}
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* Retrieve Booking */}
+                                <AccordionItem value="retrieve" id="test-retrieve"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-retrieve")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="blue">GET</Badge>
+                      getBooking — retrieve booking details
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={retrieveBookingId}
+                                                onChange={setRetrieveBookingId}
+                                                placeholder="Auto-filled from Book, or paste manually"
+                                            />
+                                            <button
+                                                onClick={handleRetrieve}
+                                                disabled={retrieveStatus === "loading"}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {retrieveStatus === "loading" ? "Loading…" : "GET /bookings/{bookingId}"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={retrieveStatus} result={retrieveResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* List Bookings */}
+                                <AccordionItem value="list-bookings" id="test-list-bookings"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-list-bookings")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="blue">GET</Badge>
+                      getListBookings — list bookings for current user
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-xs text-gray-500 mb-3">
+                                            Reads from your local Supabase <code
+                                            className="bg-gray-100 px-1 rounded">bookings</code> table. RLS filters to
+                                            the current user.
+                                        </p>
+                                        <div className="space-y-3 pb-2">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">Your
+                                                    user ID (read-only)</label>
+                                                <input
+                                                    readOnly
+                                                    value={listBookingsUserId || "Loading…"}
+                                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 font-mono"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={handleListBookings}
+                                                disabled={listBookingsStatus === "loading"}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {listBookingsStatus === "loading" ? "Loading…" : "SELECT * FROM bookings"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={listBookingsStatus} result={listBookingsResult}/>
                                     </AccordionContent>
                                 </AccordionItem>
 
@@ -1044,6 +1338,8 @@ const { bookingId, status } = booking.data;`}</pre>
                         {id: "doc-hotels-rates", title: "hotels-rates", content: hotelsRatesMd},
                         {id: "doc-rates-prebook", title: "rates-prebook", content: ratesPrebookMd},
                         {id: "doc-rates-book", title: "rates-book", content: ratesBookMd},
+                        {id: "doc-bookings-retrieve", title: "bookings-retrieve", content: bookingsRetrieveMd},
+                        {id: "doc-listbookings", title: "listbookings", content: listbookingsMd},
                     ] as { id: string; title: string; content: string }[]).map(({id, title, content}) => (
                         <section key={id} id={id} className="scroll-mt-6">
                             <div className="bg-white rounded-xl border border-gray-200 p-6">
