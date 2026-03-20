@@ -1,6 +1,5 @@
 import {supabase} from "../lib/supabaseClient";
 
-
 type HotelSearchOptions = {
     limit?: number;
     offset?: number;
@@ -68,6 +67,7 @@ type BookParams = {
     metadata?: Record<string, unknown>;
     guestPayment?: Record<string, unknown>;
 };
+
 
 export const api = {
     getCountries: async () => {
@@ -146,11 +146,42 @@ export const api = {
     },
 
     getRatesBook: async (params: BookParams) => {
+        const {data: {user}} = await supabase.auth.getUser();
+        // Generate a unique reference per booking: {userId}-{timestamp36}-{random5}
+        // Embeds the user ID so GET /bookings?clientReference=... stays queryable by prefix.
+        const clientReference = params.clientReference
+            ?? `${user?.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
         const {data, error} = await supabase.functions.invoke("rates-book", {
-            body: params,
+            body: {...params, clientReference},
             method: "POST",
         });
         if (error) throw error;
         return data;
+    },
+
+    getBooking: async (bookingId: string) => {
+        const {data, error} = await supabase.functions.invoke("bookings-retrieve", {
+            body: {bookingId},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getListBookings: async () => {
+        const {data, error} = await supabase
+            .from("bookings")
+            .select("booking_id")
+        // .eq("user_id", (await supabase.auth.getUser()).data.user?.id);
+
+        if (error) throw error;
+        return {
+            "data":
+                {
+                    data
+                }
+
+        };
     },
 };

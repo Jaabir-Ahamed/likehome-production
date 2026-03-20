@@ -64,6 +64,15 @@
 
 ---
 
+## Side Effects
+
+When called from the frontend via `api.getRatesBook()`:
+
+1. **`clientReference` auto-populated** — if the caller does not pass `clientReference`, the authenticated user's Supabase `user.id` is used. This tags the booking on the LiteAPI side for future retrieval.
+2. **Booking persisted locally** — on a successful response, `data.data.bookingId` is inserted into the `public.bookings` table (`booking_id` column). The `user_id` column is auto-populated by the table's `auth.uid()` default. This insert is best-effort; errors are not surfaced to the caller.
+
+---
+
 ## Frontend Usage
 
 ### Method Signature
