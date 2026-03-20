@@ -22,6 +22,49 @@ type HotelRatesParams = {
     guestNationality?: string;
 };
 
+type PrebookParams = {
+    offerId: string;
+    usePaymentSdk: boolean;
+    voucherCode?: string;
+    addons?: {
+        addon: string;
+        value?: number;
+        currency?: string;
+        addonDetails?: { packageId?: string; destinationCode?: string; startDate?: string; endDate?: string };
+    }[];
+    bedTypeIds?: string[];
+    includeCreditBalance?: boolean;
+};
+
+type BookGuest = {
+    occupancyNumber: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+};
+
+type BookHolder = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+};
+
+type BookPayment = {
+    method: "ACC_CREDIT_CARD" | "WALLET" | "CREDIT" | "TRANSACTION_ID";
+    transactionId?: string;
+};
+
+type BookParams = {
+    prebookId: string;
+    holder: BookHolder;
+    guests: BookGuest[];
+    payment: BookPayment;
+    clientReference?: string;
+    metadata?: Record<string, unknown>;
+    guestPayment?: Record<string, unknown>;
+};
+
 export const api = {
     getCountries: async () => {
         const {data, error} = await supabase.functions.invoke("countries");
@@ -72,5 +115,32 @@ export const api = {
         )
         if (error) throw error
         return data
-    }
+    },
+
+    getHotelRates: async (params: HotelRatesParams) => {
+        const {data, error} = await supabase.functions.invoke("hotels-rates", {
+            body: params,
+            method: "POST",
+        })
+        if (error) throw error
+        return data
+    },
+
+    getRatesPrebook: async (params: PrebookParams) => {
+        const {data, error} = await supabase.functions.invoke("rates-prebook", {
+            body: params,
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getRatesBook: async (params: BookParams) => {
+        const {data, error} = await supabase.functions.invoke("rates-book", {
+            body: params,
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
 };

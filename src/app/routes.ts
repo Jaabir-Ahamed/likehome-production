@@ -16,6 +16,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ApiTestPage } from "./pages/ApiTestPage";
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: "hotels", Component: HotelListingPage },
       { path: "hotel/:id", Component: HotelDetailsPage },
       { path: "cities", Component: CitiesPage },
+      { path: "test", Component: ApiTestPage },
 
       // ✅ Protected routes grouped together
       {

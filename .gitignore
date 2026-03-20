@@ -5,3 +5,8 @@ node_modules
 
 .vercel
 .idea/
+
+.claude
+.cursor
+CLAUDE.md
+supabase/functions/_draft/
