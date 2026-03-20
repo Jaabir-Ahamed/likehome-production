@@ -20,6 +20,10 @@ type HotelRatesParams = {
     occupancies: { adults: number; children?: number[] }[];
     currency?: string;
     guestNationality?: string;
+    timeout?: number;
+    limit?: number;
+    offset?: number;
+    roomMapping?: boolean;
 };
 
 type PrebookParams = {
@@ -80,6 +84,14 @@ export const api = {
         return data;
     },
 
+    getPlaces: async (query: string) => {
+        const {data, error} = await supabase.functions.invoke(
+            `places?textQuery=${encodeURIComponent(query)}`
+        );
+        if (error) throw error;
+        return data;
+    },
+
     getHotels: async (search: HotelSearchParams, options?: HotelSearchOptions) => {
         const params = new URLSearchParams()
 
@@ -96,9 +108,7 @@ export const api = {
         if (options?.starRating) params.append('starRating', options.starRating)
         if (options?.minRating) params.append('minRating', String(options.minRating))
 
-        const fn = search.placeId ? 'list-hotels-by-placeid' : 'list-hotels'
-
-        const {data, error} = await supabase.functions.invoke(`${fn}?${params.toString()}`)
+        const {data, error} = await supabase.functions.invoke(`list-hotels?${params.toString()}`)
         if (error) throw error
         return data
     },
@@ -118,7 +128,7 @@ export const api = {
     },
 
     getHotelRates: async (params: HotelRatesParams) => {
-        const {data, error} = await supabase.functions.invoke("hotels-rates", {
+        const {data, error} = await supabase.functions.invoke("hotel-rate", {
             body: params,
             method: "POST",
         })
