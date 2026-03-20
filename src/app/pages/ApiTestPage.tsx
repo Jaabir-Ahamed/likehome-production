@@ -1,6 +1,9 @@
 import {useState} from "react";
 import {api} from "../../api/liteApi";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger,} from "../components/ui/accordion";
+import hotelsRatesMd from "../../../docs/api/hotels-rates.md?raw";
+import ratesPrebookMd from "../../../docs/api/rates-prebook.md?raw";
+import ratesBookMd from "../../../docs/api/rates-book.md?raw";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -63,6 +66,88 @@ function Badge({color, children}: { color: "blue" | "purple" | "green" | "gray";
     return (
         <span className={`text-xs font-bold px-2 py-0.5 rounded ${cls}`}>{children}</span>
     );
+}
+
+// ── Simple Markdown renderer ──────────────────────────────────────────────────
+function parseInline(text: string): React.ReactNode {
+    if (!text) return null;
+    const parts: React.ReactNode[] = [];
+    let rem = text;
+    let k = 0;
+    while (rem) {
+        const b = rem.search(/\*\*/);
+        const c = rem.search(/`/);
+        const l = rem.search(/\[/);
+        const earliest = Math.min(b >= 0 ? b : Infinity, c >= 0 ? c : Infinity, l >= 0 ? l : Infinity);
+        if (!isFinite(earliest)) { parts.push(rem); break; }
+        if (earliest > 0) parts.push(rem.slice(0, earliest));
+        rem = rem.slice(earliest);
+        const boldM = rem.match(/^\*\*(.*?)\*\*(.*)/s);
+        if (b === earliest && boldM) { parts.push(<strong key={k++}>{boldM[1]}</strong>); rem = boldM[2]; continue; }
+        const codeM = rem.match(/^`([^`]+)`(.*)/s);
+        if (c === earliest && codeM) { parts.push(<code key={k++} className="bg-gray-100 px-1 rounded text-xs font-mono">{codeM[1]}</code>); rem = codeM[2]; continue; }
+        const linkM = rem.match(/^\[([^\]]+)\]\(([^)]+)\)(.*)/s);
+        if (l === earliest && linkM) { parts.push(<a key={k++} href={linkM[2]} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{linkM[1]}</a>); rem = linkM[3]; continue; }
+        parts.push(rem[0]); rem = rem.slice(1);
+    }
+    return <>{parts}</>;
+}
+
+function SimpleMarkdown({content}: { content: string }) {
+    const nodes: React.ReactNode[] = [];
+    const lines = content.split('\n');
+    let i = 0;
+    let key = 0;
+    const nk = () => key++;
+    while (i < lines.length) {
+        const line = lines[i];
+        // Fenced code block
+        if (line.startsWith('```')) {
+            const codeLines: string[] = [];
+            i++;
+            while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+            i++;
+            nodes.push(<pre key={nk()} className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-auto whitespace-pre my-3"><code>{codeLines.join('\n')}</code></pre>);
+            continue;
+        }
+        // HR
+        if (line.match(/^-{3,}$/) || line.match(/^\*{3,}$/)) { nodes.push(<hr key={nk()} className="border-gray-200 my-4"/>); i++; continue; }
+        // Headings
+        const h1m = line.match(/^# (.+)/); if (h1m) { nodes.push(<h1 key={nk()} className="text-xl font-bold text-gray-900 mt-6 mb-2">{parseInline(h1m[1])}</h1>); i++; continue; }
+        const h2m = line.match(/^## (.+)/); if (h2m) { nodes.push(<h2 key={nk()} className="text-base font-bold text-gray-800 mt-5 mb-1">{parseInline(h2m[1])}</h2>); i++; continue; }
+        const h3m = line.match(/^### (.+)/); if (h3m) { nodes.push(<h3 key={nk()} className="text-sm font-semibold text-gray-700 mt-4 mb-1">{parseInline(h3m[1])}</h3>); i++; continue; }
+        // Table
+        if (line.startsWith('|')) {
+            const rows: string[][] = [];
+            while (i < lines.length && lines[i].startsWith('|')) {
+                const cells = lines[i].split('|').slice(1, -1).map(c => c.trim());
+                if (!cells.every(c => c.match(/^[-: ]+$/))) rows.push(cells);
+                i++;
+            }
+            if (rows.length > 0) nodes.push(
+                <div key={nk()} className="overflow-x-auto my-3">
+                    <table className="w-full text-xs border-collapse border border-gray-200 rounded">
+                        <thead><tr className="bg-gray-50">{rows[0].map((cell, ci) => <th key={ci} className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">{parseInline(cell)}</th>)}</tr></thead>
+                        <tbody>{rows.slice(1).map((row, ri) => <tr key={ri} className="hover:bg-gray-50">{row.map((cell, ci) => <td key={ci} className="border border-gray-200 px-3 py-2 text-gray-700">{parseInline(cell)}</td>)}</tr>)}</tbody>
+                    </table>
+                </div>
+            );
+            continue;
+        }
+        // Unordered list
+        if (line.match(/^- /)) {
+            const items: string[] = [];
+            while (i < lines.length && lines[i].match(/^- /)) { items.push(lines[i].slice(2)); i++; }
+            nodes.push(<ul key={nk()} className="list-disc list-inside space-y-1 text-sm text-gray-700 my-2 ml-2">{items.map((item, ii) => <li key={ii}>{parseInline(item)}</li>)}</ul>);
+            continue;
+        }
+        // Blank line
+        if (line.trim() === '') { i++; continue; }
+        // Paragraph
+        nodes.push(<p key={nk()} className="text-sm text-gray-700 my-1">{parseInline(line)}</p>);
+        i++;
+    }
+    return <div>{nodes}</div>;
 }
 
 // ── API Reference data ────────────────────────────────────────────────────────
@@ -156,6 +241,9 @@ const NAV_ITEMS = [
     {group: "Docs"},
     {href: "#how-it-works", label: "How Booking Works"},
     {href: "#api-reference", label: "API Reference"},
+    {href: "#doc-hotels-rates", label: "hotels-rates"},
+    {href: "#doc-rates-prebook", label: "rates-prebook"},
+    {href: "#doc-rates-book", label: "rates-book"},
     {group: "Testers"},
     {href: "#test-countries", label: "Countries"},
     {href: "#test-places", label: "Places (search)"},
@@ -950,6 +1038,19 @@ const { bookingId, status } = booking.data;`}</pre>
                             </Accordion>
                         </div>
                     </section>
+
+                    {/* ── API Docs ── */}
+                    {([
+                        {id: "doc-hotels-rates", title: "hotels-rates", content: hotelsRatesMd},
+                        {id: "doc-rates-prebook", title: "rates-prebook", content: ratesPrebookMd},
+                        {id: "doc-rates-book", title: "rates-book", content: ratesBookMd},
+                    ] as { id: string; title: string; content: string }[]).map(({id, title, content}) => (
+                        <section key={id} id={id} className="scroll-mt-6">
+                            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                                <SimpleMarkdown content={content}/>
+                            </div>
+                        </section>
+                    ))}
 
                 </main>
             </div>
