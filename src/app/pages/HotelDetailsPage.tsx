@@ -1,235 +1,142 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ArrowLeft, Check, Users, Calendar } from 'lucide-react';
+import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ArrowLeft, Check, Users, Calendar, Clock, Info, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { useCurrency } from '../contexts/CurrencyContext';
 import { MapComponent } from '../components/MapComponent';
+import { api } from '../../api/liteApi';
+import { toast } from 'sonner';
 
-// Mock hotel data (same as HotelListingPage)
-const hotels = [
-  {
-    id: 1,
-    name: 'The Grand Palace Hotel',
-    location: 'Paris, France',
-    neighborhood: 'Champs-Élysées',
-    rating: 4.9,
-    reviews: 1243,
-    price: 320,
-    images: [
-      'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1729717949782-f40c4a07e3c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMHJlc29ydCUyMGhvdGVsfGVufDF8fHx8MTc3MTg1Mjk5Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1731336478850-6bce7235e320?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHN1aXRlJTIwbHV4dXJ5fGVufDF8fHx8MTc3MTgxOTE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 5,
-    amenities: ['wifi', 'restaurant', 'parking', 'gym'],
-    description: 'Luxurious 5-star hotel in the heart of Paris, featuring elegant rooms and world-class service.',
-    fullDescription: 'The Grand Palace Hotel is a beacon of luxury in the heart of Paris. Our elegant rooms combine classic French architecture with modern amenities, offering stunning views of the city. Each room is meticulously designed with comfort in mind, featuring plush bedding, marble bathrooms, and state-of-the-art technology. Our world-class restaurant serves exquisite French cuisine, while our rooftop bar offers panoramic views of the Eiffel Tower. Whether you\'re here for business or pleasure, our dedicated concierge team is ready to make your stay unforgettable.',
-    features: [
-      '24/7 Room Service',
-      'Spa & Wellness Center',
-      'Rooftop Bar',
-      'Business Center',
-      'Concierge Service',
-      'Airport Shuttle',
-    ],
-  },
-  {
-    id: 2,
-    name: 'Ocean View Resort',
-    location: 'Bali, Indonesia',
-    neighborhood: 'Seminyak',
-    rating: 4.8,
-    reviews: 892,
-    price: 180,
-    images: [
-      'https://images.unsplash.com/photo-1729717949782-f40c4a07e3c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMHJlc29ydCUyMGhvdGVsfGVufDF8fHx8MTc3MTg1Mjk5Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 4,
-    amenities: ['wifi', 'restaurant', 'gym'],
-    description: 'Beautiful beachfront resort with stunning ocean views and modern amenities.',
-    fullDescription: 'Escape to paradise at Ocean View Resort. Located on the pristine shores of Seminyak, our resort offers direct beach access and breathtaking sunsets. Each room features a private balcony with ocean views, modern furnishings, and luxurious amenities. Indulge in authentic Balinese cuisine at our beachfront restaurant, or relax by our infinity pool overlooking the sea.',
-    features: [
-      'Private Beach Access',
-      'Infinity Pool',
-      'Water Sports',
-      'Beach Bar',
-      'Yoga Classes',
-      'Traditional Spa',
-    ],
-  },
-  {
-    id: 3,
-    name: 'Metropolitan Suites',
-    location: 'New York, USA',
-    neighborhood: 'Manhattan',
-    rating: 4.7,
-    reviews: 1567,
-    price: 280,
-    images: [
-      'https://images.unsplash.com/photo-1731336478850-6bce7235e320?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHN1aXRlJTIwbHV4dXJ5fGVufDF8fHx8MTc3MTgxOTE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 5,
-    amenities: ['wifi', 'restaurant', 'parking', 'gym'],
-    description: 'Modern luxury suites in the heart of Manhattan, perfect for business and leisure.',
-    fullDescription: 'Metropolitan Suites offers the perfect blend of luxury and convenience in the heart of Manhattan. Our spacious suites feature contemporary design, full kitchens, and stunning city views. Located steps from Times Square and Broadway, you\'re at the center of everything NYC has to offer.',
-    features: [
-      'Full Kitchen',
-      'City Views',
-      'Meeting Rooms',
-      'Executive Lounge',
-      'Valet Parking',
-      'Pet Friendly',
-    ],
-  },
-  {
-    id: 4,
-    name: 'Skyline Boutique Hotel',
-    location: 'Tokyo, Japan',
-    neighborhood: 'Shibuya',
-    rating: 4.9,
-    reviews: 723,
-    price: 240,
-    images: [
-      'https://images.unsplash.com/photo-1664908790579-34b71154f603?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxib3V0aXF1ZSUyMGhvdGVsJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzcxODA2NDA3fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 4,
-    amenities: ['wifi', 'restaurant', 'gym'],
-    description: 'Contemporary boutique hotel with Japanese hospitality and stunning city views.',
-    fullDescription: 'Experience the perfect fusion of traditional Japanese hospitality and modern design at Skyline Boutique Hotel. Located in vibrant Shibuya, our hotel offers uniquely designed rooms with cutting-edge technology and minimalist aesthetics. Enjoy authentic Japanese cuisine at our on-site restaurant.',
-    features: [
-      'Smart Room Technology',
-      'Traditional Onsen',
-      'Sushi Bar',
-      'Roof Garden',
-      'Cultural Activities',
-      'Multilingual Staff',
-    ],
-  },
-  {
-    id: 5,
-    name: 'City Lights Premium',
-    location: 'Dubai, UAE',
-    neighborhood: 'Downtown Dubai',
-    rating: 4.8,
-    reviews: 1034,
-    price: 350,
-    images: [
-      'https://images.unsplash.com/photo-1661191891844-2e7980ae1c94?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXR5JTIwaG90ZWwlMjByb290dG9wfGVufDF8fHx8MTc3MTkwNDg1Mnww&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 5,
-    amenities: ['wifi', 'restaurant', 'parking', 'gym'],
-    description: 'Luxury hotel with panoramic views of Dubai skyline and premium facilities.',
-    fullDescription: 'City Lights Premium offers unparalleled luxury in the heart of Downtown Dubai. With direct views of the Burj Khalifa and Dubai Fountain, our hotel provides an unforgettable experience. Each room features floor-to-ceiling windows, premium amenities, and Arabian-inspired décor.',
-    features: [
-      'Burj Khalifa Views',
-      'Indoor/Outdoor Pools',
-      'Fine Dining',
-      'Luxury Spa',
-      'Shopping Access',
-      'Premium Transfers',
-    ],
-  },
-  {
-    id: 6,
-    name: 'Royal Plaza Hotel',
-    location: 'London, UK',
-    neighborhood: 'Covent Garden',
-    rating: 4.6,
-    reviews: 945,
-    price: 290,
-    images: [
-      'https://images.unsplash.com/photo-1759462692354-404b2c995c99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMGxvYmJ5JTIwZWxlZ2FudHxlbnwxfHx8fDE3NzE4ODEyNzZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 5,
-    amenities: ['wifi', 'restaurant', 'parking'],
-    description: 'Historic hotel in central London with elegant interiors and classic British charm.',
-    fullDescription: 'The Royal Plaza Hotel combines Victorian elegance with modern luxury in the heart of London\'s West End. Our historic building has been meticulously restored to preserve its original character while offering contemporary comfort. Located in Covent Garden, you\'re steps from world-class theaters, restaurants, and shopping.',
-    features: [
-      'Historic Architecture',
-      'Afternoon Tea Service',
-      'Theater District Access',
-      'British Restaurant',
-      'Heritage Rooms',
-      'Butler Service',
-    ],
-  },
-  {
-    id: 7,
-    name: 'Coastal Paradise Hotel',
-    location: 'Miami, USA',
-    neighborhood: 'South Beach',
-    rating: 4.7,
-    reviews: 654,
-    price: 220,
-    images: [
-      'https://images.unsplash.com/photo-1738407282253-979e31f45785?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBob3RlbCUyMHBvb2x8ZW58MXx8fHwxNzcxODc1NjAzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 4,
-    amenities: ['wifi', 'restaurant', 'gym'],
-    description: 'Beachfront hotel with tropical vibes and modern amenities in Miami.',
-    fullDescription: 'Feel the Miami vibe at Coastal Paradise Hotel. Our Art Deco-inspired hotel sits directly on South Beach, offering stunning ocean views and easy access to Miami\'s vibrant nightlife and culture. Relax by our tropical pool or enjoy fresh seafood at our beachfront restaurant.',
-    features: [
-      'Direct Beach Access',
-      'Oceanfront Pool',
-      'Beach Club',
-      'Water Sports',
-      'Live Entertainment',
-      'Poolside Bar',
-    ],
-  },
-  {
-    id: 8,
-    name: 'Alpine Luxury Lodge',
-    location: 'Zurich, Switzerland',
-    neighborhood: 'Old Town',
-    rating: 4.9,
-    reviews: 432,
-    price: 390,
-    images: [
-      'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    ],
-    stars: 5,
-    amenities: ['wifi', 'restaurant', 'parking', 'gym'],
-    description: 'Exclusive mountain lodge with Swiss hospitality and breathtaking Alpine views.',
-    fullDescription: 'Experience Swiss luxury at Alpine Luxury Lodge. Nestled in Zurich\'s charming Old Town with views of the Alps, our lodge combines rustic charm with modern sophistication. Enjoy authentic Swiss cuisine, relax in our alpine spa, or explore the nearby ski slopes.',
-    features: [
-      'Mountain Views',
-      'Alpine Spa',
-      'Swiss Restaurant',
-      'Ski Storage',
-      'Fireplace Lounge',
-      'Wine Cellar',
-    ],
-  },
+interface HotelImage {
+  url: string;
+  urlHd: string;
+  caption: string;
+  defaultImage: boolean;
+}
+
+interface BedType {
+  quantity: number;
+  bedType: string;
+  bedSize: string;
+}
+
+interface RoomAmenity {
+  amenitiesId: number;
+  name: string;
+}
+
+interface RoomPhoto {
+  url: string;
+  mainPhoto: boolean;
+}
+
+interface Room {
+  id: number;
+  roomName: string;
+  description: string;
+  roomSizeSquare: number | null;
+  roomSizeUnit: string;
+  maxOccupancy: number;
+  bedTypes: BedType[];
+  roomAmenities: RoomAmenity[];
+  photos: RoomPhoto[];
+}
+
+interface Policy {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface SentimentCategory {
+  name: string;
+  rating: number;
+}
+
+interface HotelDetails {
+  id: string;
+  name: string;
+  hotelDescription: string;
+  hotelImportantInformation: string;
+  checkinCheckoutTimes: {
+    checkin_start: string;
+    checkin_end: string;
+    checkout: string;
+  };
+  hotelImages: HotelImage[];
+  main_photo: string;
+  country: string;
+  city: string;
+  starRating: number;
+  location: { latitude: number; longitude: number };
+  address: string;
+  hotelFacilities: string[];
+  rating: number;
+  reviewCount: number;
+  rooms: Room[];
+  policies: Policy[];
+  sentiment_analysis?: {
+    pros: string[];
+    cons: string[];
+    categories: SentimentCategory[];
+  };
+}
+
+const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { keywords: ['wifi', 'internet', 'wired'], Icon: Wifi },
+  { keywords: ['restaurant', 'dining', 'coffee shop', 'coffee'], Icon: Utensils },
+  { keywords: ['parking', 'garage'], Icon: ParkingSquare },
+  { keywords: ['fitness', 'gym', 'sport'], Icon: Dumbbell },
 ];
 
-const amenityIcons = {
-  wifi: Wifi,
-  restaurant: Utensils,
-  parking: ParkingSquare,
-  gym: Dumbbell,
-};
+function getFacilityIcon(name: string): React.ComponentType<{ className?: string }> {
+  const lower = name.toLowerCase();
+  for (const { keywords, Icon } of FACILITY_ICON_KEYWORDS) {
+    if (keywords.some(k => lower.includes(k))) return Icon;
+  }
+  return Check;
+}
 
 export function HotelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { convertPrice, getCurrencySymbol } = useCurrency();
   const [selectedImage, setSelectedImage] = useState(0);
   const [guests, setGuests] = useState(2);
   const [nights, setNights] = useState(1);
+  const [prebookLoading, setPrebookLoading] = useState(false);
+  const [selectedOfferId] = useState<string | null>(null);
+  const [hotel, setHotel] = useState<HotelDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const hotel = hotels.find(h => h.id === Number(id));
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    api.getHotelDetails(id)
+      .then(res => setHotel(res?.data ?? null))
+      .catch(() => {
+        setError('Failed to load hotel details.');
+        toast.error('Failed to load hotel details.');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  if (!hotel) {
+  if (loading) {
+    return (
+      <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !hotel) {
     return (
       <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
-          <p className="text-[#717182] mb-6">The hotel you're looking for doesn't exist.</p>
+          <p className="text-[#717182] mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
           <Button asChild>
             <Link to="/hotels">Back to Hotels</Link>
           </Button>
@@ -238,8 +145,11 @@ export function HotelDetailsPage() {
     );
   }
 
-  const totalPrice = convertPrice(hotel.price * nights);
-  const priceSymbol = getCurrencySymbol();
+  const images = hotel.hotelImages?.length > 0
+    ? hotel.hotelImages.map(img => img.urlHd || img.url)
+    : hotel.main_photo ? [hotel.main_photo] : [];
+
+  const locationString = [hotel.address, hotel.city].filter(Boolean).join(', ');
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
@@ -259,10 +169,10 @@ export function HotelDetailsPage() {
               <h1 className="text-4xl font-bold text-[#1f2937] mb-2">{hotel.name}</h1>
               <p className="text-lg text-[#717182] flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                {hotel.location} • {hotel.neighborhood}
+                {hotel.city} • {hotel.address}
               </p>
             </div>
-            <button 
+            <button
               className="w-12 h-12 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center hover:border-[#f59e0b] hover:bg-[#f59e0b]/10 transition-colors"
               aria-label="Add to favorites"
             >
@@ -271,95 +181,253 @@ export function HotelDetailsPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              {Array.from({ length: hotel.stars }).map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]" />
-              ))}
-            </div>
-            <Separator orientation="vertical" className="h-6" />
-            <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
-              <Star className="w-4 h-4 fill-white" />
-              <span className="font-bold">{hotel.rating}</span>
-            </div>
-            <span className="text-[#717182]">({hotel.reviews} reviews)</span>
+            {hotel.starRating > 0 && (
+              <div className="flex items-center gap-1">
+                {Array.from({ length: hotel.starRating }).map((_, i) => (
+                  <Star key={i} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]" />
+                ))}
+              </div>
+            )}
+            {hotel.starRating > 0 && <Separator orientation="vertical" className="h-6" />}
+            {hotel.rating > 0 && (
+              <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
+                <Star className="w-4 h-4 fill-white" />
+                <span className="font-bold">{hotel.rating}</span>
+              </div>
+            )}
+            {hotel.reviewCount > 0 && (
+              <span className="text-[#717182]">({hotel.reviewCount.toLocaleString()} reviews)</span>
+            )}
           </div>
         </div>
 
         {/* Image Gallery */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="col-span-4 md:col-span-3">
-            <img
-              src={hotel.images[selectedImage]}
-              alt={hotel.name}
-              className="w-full h-[500px] object-cover rounded-lg"
-            />
-          </div>
-          <div className="col-span-4 md:col-span-1 flex md:flex-col gap-4">
-            {hotel.images.slice(0, 3).map((image, index) => (
+        {images.length > 0 && (
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="col-span-4 md:col-span-3">
               <img
-                key={index}
-                src={image}
-                alt={`${hotel.name} ${index + 1}`}
-                className={`w-full h-[155px] object-cover rounded-lg cursor-pointer transition-all ${
-                  selectedImage === index ? 'ring-2 ring-[#2563eb]' : 'hover:opacity-80'
-                }`}
-                onClick={() => setSelectedImage(index)}
+                src={images[selectedImage]}
+                alt={hotel.name}
+                className="w-full h-[500px] object-cover rounded-lg"
               />
-            ))}
+            </div>
+            <div className="col-span-4 md:col-span-1 flex md:flex-col gap-4">
+              {images.slice(0, 3).map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`${hotel.name} ${index + 1}`}
+                  className={`w-full h-[155px] object-cover rounded-lg cursor-pointer transition-all ${
+                    selectedImage === index ? 'ring-2 ring-[#2563eb]' : 'hover:opacity-80'
+                  }`}
+                  onClick={() => setSelectedImage(index)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Description */}
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
-              <p className="text-[#1f2937] leading-relaxed">{hotel.fullDescription || hotel.description}</p>
-            </Card>
+            {hotel.hotelDescription && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
+                <div
+                  className="text-[#1f2937] leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: hotel.hotelDescription }}
+                />
+              </Card>
+            )}
 
-            {/* Amenities */}
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Amenities</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {hotel.amenities.map((amenity) => {
-                  const Icon = amenityIcons[amenity as keyof typeof amenityIcons];
-                  return (
-                    <div key={amenity} className="flex items-center gap-3">
-                      {Icon && <Icon className="w-5 h-5 text-[#2563eb]" />}
-                      <span className="capitalize text-[#1f2937]">{amenity}</span>
+            {/* Check-in / Check-out */}
+            {hotel.checkinCheckoutTimes && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-[#1f2937]">Check-in</p>
+                      <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
+                      {hotel.checkinCheckoutTimes.checkin_end && (
+                        <p className="text-[#717182]">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Features */}
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Property Features</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {hotel.features?.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-[#2563eb]" />
-                    <span className="text-[#1f2937]">{feature}</span>
                   </div>
-                ))}
-              </div>
-            </Card>
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-[#1f2937]">Check-out</p>
+                      <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Facilities */}
+            {hotel.hotelFacilities?.length > 0 && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Facilities</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {hotel.hotelFacilities.slice(0, 18).map((facility) => {
+                    const Icon = getFacilityIcon(facility);
+                    return (
+                      <div key={facility} className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0" />
+                        <span className="text-sm text-[#1f2937]">{facility}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
+            {/* Important Information */}
+            {hotel.hotelImportantInformation && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
+                  <Info className="w-6 h-6 text-[#f59e0b]" />
+                  Important Information
+                </h2>
+                <pre className="text-sm text-[#1f2937] whitespace-pre-wrap font-sans leading-relaxed">
+                  {hotel.hotelImportantInformation}
+                </pre>
+              </Card>
+            )}
+
+            {/* Rooms */}
+            {hotel.rooms?.length > 0 && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Available Room Types</h2>
+                <div className="space-y-4">
+                  {hotel.rooms.slice(0, 5).map((room) => {
+                    const mainPhoto = room.photos?.find(p => p.mainPhoto)?.url ?? room.photos?.[0]?.url;
+                    return (
+                      <div key={room.id} className="border border-gray-200 rounded-lg p-4 flex gap-4">
+                        {mainPhoto && (
+                          <img
+                            src={mainPhoto}
+                            alt={room.roomName}
+                            className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-[#1f2937] mb-1">{room.roomName}</h3>
+                          {room.roomSizeSquare && (
+                            <p className="text-sm text-[#717182] mb-1">{room.roomSizeSquare} {room.roomSizeUnit}</p>
+                          )}
+                          <p className="text-sm text-[#717182] mb-2">
+                            Up to {room.maxOccupancy} guests
+                            {room.bedTypes?.length > 0 && ` • ${room.bedTypes.map(b => `${b.quantity}× ${b.bedType}`).join(', ')}`}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {room.roomAmenities?.slice(0, 5).map(a => (
+                              <Badge key={a.amenitiesId} variant="secondary" className="text-xs">{a.name}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {hotel.rooms.length > 5 && (
+                    <p className="text-sm text-[#717182] text-center">
+                      +{hotel.rooms.length - 5} more room types available
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Guest Sentiment */}
+            {hotel.sentiment_analysis && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Guest Reviews</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {hotel.sentiment_analysis.pros?.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-green-700 flex items-center gap-2 mb-2">
+                        <ThumbsUp className="w-4 h-4" />
+                        What guests love
+                      </h3>
+                      <ul className="space-y-1">
+                        {hotel.sentiment_analysis.pros.map((pro, i) => (
+                          <li key={i} className="text-sm text-[#1f2937] flex items-center gap-2">
+                            <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            {pro}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {hotel.sentiment_analysis.cons?.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-red-600 flex items-center gap-2 mb-2">
+                        <ThumbsDown className="w-4 h-4" />
+                        Areas for improvement
+                      </h3>
+                      <ul className="space-y-1">
+                        {hotel.sentiment_analysis.cons.map((con, i) => (
+                          <li key={i} className="text-sm text-[#1f2937] flex items-start gap-2">
+                            <span className="text-red-400 flex-shrink-0 mt-0.5">•</span>
+                            {con}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                {hotel.sentiment_analysis.categories?.length > 0 && (
+                  <div className="space-y-3">
+                    {hotel.sentiment_analysis.categories.map((cat) => (
+                      <div key={cat.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
+                          <span className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-[#2563eb] h-2 rounded-full"
+                            style={{ width: `${Math.min((cat.rating / 10) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Policies */}
+            {hotel.policies?.length > 0 && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Policies</h2>
+                <div className="space-y-4">
+                  {hotel.policies.map((policy) => (
+                    <div key={policy.id}>
+                      <h3 className="font-semibold text-[#1f2937] mb-1">{policy.name}</h3>
+                      <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Location Map */}
             <Card className="p-6">
               <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Location</h2>
-              <MapComponent 
-                location={hotel.location}
+              <MapComponent
+                location={locationString}
                 height="400px"
               />
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-[#717182] flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#2563eb]" />
-                  <span className="font-medium text-[#1f2937]">{hotel.neighborhood}</span>
+                  <span className="font-medium text-[#1f2937]">{hotel.address}</span>
                   <span>•</span>
-                  <span>{hotel.location}</span>
+                  <span>{hotel.city}</span>
                 </p>
               </div>
             </Card>
@@ -369,14 +437,10 @@ export function HotelDetailsPage() {
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-28">
               <div className="mb-6">
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-4xl font-bold text-[#1f2937]">
-                    {priceSymbol}{convertPrice(hotel.price)}
-                  </span>
-                  <span className="text-lg text-[#717182]">/night</span>
-                </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  Free cancellation
+                <p className="text-sm text-[#717182] mb-1">Nightly rate</p>
+                <p className="text-lg font-semibold text-[#1f2937]">Select dates for pricing</p>
+                <Badge variant="secondary" className="mt-2 bg-green-100 text-green-800">
+                  Free cancellation available
                 </Badge>
               </div>
 
@@ -421,28 +485,34 @@ export function HotelDetailsPage() {
                 </div>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex justify-between text-[#1f2937]">
-                  <span>{priceSymbol}{convertPrice(hotel.price)} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
-                  <span>{priceSymbol}{totalPrice}</span>
-                </div>
-                <div className="flex justify-between text-[#1f2937]">
-                  <span>Service fee</span>
-                  <span>{priceSymbol}{Math.round(totalPrice * 0.1)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg text-[#1f2937]">
-                  <span>Total</span>
-                  <span>{priceSymbol}{totalPrice + Math.round(totalPrice * 0.1)}</span>
-                </div>
-              </div>
-
               <Button
                 className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white h-12 text-lg"
-                onClick={() => navigate(`/payment/${hotel.id}?guests=${guests}&nights=${nights}`)}
+                disabled={prebookLoading}
+                onClick={async () => {
+                  if (!selectedOfferId) {
+                    navigate(`/payment/${hotel.id}?guests=${guests}&nights=${nights}`);
+                    return;
+                  }
+                  setPrebookLoading(true);
+                  try {
+                    const prebook = await api.getRatesPrebook({ offerId: selectedOfferId, usePaymentSdk: false });
+                    const prebookData = prebook?.data;
+                    if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
+                    sessionStorage.setItem(`prebook:${prebookData.prebookId}`, JSON.stringify(prebookData));
+                    navigate(`/payment?prebookId=${prebookData.prebookId}`);
+                  } catch (err) {
+                    toast.error('Failed to reserve rate. Please try again.');
+                  } finally {
+                    setPrebookLoading(false);
+                  }
+                }}
               >
-                Reserve Now
+                {prebookLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Reserving...
+                  </span>
+                ) : 'Reserve Now'}
               </Button>
 
               <p className="text-xs text-center text-[#717182] mt-4">
