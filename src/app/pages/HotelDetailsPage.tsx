@@ -1,122 +1,142 @@
-import { useState, useEffect } from "react";
-import {
-  useParams,
-  Link,
-  useNavigate,
-  useSearchParams,
-  useLocation,
-} from "react-router";
-import {
-  Star,
-  MapPin,
-  Heart,
-  ArrowLeft,
-  Check,
-  Users,
-  Calendar,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Separator } from "../components/ui/separator";
-import { Skeleton } from "../components/ui/skeleton";
-import { useCurrency } from "../contexts/CurrencyContext";
-import { MapComponent } from "../components/MapComponent";
-import { useHotelDetails } from "../../hooks/useHotelDetails";
-import type { SearchHotelResult, RoomType } from "../../types/liteapi";
+import { useState, useEffect, type ComponentType } from 'react';
+import { useParams, Link, useNavigate } from 'react-router';
+import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ArrowLeft, Check, Users, Calendar, Clock, Info, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Separator } from '../components/ui/separator';
+import { MapComponent } from '../components/MapComponent';
+import { api } from '../../api/liteApi';
+import { toast } from 'sonner';
+
+interface HotelImage {
+  url: string;
+  urlHd: string;
+  caption: string;
+  defaultImage: boolean;
+}
+
+interface BedType {
+  quantity: number;
+  bedType: string;
+  bedSize: string;
+}
+
+interface RoomAmenity {
+  amenitiesId: number;
+  name: string;
+}
+
+interface RoomPhoto {
+  url: string;
+  mainPhoto: boolean;
+}
+
+interface Room {
+  id: number;
+  roomName: string;
+  description: string;
+  roomSizeSquare: number | null;
+  roomSizeUnit: string;
+  maxOccupancy: number;
+  bedTypes: BedType[];
+  roomAmenities: RoomAmenity[];
+  photos: RoomPhoto[];
+}
+
+interface Policy {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface SentimentCategory {
+  name: string;
+  rating: number;
+}
+
+interface HotelDetails {
+  id: string;
+  name: string;
+  hotelDescription: string;
+  hotelImportantInformation: string;
+  checkinCheckoutTimes: {
+    checkin_start: string;
+    checkin_end: string;
+    checkout: string;
+  };
+  hotelImages: HotelImage[];
+  main_photo: string;
+  country: string;
+  city: string;
+  starRating: number;
+  location: { latitude: number; longitude: number };
+  address: string;
+  hotelFacilities: string[];
+  rating: number;
+  reviewCount: number;
+  rooms: Room[];
+  policies: Policy[];
+  sentiment_analysis?: {
+    pros: string[];
+    cons: string[];
+    categories: SentimentCategory[];
+  };
+}
+
+const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: ComponentType<{ className?: string }> }[] = [
+  { keywords: ['wifi', 'internet', 'wired'], Icon: Wifi },
+  { keywords: ['restaurant', 'dining', 'coffee shop', 'coffee'], Icon: Utensils },
+  { keywords: ['parking', 'garage'], Icon: ParkingSquare },
+  { keywords: ['fitness', 'gym', 'sport'], Icon: Dumbbell },
+];
+
+function getFacilityIcon(name: string): ComponentType<{ className?: string }> {
+  const lower = name.toLowerCase();
+  for (const { keywords, Icon } of FACILITY_ICON_KEYWORDS) {
+    if (keywords.some(k => lower.includes(k))) return Icon;
+  }
+  return Check;
+}
 
 export function HotelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const { convertPrice, getCurrencySymbol } = useCurrency();
-
-  const checkIn = searchParams.get("checkIn") || "";
-  const checkOut = searchParams.get("checkOut") || "";
-  const guestsParam = Number(searchParams.get("guests")) || 2;
-
-  // Attempt to use hotel data passed via router state from listing page
-  const passedHotel = (location.state as { hotel?: SearchHotelResult })?.hotel;
-
-  const { hotel, rates, loading, error, fetchRates } = useHotelDetails(id);
-
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
+  const [guests, setGuests] = useState(2);
+  const [nights, setNights] = useState(1);
+  const [prebookLoading, setPrebookLoading] = useState(false);
+  const [selectedOfferId] = useState<string | null>(null);
+  const [hotel, setHotel] = useState<HotelDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch rates when we have dates
   useEffect(() => {
-    if (id && checkIn && checkOut) {
-      fetchRates(checkIn, checkOut, guestsParam, "USD");
-    }
-  }, [id, checkIn, checkOut, guestsParam, fetchRates]);
+    if (!id) return;
+    setLoading(true);
+    api.getHotelDetails(id)
+      .then((res) => setHotel((res as unknown as HotelDetails) ?? null))
+      .catch(() => {
+        setError('Failed to load hotel details.');
+        toast.error('Failed to load hotel details.');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  // Merge passed data with fetched data
-  const hotelName = hotel?.name ?? passedHotel?.name ?? "Hotel";
-  const hotelCity = hotel?.city ?? passedHotel?.city ?? "";
-  const hotelCountry =
-    hotel?.country?.toUpperCase() ?? passedHotel?.country?.toUpperCase() ?? "";
-  const hotelAddress = hotel?.address ?? passedHotel?.address ?? "";
-  const hotelStars = hotel?.stars ?? passedHotel?.stars ?? 0;
-  const hotelRating = hotel?.rating ?? passedHotel?.rating ?? 0;
-  const hotelReviewCount = hotel?.reviewCount ?? passedHotel?.reviewCount ?? 0;
-  const hotelDescription =
-    hotel?.hotelDescription ?? passedHotel?.hotelDescription ?? "";
-  const mainPhoto =
-    hotel?.main_photo ?? passedHotel?.main_photo ?? "";
-  const hotelImages = hotel?.images?.length
-    ? hotel.images
-    : [mainPhoto].filter(Boolean);
-  const facilities = hotel?.facilities ?? [];
-
-  // Room types from the rates API or from passed search data
-  const roomTypes: RoomType[] =
-    rates?.data?.[0]?.roomTypes ?? passedHotel?.rates?.roomTypes ?? [];
-
-  const ratingDisplay = (hotelRating / 2).toFixed(1);
-  const priceSymbol = getCurrencySymbol();
-
-  // Auto-select cheapest room
-  useEffect(() => {
-    if (roomTypes.length > 0 && !selectedRoom) {
-      setSelectedRoom(roomTypes[0]);
-    }
-  }, [roomTypes, selectedRoom]);
-
-  const selectedPrice = selectedRoom?.offerRetailRate?.amount ?? 0;
-  const totalConverted = convertPrice(selectedPrice);
-
-  if (loading && !passedHotel) {
+  if (loading) {
     return (
-      <div className="w-full bg-gray-50 min-h-screen">
-        <div className="container mx-auto px-4 lg:px-8 py-8">
-          <Skeleton className="h-8 w-48 mb-6" />
-          <Skeleton className="h-10 w-96 mb-4" />
-          <Skeleton className="h-5 w-64 mb-8" />
-          <Skeleton className="h-[500px] w-full rounded-lg mb-8" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-48 w-full rounded-lg" />
-              <Skeleton className="h-32 w-full rounded-lg" />
-            </div>
-            <Skeleton className="h-96 w-full rounded-lg" />
-          </div>
-        </div>
+      <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (error && !passedHotel) {
+  if (error || !hotel) {
     return (
       <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
-        <Card className="p-8 text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#1f2937] mb-2">
-            Failed to Load Hotel
-          </h2>
-          <p className="text-[#717182] mb-6">{error}</p>
+        <Card className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
+          <p className="text-[#717182] mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
           <Button asChild>
             <Link to="/hotels">Back to Hotels</Link>
           </Button>
@@ -125,11 +145,18 @@ export function HotelDetailsPage() {
     );
   }
 
+  const images = hotel.hotelImages?.length > 0
+    ? hotel.hotelImages.map(img => img.urlHd || img.url)
+    : hotel.main_photo ? [hotel.main_photo] : [];
+
+  const locationString = [hotel.address, hotel.city].filter(Boolean).join(', ');
+
   return (
     <div className="w-full bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8 py-8">
+        {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
-          <Link to={-1 as unknown as string} onClick={(e) => { e.preventDefault(); navigate(-1); }}>
+          <Link to="/hotels">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Hotels
           </Link>
@@ -139,14 +166,10 @@ export function HotelDetailsPage() {
         <div className="mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h1 className="text-4xl font-bold text-[#1f2937] mb-2">
-                {hotelName}
-              </h1>
+              <h1 className="text-4xl font-bold text-[#1f2937] mb-2">{hotel.name}</h1>
               <p className="text-lg text-[#717182] flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                {hotelCity}
-                {hotelCountry ? `, ${hotelCountry}` : ""}{" "}
-                {hotelAddress ? `\u2022 ${hotelAddress}` : ""}
+                {hotel.city} • {hotel.address}
               </p>
             </div>
             <button
@@ -158,155 +181,103 @@ export function HotelDetailsPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            {hotelStars > 0 && (
+            {hotel.starRating > 0 && (
               <div className="flex items-center gap-1">
-                {Array.from({ length: hotelStars }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]"
-                  />
+                {Array.from({ length: hotel.starRating }).map((_, i) => (
+                  <Star key={i} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]" />
                 ))}
               </div>
             )}
-            {hotelRating > 0 && (
-              <>
-                <Separator orientation="vertical" className="h-6" />
-                <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-white" />
-                  <span className="font-bold">{ratingDisplay}</span>
-                </div>
-                <span className="text-[#717182]">
-                  ({hotelReviewCount.toLocaleString()} reviews)
-                </span>
-              </>
+            {hotel.starRating > 0 && <Separator orientation="vertical" className="h-6" />}
+            {hotel.rating > 0 && (
+              <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
+                <Star className="w-4 h-4 fill-white" />
+                <span className="font-bold">{hotel.rating}</span>
+              </div>
+            )}
+            {hotel.reviewCount > 0 && (
+              <span className="text-[#717182]">({hotel.reviewCount.toLocaleString()} reviews)</span>
             )}
           </div>
         </div>
 
         {/* Image Gallery */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="col-span-4 md:col-span-3">
-            {hotelImages[selectedImage] ? (
+        {images.length > 0 && (
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="col-span-4 md:col-span-3">
               <img
-                src={hotelImages[selectedImage]}
-                alt={hotelName}
+                src={images[selectedImage]}
+                alt={hotel.name}
                 className="w-full h-[500px] object-cover rounded-lg"
               />
-            ) : (
-              <Skeleton className="w-full h-[500px] rounded-lg" />
-            )}
-          </div>
-          {hotelImages.length > 1 && (
+            </div>
             <div className="col-span-4 md:col-span-1 flex md:flex-col gap-4">
-              {hotelImages.slice(0, 3).map((image, index) => (
+              {images.slice(0, 3).map((image, index) => (
                 <img
                   key={index}
                   src={image}
-                  alt={`${hotelName} ${index + 1}`}
+                  alt={`${hotel.name} ${index + 1}`}
                   className={`w-full h-[155px] object-cover rounded-lg cursor-pointer transition-all ${
-                    selectedImage === index
-                      ? "ring-2 ring-[#2563eb]"
-                      : "hover:opacity-80"
+                    selectedImage === index ? 'ring-2 ring-[#2563eb]' : 'hover:opacity-80'
                   }`}
                   onClick={() => setSelectedImage(index)}
                 />
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Description */}
-            {hotelDescription && (
+            {hotel.hotelDescription && (
               <Card className="p-6">
-                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">
-                  About This Hotel
-                </h2>
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
                 <div
                   className="text-[#1f2937] leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: hotelDescription }}
+                  dangerouslySetInnerHTML={{ __html: hotel.hotelDescription }}
                 />
               </Card>
             )}
 
-            {/* Facilities */}
-            {facilities.length > 0 && (
+            {/* Check-in / Check-out */}
+            {hotel.checkinCheckoutTimes && (
               <Card className="p-6">
-                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">
-                  Amenities
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {facilities.map((f) => (
-                    <div key={f.id} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#2563eb]" />
-                      <span className="text-sm text-[#1f2937]">{f.name}</span>
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-[#1f2937]">Check-in</p>
+                      <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
+                      {hotel.checkinCheckoutTimes.checkin_end && (
+                        <p className="text-[#717182]">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-[#1f2937]">Check-out</p>
+                      <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
+                    </div>
+                  </div>
                 </div>
               </Card>
             )}
 
-            {/* Available Rooms */}
-            {roomTypes.length > 0 && (
+            {/* Facilities */}
+            {hotel.hotelFacilities?.length > 0 && (
               <Card className="p-6">
-                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">
-                  Available Rooms
-                </h2>
-                <div className="space-y-4">
-                  {roomTypes.map((room) => {
-                    const rate = room.rates[0];
-                    const price = room.offerRetailRate?.amount ?? 0;
-                    const isSelected =
-                      selectedRoom?.offerId === room.offerId;
-                    const refundable =
-                      rate?.cancellationPolicies?.refundableTag === "RFN";
-
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Facilities</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {hotel.hotelFacilities.slice(0, 18).map((facility) => {
+                    const Icon = getFacilityIcon(facility);
                     return (
-                      <div
-                        key={room.offerId}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          isSelected
-                            ? "border-[#2563eb] bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => setSelectedRoom(room)}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-[#1f2937] mb-1">
-                              {rate?.name ?? "Room"}
-                            </h3>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                <Users className="w-3 h-3 mr-1" />
-                                Max {rate?.maxOccupancy ?? 2} guests
-                              </Badge>
-                              <Badge
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {rate?.boardName ?? "Room Only"}
-                              </Badge>
-                              {refundable && (
-                                <Badge className="bg-green-100 text-green-800 text-xs">
-                                  Free cancellation
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-2xl font-bold text-[#1f2937]">
-                              {priceSymbol}
-                              {convertPrice(price)}
-                            </span>
-                            <p className="text-xs text-[#717182]">total</p>
-                          </div>
-                        </div>
+                      <div key={facility} className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0" />
+                        <span className="text-sm text-[#1f2937]">{facility}</span>
                       </div>
                     );
                   })}
@@ -314,34 +285,149 @@ export function HotelDetailsPage() {
               </Card>
             )}
 
-            {/* Loading rates */}
-            {roomTypes.length === 0 && checkIn && checkOut && (
-              <Card className="p-6 text-center">
-                <Loader2 className="w-8 h-8 text-[#2563eb] mx-auto mb-3 animate-spin" />
-                <p className="text-[#717182]">Loading room rates...</p>
+            {/* Important Information */}
+            {hotel.hotelImportantInformation && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
+                  <Info className="w-6 h-6 text-[#f59e0b]" />
+                  Important Information
+                </h2>
+                <pre className="text-sm text-[#1f2937] whitespace-pre-wrap font-sans leading-relaxed">
+                  {hotel.hotelImportantInformation}
+                </pre>
+              </Card>
+            )}
+
+            {/* Rooms */}
+            {hotel.rooms?.length > 0 && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Available Room Types</h2>
+                <div className="space-y-4">
+                  {hotel.rooms.slice(0, 5).map((room) => {
+                    const mainPhoto = room.photos?.find(p => p.mainPhoto)?.url ?? room.photos?.[0]?.url;
+                    return (
+                      <div key={room.id} className="border border-gray-200 rounded-lg p-4 flex gap-4">
+                        {mainPhoto && (
+                          <img
+                            src={mainPhoto}
+                            alt={room.roomName}
+                            className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-[#1f2937] mb-1">{room.roomName}</h3>
+                          {room.roomSizeSquare && (
+                            <p className="text-sm text-[#717182] mb-1">{room.roomSizeSquare} {room.roomSizeUnit}</p>
+                          )}
+                          <p className="text-sm text-[#717182] mb-2">
+                            Up to {room.maxOccupancy} guests
+                            {room.bedTypes?.length > 0 && ` • ${room.bedTypes.map(b => `${b.quantity}× ${b.bedType}`).join(', ')}`}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {room.roomAmenities?.slice(0, 5).map(a => (
+                              <Badge key={a.amenitiesId} variant="secondary" className="text-xs">{a.name}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {hotel.rooms.length > 5 && (
+                    <p className="text-sm text-[#717182] text-center">
+                      +{hotel.rooms.length - 5} more room types available
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Guest Sentiment */}
+            {hotel.sentiment_analysis && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Guest Reviews</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {hotel.sentiment_analysis.pros?.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-green-700 flex items-center gap-2 mb-2">
+                        <ThumbsUp className="w-4 h-4" />
+                        What guests love
+                      </h3>
+                      <ul className="space-y-1">
+                        {hotel.sentiment_analysis.pros.map((pro, i) => (
+                          <li key={i} className="text-sm text-[#1f2937] flex items-center gap-2">
+                            <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            {pro}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {hotel.sentiment_analysis.cons?.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-red-600 flex items-center gap-2 mb-2">
+                        <ThumbsDown className="w-4 h-4" />
+                        Areas for improvement
+                      </h3>
+                      <ul className="space-y-1">
+                        {hotel.sentiment_analysis.cons.map((con, i) => (
+                          <li key={i} className="text-sm text-[#1f2937] flex items-start gap-2">
+                            <span className="text-red-400 flex-shrink-0 mt-0.5">•</span>
+                            {con}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                {hotel.sentiment_analysis.categories?.length > 0 && (
+                  <div className="space-y-3">
+                    {hotel.sentiment_analysis.categories.map((cat) => (
+                      <div key={cat.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
+                          <span className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-[#2563eb] h-2 rounded-full"
+                            style={{ width: `${Math.min((cat.rating / 10) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Policies */}
+            {hotel.policies?.length > 0 && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Policies</h2>
+                <div className="space-y-4">
+                  {hotel.policies.map((policy) => (
+                    <div key={policy.id}>
+                      <h3 className="font-semibold text-[#1f2937] mb-1">{policy.name}</h3>
+                      <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 
             {/* Location Map */}
             <Card className="p-6">
-              <h2 className="text-2xl font-bold text-[#1f2937] mb-4">
-                Location
-              </h2>
+              <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Location</h2>
               <MapComponent
-                location={`${hotelCity}${hotelCountry ? `, ${hotelCountry}` : ""}`}
+                location={locationString}
                 height="400px"
               />
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-[#717182] flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#2563eb]" />
-                  <span className="font-medium text-[#1f2937]">
-                    {hotelAddress}
-                  </span>
-                  <span>&bull;</span>
-                  <span>
-                    {hotelCity}
-                    {hotelCountry ? `, ${hotelCountry}` : ""}
-                  </span>
+                  <span className="font-medium text-[#1f2937]">{hotel.address}</span>
+                  <span>•</span>
+                  <span>{hotel.city}</span>
                 </p>
               </div>
             </Card>
@@ -350,127 +436,88 @@ export function HotelDetailsPage() {
           {/* Booking Card */}
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-28">
-              {selectedRoom ? (
-                <>
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-4xl font-bold text-[#1f2937]">
-                        {priceSymbol}
-                        {totalConverted}
-                      </span>
-                      <span className="text-lg text-[#717182]">total</span>
-                    </div>
-                    <p className="text-sm text-[#717182] mb-2">
-                      {selectedRoom.rates[0]?.name}
-                    </p>
-                    {selectedRoom.rates[0]?.cancellationPolicies
-                      ?.refundableTag === "RFN" && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-800"
-                      >
-                        Free cancellation
-                      </Badge>
-                    )}
-                  </div>
+              <div className="mb-6">
+                <p className="text-sm text-[#717182] mb-1">Nightly rate</p>
+                <p className="text-lg font-semibold text-[#1f2937]">Select dates for pricing</p>
+                <Badge variant="secondary" className="mt-2 bg-green-100 text-green-800">
+                  Free cancellation available
+                </Badge>
+              </div>
 
-                  <Separator className="my-6" />
+              <Separator className="my-6" />
 
-                  <div className="space-y-3 mb-6">
-                    {checkIn && checkOut && (
-                      <div className="flex items-center gap-2 text-sm text-[#1f2937]">
-                        <Calendar className="w-4 h-4 text-[#2563eb]" />
-                        <span>
-                          {new Date(checkIn + "T00:00:00").toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric" }
-                          )}{" "}
-                          &rarr;{" "}
-                          {new Date(checkOut + "T00:00:00").toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric", year: "numeric" }
-                          )}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm text-[#1f2937]">
-                      <Users className="w-4 h-4 text-[#2563eb]" />
-                      <span>
-                        {guestsParam}{" "}
-                        {guestsParam === 1 ? "Guest" : "Guests"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between text-[#1f2937]">
-                      <span>Room rate</span>
-                      <span>
-                        {priceSymbol}
-                        {totalConverted}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-bold text-lg text-[#1f2937]">
-                      <span>Total</span>
-                      <span>
-                        {priceSymbol}
-                        {totalConverted}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Button
-                    className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white h-12 text-lg"
-                    onClick={() =>
-                      navigate(
-                        `/payment/${id}?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guestsParam}&offerId=${selectedRoom.offerId}`,
-                        {
-                          state: {
-                            hotel: {
-                              id: id,
-                              name: hotelName,
-                              city: hotelCity,
-                              country: hotelCountry,
-                              main_photo: mainPhoto,
-                              address: hotelAddress,
-                            },
-                            room: selectedRoom,
-                          },
-                        }
-                      )
-                    }
+              {/* Booking Options */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Guests
+                  </label>
+                  <select
+                    value={guests}
+                    onChange={(e) => setGuests(Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                   >
-                    Reserve Now
-                  </Button>
-
-                  <p className="text-xs text-center text-[#717182] mt-4">
-                    You won't be charged yet
-                  </p>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  {checkIn && checkOut ? (
-                    <>
-                      <Loader2 className="w-8 h-8 text-[#2563eb] mx-auto mb-3 animate-spin" />
-                      <p className="text-[#717182]">Loading rates...</p>
-                    </>
-                  ) : (
-                    <>
-                      <Calendar className="w-12 h-12 text-[#717182] mx-auto mb-3" />
-                      <p className="text-[#717182] mb-4">
-                        Select dates to see prices
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate("/hotels")}
-                      >
-                        Search with Dates
-                      </Button>
-                    </>
-                  )}
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <option key={num} value={num}>
+                        {num} {num === 1 ? 'Guest' : 'Guests'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                <div>
+                  <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Number of Nights
+                  </label>
+                  <select
+                    value={nights}
+                    onChange={(e) => setNights(Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 14, 21, 30].map((num) => (
+                      <option key={num} value={num}>
+                        {num} {num === 1 ? 'Night' : 'Nights'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <Button
+                className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white h-12 text-lg"
+                disabled={prebookLoading}
+                onClick={async () => {
+                  if (!selectedOfferId) {
+                    navigate(`/payment/${hotel.id}?guests=${guests}&nights=${nights}`);
+                    return;
+                  }
+                  setPrebookLoading(true);
+                  try {
+                    const prebook = await api.getRatesPrebook({ offerId: selectedOfferId, usePaymentSdk: false });
+                    const prebookData = prebook?.data;
+                    if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
+                    sessionStorage.setItem(`prebook:${prebookData.prebookId}`, JSON.stringify(prebookData));
+                    navigate(`/payment?prebookId=${prebookData.prebookId}`);
+                  } catch (err) {
+                    toast.error('Failed to reserve rate. Please try again.');
+                  } finally {
+                    setPrebookLoading(false);
+                  }
+                }}
+              >
+                {prebookLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Reserving...
+                  </span>
+                ) : 'Reserve Now'}
+              </Button>
+
+              <p className="text-xs text-center text-[#717182] mt-4">
+                You won't be charged yet
+              </p>
             </Card>
           </div>
         </div>

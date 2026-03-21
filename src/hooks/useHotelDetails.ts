@@ -58,7 +58,7 @@ export function useHotelDetails(hotelId: string | undefined): UseHotelDetailsRet
       if (!hotelId) return;
 
       try {
-        const data = await api.getHotelRates(
+        const data = await api.getHotelRatesForHotelId(
           hotelId,
           checkin,
           checkout,
