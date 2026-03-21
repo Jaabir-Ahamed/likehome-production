@@ -73,40 +73,10 @@ type BookParams = {
   guestPayment?: Record<string, unknown>;
 };
 
-/** LiteAPI / find-places autocomplete */
-export type Place = {
-  placeId: string;
-  displayName: string;
-  formattedAddress: string;
-  types: string[];
-};
-
-/** Normalized hotel row from search-hotel-rates edge function */
-export type NormalizedHotel = {
-  hotelId: string | null;
-  name: string | null;
-  image: string | null;
-  address: string | null;
-  city?: string | null;
-  country?: string | null;
-  starRating: number;
-  reviewRating?: number;
-  reviewCount?: number;
-  price: number | null;
-  currency: string;
-};
-
-export type HotelRateSearchParams = {
-  placeId: string;
-  checkin: string;
-  checkout: string;
-  adults: number;
-  rooms: number;
-  currency: string;
-  guestNationality: string;
-  limit?: number;
-};
-
+/**
+ * Matches LikeHome-CMPE-165/likehome-web `src/api/liteApi.tsx` (Supabase edge names:
+ * places, list-hotels, hotel-rate, rates-prebook, rates-book, bookings-retrieve, …)
+ */
 export const api = {
   getCountries: async () => {
     const { data, error } = await supabase.functions.invoke("countries");
@@ -122,22 +92,12 @@ export const api = {
     return data;
   },
 
-  /** Org repo: `places` edge function */
   getPlaces: async (query: string) => {
     const { data, error } = await supabase.functions.invoke(
       `places?textQuery=${encodeURIComponent(query)}`
     );
     if (error) throw error;
     return data;
-  },
-
-  /** Your deployed edge function name: find-places */
-  findPlaces: async (textQuery: string): Promise<Place[]> => {
-    const { data, error } = await supabase.functions.invoke(
-      `find-places?textQuery=${encodeURIComponent(textQuery)}`
-    );
-    if (error) throw error;
-    return data?.data ?? data ?? [];
   },
 
   getHotels: async (
@@ -185,30 +145,6 @@ export const api = {
     return data;
   },
 
-  /** Hotel listing: normalized rates from search-hotel-rates */
-  searchHotelRates: async (params: HotelRateSearchParams) => {
-    const { data, error } = await supabase.functions.invoke(
-      "search-hotel-rates",
-      {
-        body: {
-          placeId: params.placeId,
-          checkin: params.checkin,
-          checkout: params.checkout,
-          adults: params.adults,
-          rooms: params.rooms,
-          currency: params.currency,
-          guestNationality: params.guestNationality,
-          limit: params.limit ?? 20,
-          includeHotelData: true,
-          maxRatesPerHotel: 1,
-        },
-      }
-    );
-    if (error) throw error;
-    return data;
-  },
-
-  /** Org: POST hotel-rate */
   getHotelRates: async (params: HotelRatesParams) => {
     const { data, error } = await supabase.functions.invoke("hotel-rate", {
       body: params,
@@ -261,6 +197,10 @@ export const api = {
       .select("booking_id");
 
     if (error) throw error;
-    return { data: { data } };
+    return {
+      data: {
+        data,
+      },
+    };
   },
 };

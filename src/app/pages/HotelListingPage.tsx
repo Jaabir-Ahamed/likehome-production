@@ -23,7 +23,8 @@ import {
   AccordionTrigger,
 } from '../components/ui/accordion';
 import { api } from '../../api/liteApi';
-import type { NormalizedHotel } from '../../api/liteApi';
+import type { NormalizedHotel } from '../../types/hotel';
+import { mergeListHotelsAndRates } from '../../lib/mergeListHotelsAndRates';
 import { HotelCard } from '../components/HotelCard';
 
 const PAGE_SIZE = 15;
@@ -83,42 +84,52 @@ export function HotelListingPage() {
       setError(null);
       setHotels([]);
       try {
-        const result = await api.searchHotelRates({
-          placeId: placeIdParam,
-          checkin: checkInParam,
-          checkout: checkOutParam,
-          adults: adultsParam,
-          rooms: roomsParam,
-          currency: currency || 'USD',
-          guestNationality: 'US',
-          limit: 60,
-        });
+        const listResult = await api.getHotels(
+          { placeId: placeIdParam },
+          { limit: 60 }
+        );
 
-        console.log('Search Results:', result);
+        const listArr = Array.isArray((listResult as { data?: unknown[] })?.data)
+          ? (listResult as { data: unknown[] }).data
+          : Array.isArray(listResult)
+            ? listResult
+            : [];
+
+        const hotelIds = listArr
+          .map((h: unknown) => {
+            if (!h || typeof h !== 'object') return '';
+            return String((h as { hotelId?: string; id?: string }).hotelId ?? (h as { id?: string }).id ?? '');
+          })
+          .filter(Boolean);
 
         if (cancelled) return;
 
-        // Guard: result.data must be an array of hotel objects (have a hotelId field).
-        // If we receive facilities data or any other non-hotel array, discard it.
-        const raw: unknown[] = Array.isArray(result?.data) ? result.data : [];
-        const hotelData = raw.filter(
-          (item): item is NormalizedHotel =>
-            item !== null &&
-            typeof item === 'object' &&
-            'hotelId' in (item as object)
-        );
-
-        if (raw.length > 0 && hotelData.length === 0) {
-          console.warn(
-            'search-hotel-rates returned items that are not hotel objects. First item:',
-            raw[0]
-          );
+        if (hotelIds.length === 0) {
+          setHotels([]);
+          return;
         }
+
+        const occupancies = Array.from({ length: roomsParam }, () => ({
+          adults: adultsParam,
+        }));
+
+        const ratesResult = await api.getHotelRates({
+          hotelIds,
+          checkin: checkInParam,
+          checkout: checkOutParam,
+          occupancies,
+          currency: currency || 'USD',
+          guestNationality: 'US',
+        });
+
+        const hotelData = mergeListHotelsAndRates(listResult, ratesResult);
+
+        console.log('Search Results:', { listResult, ratesResult, hotelData });
 
         setHotels(hotelData);
       } catch (err) {
         if (cancelled) return;
-        console.error('searchHotelRates error:', err);
+        console.error('Hotel search error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load hotels. Please try again.');
       } finally {
         if (!cancelled) setIsLoading(false);

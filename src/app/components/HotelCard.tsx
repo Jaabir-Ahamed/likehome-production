@@ -2,7 +2,7 @@ import { Star, MapPin, Heart } from 'lucide-react';
 import { Link } from 'react-router';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import type { NormalizedHotel } from '../../api/liteApi';
+import type { NormalizedHotel } from '../../types/hotel';
 
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80';

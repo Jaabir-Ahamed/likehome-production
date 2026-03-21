@@ -4,7 +4,8 @@ import { Input } from './ui/input';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../../api/liteApi';
-import type { Place } from '../../api/liteApi';
+import type { Place } from '../../types/hotel';
+import { placesFromResponse } from '../../lib/placesFromApi';
 
 export function SearchComponent() {
   const navigate = useNavigate();
@@ -55,7 +56,8 @@ export function SearchComponent() {
     const timer = setTimeout(async () => {
       setIsLoadingPlaces(true);
       try {
-        const results = await api.findPlaces(query);
+        const raw = await api.getPlaces(query);
+        const results = placesFromResponse(raw);
         setPlaces(results);
         setShowDropdown(results.length > 0);
         setHighlightedIndex(-1);
