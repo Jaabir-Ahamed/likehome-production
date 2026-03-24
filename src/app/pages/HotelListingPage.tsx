@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {Link, useSearchParams} from 'react-router';
-import {Dumbbell, Heart, Loader2, Map, MapPin, ParkingSquare, Star, Utensils, Wifi} from 'lucide-react';
+import {Heart, Loader2, Map as MapIcon, MapPin, Star} from 'lucide-react';
 import {Button} from '../components/ui/button';
 import {Card} from '../components/ui/card';
 import {Slider} from '../components/ui/slider';
@@ -13,15 +13,32 @@ import {api} from '../../api/liteApi';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '../components/ui/select';
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger,} from '../components/ui/accordion';
 
-// Mock hotel data
+function getDefaultDates() {
+    const today = new Date();
+    const checkIn = new Date(today);
+    checkIn.setDate(today.getDate() + 1);
+    const checkOut = new Date(today);
+    checkOut.setDate(today.getDate() + 4);
+    return {
+        checkIn: checkIn.toISOString().split('T')[0],
+        checkOut: checkOut.toISOString().split('T')[0],
+    };
+}
 
+function getRatingLabel(rating: number): string {
+    if (rating >= 9) return 'Exceptional';
+    if (rating >= 8) return 'Excellent';
+    if (rating >= 7) return 'Very Good';
+    if (rating >= 6) return 'Good';
+    return 'Fair';
+}
 
-const amenityIcons = {
-    wifi: Wifi,
-    restaurant: Utensils,
-    parking: ParkingSquare,
-    gym: Dumbbell,
-};
+function stripHtml(html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || "";
+}
+
+type HotelRateInfo = { pricePerNight: number; totalPrice: number; currency: string };
 
 type ApiHotel = {
     id: string;
@@ -38,14 +55,25 @@ export function HotelListingPage() {
     const {convertPrice, getCurrencySymbol} = useCurrency();
     const [searchParams] = useSearchParams();
     const placeIdParam = searchParams.get('placeId');
-    const locationParam = searchParams.get('location')?.toLowerCase() || '';
     const checkInParam = searchParams.get('checkIn');
     const checkOutParam = searchParams.get('checkOut');
     const occupanciesParam = searchParams.get('occupancies');
 
+    const defaults = getDefaultDates();
+    const checkIn = checkInParam ?? defaults.checkIn;
+    const checkOut = checkOutParam ?? defaults.checkOut;
+    const parsedOccupancies: { adults: number; children?: number[] }[] =
+        occupanciesParam ? JSON.parse(occupanciesParam) : [{adults: 2}];
+    const nights = Math.max(1, Math.round(
+        (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
+    ));
+
     const [apiHotels, setApiHotels] = useState<ApiHotel[]>([]);
     const [isLoadingHotels, setIsLoadingHotels] = useState(false);
     const [hotelsError, setHotelsError] = useState('');
+
+    const [hotelRates, setHotelRates] = useState<Map<string, HotelRateInfo>>(new Map());
+    const [isLoadingRates, setIsLoadingRates] = useState(false);
 
     const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
@@ -70,6 +98,46 @@ export function HotelListingPage() {
             })
             .finally(() => setIsLoadingHotels(false));
     }, [placeIdParam]);
+
+    useEffect(() => {
+        if (apiHotels.length === 0) return;
+        setIsLoadingRates(true);
+        setHotelRates(new Map());
+        api.getHotelRates({
+            hotelIds: apiHotels.map(h => h.id),
+            checkin: checkIn,
+            checkout: checkOut,
+            occupancies: parsedOccupancies,
+        })
+            .then((result) => {
+                const rateMap = new Map<string, HotelRateInfo>();
+                for (const hotel of (result?.data ?? [])) {
+                    const roomTypes: {
+                        offerRetailRate?: { amount?: number; currency?: string }
+                    }[] = hotel.roomTypes ?? [];
+                    let minTotal = Infinity;
+                    let currency = 'USD';
+                    for (const rt of roomTypes) {
+                        const amount = rt.offerRetailRate?.amount;
+                        if (amount != null && amount < minTotal) {
+                            minTotal = amount;
+                            currency = rt.offerRetailRate?.currency ?? 'USD';
+                        }
+                    }
+                    if (minTotal !== Infinity) {
+                        rateMap.set(hotel.hotelId, {
+                            totalPrice: minTotal,
+                            pricePerNight: minTotal / nights,
+                            currency,
+                        });
+                    }
+                }
+                setHotelRates(rateMap);
+            })
+            .catch(() => {/* rates unavailable — cards show fallback */
+            })
+            .finally(() => setIsLoadingRates(false));
+    }, [apiHotels]);
 
     const [priceRange, setPriceRange] = useState([0, 500]);
     const [selectedStars, setSelectedStars] = useState<number[]>([]);
@@ -113,7 +181,7 @@ export function HotelListingPage() {
                         Find Your Perfect Stay
                     </h1>
                     <p className="text-lg text-[#717182]">
-                        {placeIdParam ? `${apiHotels.length} hotels available` : `${0} hotels available`}
+                        {placeIdParam ? `${apiHotels.length} hotels available` : 'Search a location to find hotels'}
                     </p>
                 </div>
 
@@ -134,7 +202,7 @@ export function HotelListingPage() {
                                     onClick={() => setShowMap(!showMap)}
                                     className="text-[#2563eb]"
                                 >
-                                    <Map className="w-4 h-4 mr-2"/>
+                                    <MapIcon className="w-4 h-4 mr-2"/>
                                     {showMap ? 'Hide Map' : 'Show Map'}
                                 </Button>
                             </div>
@@ -340,7 +408,7 @@ export function HotelListingPage() {
                         <div
                             className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <p className="text-sm text-[#717182]">
-                                Showing {placeIdParam ? apiHotels.length : filteredHotels.length} properties
+                                Showing {apiHotels.length} properties
                             </p>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-[#1f2937]">Sort by:</span>
@@ -374,79 +442,115 @@ export function HotelListingPage() {
                                 )}
                                 {!isLoadingHotels && !hotelsError && (
                                     <div className="space-y-6">
-                                        {apiHotels.map((hotel) => (
-                                            <Card key={hotel.id}
-                                                  className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                                                <div className="flex flex-col md:flex-row">
-                                                    <div className="md:w-1/3 relative group bg-gray-100">
-                                                        {hotel.main_photo || hotel.thumbnail ? (
-                                                            <img
-                                                                src={hotel.main_photo ?? hotel.thumbnail}
-                                                                alt={hotel.name}
-                                                                className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                            />
-                                                        ) : (
-                                                            <div
-                                                                className="w-full h-64 md:h-full flex items-center justify-center text-[#717182]">
-                                                                No image
-                                                            </div>
-                                                        )}
-                                                        <button
-                                                            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
-                                                            aria-label="Add to favorites"
-                                                        >
-                                                            <Heart className="w-5 h-5 text-[#1f2937]"/>
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="md:w-2/3 p-6 flex flex-col justify-between">
-                                                        <div>
-                                                            <div className="flex items-start justify-between mb-3">
-                                                                <div>
-                                                                    <h3 className="text-2xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
-                                                                    {hotel.address && (
-                                                                        <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
-                                                                            <MapPin className="w-4 h-4"/>
-                                                                            {[hotel.address.city, hotel.address.country].filter(Boolean).join(', ')}
-                                                                        </p>
-                                                                    )}
-                                                                    {hotel.starRating != null && (
-                                                                        <div className="flex items-center gap-1 mb-3">
-                                                                            {Array.from({length: hotel.starRating}).map((_, i) => (
-                                                                                <Star key={i}
-                                                                                      className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]"/>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
+                                        {apiHotels.map((hotel) => {
+                                            const rateInfo = hotelRates.get(hotel.id);
+                                            const detailLink = `/hotel/${hotel.id}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(parsedOccupancies))}`;
+                                            return (
+                                                <Card key={hotel.id}
+                                                      className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                                                    <div className="flex flex-col md:flex-row">
+                                                        {/* Image */}
+                                                        <div
+                                                            className="md:w-72 flex-shrink-0 relative group bg-gray-100">
+                                                            {hotel.main_photo || hotel.thumbnail ? (
+                                                                <img
+                                                                    src={hotel.main_photo ?? hotel.thumbnail}
+                                                                    alt={hotel.name}
+                                                                    className="w-full h-56 md:h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="w-full h-56 md:h-full flex items-center justify-center text-[#717182]">
+                                                                    No image
                                                                 </div>
-                                                                {hotel.rating != null && (
-                                                                    <div
-                                                                        className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
-                                                                        <Star className="w-4 h-4 fill-white"/>
-                                                                        <span
-                                                                            className="font-bold">{hotel.rating}</span>
+                                                            )}
+                                                            <button
+                                                                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+                                                                aria-label="Add to favorites"
+                                                            >
+                                                                <Heart className="w-4 h-4 text-[#1f2937]"/>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Info */}
+                                                        <div className="flex-1 p-5 flex flex-col justify-between">
+                                                            <div>
+                                                                <h3 className="text-xl font-bold text-[#1f2937] mb-1">{hotel.name}</h3>
+
+                                                                {hotel.address && (
+                                                                    <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
+                                                                        <MapPin className="w-3.5 h-3.5"/>
+                                                                        {[hotel.address.city, hotel.address.country].filter(Boolean).join(', ')}
+                                                                    </p>
+                                                                )}
+
+                                                                {hotel.starRating != null && (
+                                                                    <div className="flex items-center gap-0.5 mb-3">
+                                                                        {Array.from({length: Math.round(hotel.starRating)}).map((_, i) => (
+                                                                            <Star key={i}
+                                                                                  className="w-3.5 h-3.5 fill-[#f59e0b] text-[#f59e0b]"/>
+                                                                        ))}
                                                                     </div>
+                                                                )}
+
+                                                                {hotel.rating != null && (
+                                                                    <div className="flex items-center gap-2 mb-3">
+                                                                        <span
+                                                                            className="bg-[#2563eb] text-white text-sm font-bold px-2 py-0.5 rounded">
+                                                                            {hotel.rating}
+                                                                        </span>
+                                                                        <span
+                                                                            className="text-sm font-medium text-[#1f2937]">
+                                                                            {getRatingLabel(hotel.rating)}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {hotel.hotelDescription && (
+                                                                    <p className="text-sm text-[#717182] line-clamp-2">
+                                                                        {stripHtml(hotel.hotelDescription)}
+                                                                    </p>
                                                                 )}
                                                             </div>
 
-                                                            {hotel.hotelDescription && (
-                                                                <p className="text-[#1f2937] mb-4 line-clamp-2">{hotel.hotelDescription}</p>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="flex items-end justify-end mt-4 pt-4 border-t">
-                                                            <Button asChild
-                                                                    className="bg-[#2563eb] hover:bg-[#1e40af] text-white px-8">
-                                                                <Link
-                                                                    to={`/hotel/${hotel.id}?checkIn=${checkInParam ?? ''}&checkOut=${checkOutParam ?? ''}${occupanciesParam ? `&occupancies=${encodeURIComponent(occupanciesParam)}` : ''}`}>
-                                                                    View Details
-                                                                </Link>
-                                                            </Button>
+                                                            {/* Price + CTA */}
+                                                            <div
+                                                                className="flex items-end justify-between mt-4 pt-4 border-t gap-4">
+                                                                <div>
+                                                                    {isLoadingRates ? (
+                                                                        <div
+                                                                            className="flex items-center gap-1.5 text-[#717182] text-sm">
+                                                                            <Loader2
+                                                                                className="w-4 h-4 animate-spin"/>
+                                                                            <span>Loading prices…</span>
+                                                                        </div>
+                                                                    ) : rateInfo ? (
+                                                                        <>
+                                                                            <p className="text-2xl font-bold text-[#1f2937]">
+                                                                                {getCurrencySymbol()}{convertPrice(rateInfo.pricePerNight).toFixed(0)}
+                                                                                <span
+                                                                                    className="text-sm font-normal text-[#717182] ml-1">/ night</span>
+                                                                            </p>
+                                                                            <p className="text-sm text-[#717182]">
+                                                                                {getCurrencySymbol()}{convertPrice(rateInfo.totalPrice).toFixed(0)} total
+                                                                                · {nights} {nights === 1 ? 'night' : 'nights'}
+                                                                            </p>
+                                                                        </>
+                                                                    ) : (
+                                                                        <p className="text-sm text-[#717182]">Pricing
+                                                                            unavailable</p>
+                                                                    )}
+                                                                </div>
+                                                                <Button asChild
+                                                                        className="bg-[#2563eb] hover:bg-[#1e40af] text-white px-6 flex-shrink-0">
+                                                                    <Link to={detailLink}>View Details</Link>
+                                                                </Button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </Card>
-                                        ))}
+                                                </Card>
+                                            );
+                                        })}
                                         {apiHotels.length === 0 && (
                                             <Card className="p-12 text-center">
                                                 <p className="text-xl text-[#717182]">No hotels found for this
@@ -458,19 +562,7 @@ export function HotelListingPage() {
                             </>
                         ) : (
                             <Card className="p-12 text-center">
-                                <p className="text-xl text-[#717182] mb-4">No hotels found matching your
-                                    criteria</p>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setLocationFilter('');
-                                        setPriceRange([0, 500]);
-                                        setSelectedStars([]);
-                                        setSelectedAmenities([]);
-                                    }}
-                                >
-                                    Clear Filters
-                                </Button>
+                                <p className="text-xl text-[#717182]">Search a location above to find hotels</p>
                             </Card>
                         )}
                     </main>
