@@ -68,9 +68,16 @@ export function HotelListingPage() {
         (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
     ));
 
+    const FETCH_SIZE = 50;
+    const PAGE_SIZE = 10;
+
+    const [currentPage, setCurrentPage] = useState(1);
     const [apiHotels, setApiHotels] = useState<ApiHotel[]>([]);
     const [isLoadingHotels, setIsLoadingHotels] = useState(false);
     const [hotelsError, setHotelsError] = useState('');
+    const [apiOffset, setApiOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
 
     const [hotelRates, setHotelRates] = useState<Map<string, HotelRateInfo>>(new Map());
     const [isLoadingRates, setIsLoadingRates] = useState(false);
@@ -81,16 +88,65 @@ export function HotelListingPage() {
         setLocationFilter(searchParams.get('location')?.toLowerCase() || '');
     }, [searchParams]);
 
+    const fetchRatesForHotels = (hotels: ApiHotel[]) => {
+        if (hotels.length === 0) return;
+        setIsLoadingRates(true);
+        api.getHotelRates({
+            hotelIds: hotels.map(h => h.id),
+            checkin: checkIn,
+            checkout: checkOut,
+            occupancies: parsedOccupancies,
+        })
+            .then((result) => {
+                setHotelRates(prev => {
+                    const next = new Map(prev);
+                    for (const hotel of (result?.data ?? [])) {
+                        const roomTypes: {
+                            offerRetailRate?: { amount?: number; currency?: string }
+                        }[] = hotel.roomTypes ?? [];
+                        let minTotal = Infinity;
+                        let currency = 'USD';
+                        for (const rt of roomTypes) {
+                            const amount = rt.offerRetailRate?.amount;
+                            if (amount != null && amount < minTotal) {
+                                minTotal = amount;
+                                currency = rt.offerRetailRate?.currency ?? 'USD';
+                            }
+                        }
+                        if (minTotal !== Infinity) {
+                            next.set(hotel.hotelId, {
+                                totalPrice: minTotal,
+                                pricePerNight: minTotal / nights,
+                                currency,
+                            });
+                        }
+                    }
+                    return next;
+                });
+            })
+            .catch(() => {/* rates unavailable */
+            })
+            .finally(() => setIsLoadingRates(false));
+    };
+
     useEffect(() => {
         if (!placeIdParam) {
             setApiHotels([]);
+            setHasMore(false);
             return;
         }
         setIsLoadingHotels(true);
         setHotelsError('');
-        api.getHotels({placeId: placeIdParam})
+        setApiOffset(0);
+        setHasMore(false);
+        setHotelRates(new Map());
+        setCurrentPage(1);
+        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: 0})
             .then((result) => {
-                setApiHotels(result?.data ?? []);
+                const hotels: ApiHotel[] = result?.data ?? [];
+                setApiHotels(hotels);
+                setHasMore(hotels.length === FETCH_SIZE);
+                fetchRatesForHotels(hotels);
             })
             .catch((err) => {
                 setHotelsError(err?.message ?? 'Failed to load hotels');
@@ -100,44 +156,22 @@ export function HotelListingPage() {
     }, [placeIdParam]);
 
     useEffect(() => {
-        if (apiHotels.length === 0) return;
-        setIsLoadingRates(true);
-        setHotelRates(new Map());
-        api.getHotelRates({
-            hotelIds: apiHotels.map(h => h.id),
-            checkin: checkIn,
-            checkout: checkOut,
-            occupancies: parsedOccupancies,
-        })
+        const totalPages = Math.ceil(apiHotels.length / PAGE_SIZE);
+        if (currentPage < totalPages || !hasMore || isFetchingMore || !placeIdParam || apiHotels.length === 0) return;
+        const nextOffset = apiOffset + FETCH_SIZE;
+        setIsFetchingMore(true);
+        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: nextOffset})
             .then((result) => {
-                const rateMap = new Map<string, HotelRateInfo>();
-                for (const hotel of (result?.data ?? [])) {
-                    const roomTypes: {
-                        offerRetailRate?: { amount?: number; currency?: string }
-                    }[] = hotel.roomTypes ?? [];
-                    let minTotal = Infinity;
-                    let currency = 'USD';
-                    for (const rt of roomTypes) {
-                        const amount = rt.offerRetailRate?.amount;
-                        if (amount != null && amount < minTotal) {
-                            minTotal = amount;
-                            currency = rt.offerRetailRate?.currency ?? 'USD';
-                        }
-                    }
-                    if (minTotal !== Infinity) {
-                        rateMap.set(hotel.hotelId, {
-                            totalPrice: minTotal,
-                            pricePerNight: minTotal / nights,
-                            currency,
-                        });
-                    }
-                }
-                setHotelRates(rateMap);
+                const newHotels: ApiHotel[] = result?.data ?? [];
+                setApiHotels(prev => [...prev, ...newHotels]);
+                setApiOffset(nextOffset);
+                setHasMore(newHotels.length === FETCH_SIZE);
+                fetchRatesForHotels(newHotels);
             })
-            .catch(() => {/* rates unavailable — cards show fallback */
+            .catch(() => {/* silently ignore — user stays on current page */
             })
-            .finally(() => setIsLoadingRates(false));
-    }, [apiHotels]);
+            .finally(() => setIsFetchingMore(false));
+    }, [currentPage]);
 
     const [priceRange, setPriceRange] = useState([0, 500]);
     const [selectedStars, setSelectedStars] = useState<number[]>([]);
@@ -442,7 +476,7 @@ export function HotelListingPage() {
                                 )}
                                 {!isLoadingHotels && !hotelsError && (
                                     <div className="space-y-6">
-                                        {apiHotels.map((hotel) => {
+                                        {apiHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((hotel) => {
                                             const rateInfo = hotelRates.get(hotel.id);
                                             const detailLink = `/hotel/${hotel.id}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(parsedOccupancies))}`;
                                             return (
@@ -557,6 +591,58 @@ export function HotelListingPage() {
                                                     location</p>
                                             </Card>
                                         )}
+                                        {apiHotels.length > PAGE_SIZE && (() => {
+                                            const totalPages = Math.ceil(apiHotels.length / PAGE_SIZE);
+                                            const pages: (number | '...')[] = [];
+                                            if (totalPages <= 7) {
+                                                for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                            } else {
+                                                pages.push(1);
+                                                if (currentPage > 3) pages.push('...');
+                                                for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+                                                if (currentPage < totalPages - 2) pages.push('...');
+                                                pages.push(totalPages);
+                                            }
+                                            return (
+                                                <div className="flex items-center justify-center gap-2 pt-4">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                        disabled={currentPage === 1 || isFetchingMore}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                    {pages.map((page, idx) =>
+                                                        page === '...' ? (
+                                                            <span key={`ellipsis-${idx}`} className="px-1 text-[#717182] select-none">…</span>
+                                                        ) : (
+                                                            <Button
+                                                                key={page}
+                                                                variant={page === currentPage ? 'default' : 'outline'}
+                                                                size="sm"
+                                                                onClick={() => setCurrentPage(page)}
+                                                                disabled={isFetchingMore}
+                                                                className={page === currentPage ? 'bg-[#2563eb] hover:bg-[#1e40af] text-white' : ''}
+                                                            >
+                                                                {page}
+                                                            </Button>
+                                                        )
+                                                    )}
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                        disabled={(currentPage === totalPages && !hasMore) || isFetchingMore}
+                                                    >
+                                                        {isFetchingMore && currentPage === totalPages
+                                                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1"/>Loading…</>
+                                                            : 'Next'
+                                                        }
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                             </>
