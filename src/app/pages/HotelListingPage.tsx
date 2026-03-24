@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Link, useSearchParams} from 'react-router';
 import {Heart, Loader2, Map as MapIcon, MapPin, Star} from 'lucide-react';
 import {Button} from '../components/ui/button';
@@ -46,7 +46,7 @@ type ApiHotel = {
     hotelDescription?: string;
     address?: { city?: string; country?: string; countryCode?: string; line1?: string };
     rating?: number;
-    starRating?: number;
+    stars?: number;
     main_photo?: string;
     thumbnail?: string;
 };
@@ -81,6 +81,14 @@ export function HotelListingPage() {
 
     const [hotelRates, setHotelRates] = useState<Map<string, HotelRateInfo>>(new Map());
     const [isLoadingRates, setIsLoadingRates] = useState(false);
+
+    const [priceRange, setPriceRange] = useState([0, 500]);
+    const [selectedStars, setSelectedStars] = useState<number[]>([]);
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+    const [guestRating, setGuestRating] = useState<number>(0);
+    const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
+    const [sortBy, setSortBy] = useState('recommended');
+    const [showMap, setShowMap] = useState(true);
 
     const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
@@ -141,7 +149,8 @@ export function HotelListingPage() {
         setHasMore(false);
         setHotelRates(new Map());
         setCurrentPage(1);
-        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: 0})
+        const starFilter = selectedStars.length > 0 ? selectedStars.join(',') : undefined;
+        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: 0, starRating: starFilter})
             .then((result) => {
                 const hotels: ApiHotel[] = result?.data ?? [];
                 setApiHotels(hotels);
@@ -153,14 +162,56 @@ export function HotelListingPage() {
                 setApiHotels([]);
             })
             .finally(() => setIsLoadingHotels(false));
-    }, [placeIdParam]);
+    }, [placeIdParam, selectedStars]);
+
+    const filteredHotels = useMemo(() => {
+        let result = [...apiHotels];
+
+        if (guestRating > 0) {
+            result = result.filter(h => h.rating != null && h.rating >= guestRating);
+        }
+
+        result = result.filter(h => {
+            const rate = hotelRates.get(h.id);
+            if (!rate) return true; // keep hotels with no rate info yet
+            return rate.pricePerNight >= priceRange[0] && rate.pricePerNight <= priceRange[1];
+        });
+
+        if (propertyTypes.length > 0) {
+            result = result.filter(h => {
+                const name = h.name.toLowerCase();
+                return propertyTypes.some(type => {
+                    if (type === 'resort') return name.includes('resort');
+                    if (type === 'boutique') return name.includes('boutique');
+                    if (type === 'suite') return name.includes('suite') || name.includes('suites');
+                    if (type === 'lodge') return name.includes('lodge');
+                    return true; // 'hotel' matches everything
+                });
+            });
+        }
+
+        if (sortBy === 'price-low') {
+            result.sort((a, b) => (hotelRates.get(a.id)?.pricePerNight ?? Infinity) - (hotelRates.get(b.id)?.pricePerNight ?? Infinity));
+        } else if (sortBy === 'price-high') {
+            result.sort((a, b) => (hotelRates.get(b.id)?.pricePerNight ?? -Infinity) - (hotelRates.get(a.id)?.pricePerNight ?? -Infinity));
+        } else if (sortBy === 'rating') {
+            result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+        }
+
+        return result;
+    }, [apiHotels, guestRating, priceRange, propertyTypes, sortBy, hotelRates]);
 
     useEffect(() => {
-        const totalPages = Math.ceil(apiHotels.length / PAGE_SIZE);
+        setCurrentPage(1);
+    }, [guestRating, priceRange, propertyTypes, sortBy]);
+
+    useEffect(() => {
+        const totalPages = Math.ceil(filteredHotels.length / PAGE_SIZE);
         if (currentPage < totalPages || !hasMore || isFetchingMore || !placeIdParam || apiHotels.length === 0) return;
         const nextOffset = apiOffset + FETCH_SIZE;
         setIsFetchingMore(true);
-        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: nextOffset})
+        const starFilter = selectedStars.length > 0 ? selectedStars.join(',') : undefined;
+        api.getHotels({placeId: placeIdParam}, {limit: FETCH_SIZE, offset: nextOffset, starRating: starFilter})
             .then((result) => {
                 const newHotels: ApiHotel[] = result?.data ?? [];
                 setApiHotels(prev => [...prev, ...newHotels]);
@@ -171,16 +222,7 @@ export function HotelListingPage() {
             .catch(() => {/* silently ignore — user stays on current page */
             })
             .finally(() => setIsFetchingMore(false));
-    }, [currentPage]);
-
-    const [priceRange, setPriceRange] = useState([0, 500]);
-    const [selectedStars, setSelectedStars] = useState<number[]>([]);
-    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-    const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
-    const [guestRating, setGuestRating] = useState<number>(0);
-    const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState('recommended');
-    const [showMap, setShowMap] = useState(true);
+    }, [currentPage, filteredHotels.length]);
 
     const handleStarToggle = (star: number) => {
         setSelectedStars(prev =>
@@ -191,12 +233,6 @@ export function HotelListingPage() {
     const handleAmenityToggle = (amenity: string) => {
         setSelectedAmenities(prev =>
             prev.includes(amenity) ? prev.filter(a => a !== amenity) : [...prev, amenity]
-        );
-    };
-
-    const handleNeighborhoodToggle = (neighborhood: string) => {
-        setSelectedNeighborhoods(prev =>
-            prev.includes(neighborhood) ? prev.filter(n => n !== neighborhood) : [...prev, neighborhood]
         );
     };
 
@@ -215,7 +251,7 @@ export function HotelListingPage() {
                         Find Your Perfect Stay
                     </h1>
                     <p className="text-lg text-[#717182]">
-                        {placeIdParam ? `${apiHotels.length} hotels available` : 'Search a location to find hotels'}
+                        {placeIdParam ? `${filteredHotels.length} hotels available` : 'Search a location to find hotels'}
                     </p>
                 </div>
 
@@ -303,10 +339,9 @@ export function HotelListingPage() {
                                     <AccordionContent>
                                         <div className="space-y-3 pt-2">
                                             {[
-                                                {value: 4.5, label: '4.5+ Excellent'},
-                                                {value: 4.0, label: '4.0+ Very Good'},
-                                                {value: 3.5, label: '3.5+ Good'},
-                                                {value: 3.0, label: '3.0+ Average'},
+                                                {value: 10, label: '10 — Perfect'},
+                                                {value: 9, label: '9+ — Great'},
+                                                {value: 7, label: '7+ — Good'},
                                                 {value: 0, label: 'All Ratings'},
                                             ].map((rating) => (
                                                 <div key={rating.value} className="flex items-center space-x-2">
@@ -323,30 +358,6 @@ export function HotelListingPage() {
                                             ))}
                                         </div>
                                     </AccordionContent>
-                                </AccordionItem>
-
-                                {/* Neighborhood Filter */}
-                                <AccordionItem value="neighborhoods">
-                                    <AccordionTrigger className="text-base font-medium">
-                                        Neighborhoods
-                                    </AccordionTrigger>
-                                    {/*<AccordionContent>*/}
-                                    {/*    <div className="space-y-3 pt-2 max-h-48 overflow-y-auto">*/}
-                                    {/*        {neighborhoods.map((neighborhood) => (*/}
-                                    {/*            <div key={neighborhood} className="flex items-center space-x-2">*/}
-                                    {/*                <Checkbox*/}
-                                    {/*                    id={`neighborhood-${neighborhood}`}*/}
-                                    {/*                    checked={selectedNeighborhoods.includes(neighborhood)}*/}
-                                    {/*                    onCheckedChange={() => handleNeighborhoodToggle(neighborhood)}*/}
-                                    {/*                />*/}
-                                    {/*                <Label htmlFor={`neighborhood-${neighborhood}`}*/}
-                                    {/*                       className="cursor-pointer text-sm">*/}
-                                    {/*                    {neighborhood}*/}
-                                    {/*                </Label>*/}
-                                    {/*            </div>*/}
-                                    {/*        ))}*/}
-                                    {/*    </div>*/}
-                                    {/*</AccordionContent>*/}
                                 </AccordionItem>
 
                                 {/* Amenities Filter */}
@@ -415,7 +426,6 @@ export function HotelListingPage() {
                                     setPriceRange([0, 500]);
                                     setSelectedStars([]);
                                     setSelectedAmenities([]);
-                                    setSelectedNeighborhoods([]);
                                     setGuestRating(0);
                                     setPropertyTypes([]);
                                 }}
@@ -442,7 +452,7 @@ export function HotelListingPage() {
                         <div
                             className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <p className="text-sm text-[#717182]">
-                                Showing {apiHotels.length} properties
+                                Showing {filteredHotels.length} properties
                             </p>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-[#1f2937]">Sort by:</span>
@@ -476,7 +486,7 @@ export function HotelListingPage() {
                                 )}
                                 {!isLoadingHotels && !hotelsError && (
                                     <div className="space-y-6">
-                                        {apiHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((hotel) => {
+                                        {filteredHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((hotel) => {
                                             const rateInfo = hotelRates.get(hotel.id);
                                             const detailLink = `/hotel/${hotel.id}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(parsedOccupancies))}`;
                                             return (
@@ -518,9 +528,9 @@ export function HotelListingPage() {
                                                                     </p>
                                                                 )}
 
-                                                                {hotel.starRating != null && (
+                                                                {hotel.stars != null && (
                                                                     <div className="flex items-center gap-0.5 mb-3">
-                                                                        {Array.from({length: Math.round(hotel.starRating)}).map((_, i) => (
+                                                                        {Array.from({length: Math.round(hotel.stars)}).map((_, i) => (
                                                                             <Star key={i}
                                                                                   className="w-3.5 h-3.5 fill-[#f59e0b] text-[#f59e0b]"/>
                                                                         ))}
@@ -585,14 +595,15 @@ export function HotelListingPage() {
                                                 </Card>
                                             );
                                         })}
-                                        {apiHotels.length === 0 && (
+                                        {filteredHotels.length === 0 && (
                                             <Card className="p-12 text-center">
-                                                <p className="text-xl text-[#717182]">No hotels found for this
-                                                    location</p>
+                                                <p className="text-xl text-[#717182]">
+                                                    {apiHotels.length > 0 ? 'No hotels match your filters' : 'No hotels found for this location'}
+                                                </p>
                                             </Card>
                                         )}
-                                        {apiHotels.length > PAGE_SIZE && (() => {
-                                            const totalPages = Math.ceil(apiHotels.length / PAGE_SIZE);
+                                        {filteredHotels.length > PAGE_SIZE && (() => {
+                                            const totalPages = Math.ceil(filteredHotels.length / PAGE_SIZE);
                                             const pages: (number | '...')[] = [];
                                             if (totalPages <= 7) {
                                                 for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -615,7 +626,8 @@ export function HotelListingPage() {
                                                     </Button>
                                                     {pages.map((page, idx) =>
                                                         page === '...' ? (
-                                                            <span key={`ellipsis-${idx}`} className="px-1 text-[#717182] select-none">…</span>
+                                                            <span key={`ellipsis-${idx}`}
+                                                                  className="px-1 text-[#717182] select-none">…</span>
                                                         ) : (
                                                             <Button
                                                                 key={page}
@@ -636,7 +648,8 @@ export function HotelListingPage() {
                                                         disabled={(currentPage === totalPages && !hasMore) || isFetchingMore}
                                                     >
                                                         {isFetchingMore && currentPage === totalPages
-                                                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1"/>Loading…</>
+                                                            ? <><Loader2
+                                                                className="w-3 h-3 animate-spin mr-1"/>Loading…</>
                                                             : 'Next'
                                                         }
                                                     </Button>
