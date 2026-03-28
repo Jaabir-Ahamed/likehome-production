@@ -358,7 +358,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setCountriesResult({error: errorMessage});
             setCountriesStatus("error");
         }
@@ -384,7 +386,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setPlacesResult({error: errorMessage});
             setPlacesStatus("error");
         }
@@ -408,7 +412,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setCitiesResult({error: errorMessage});
             setCitiesStatus("error");
         }
@@ -438,7 +444,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setHotelsResult({error: errorMessage});
             setHotelsStatus("error");
         }
@@ -511,7 +519,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setRatesResult({error: errorMessage});
             setRatesStatus("error");
         }
@@ -538,7 +548,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setPrebookResult({error: errorMessage});
             setPrebookStatus("error");
         }
@@ -578,7 +590,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setBookResult({error: errorMessage});
             setBookStatus("error");
         }
@@ -644,7 +658,9 @@ export function ApiTestPage() {
                 if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
                 else if (err instanceof Error) errorMessage = err.message;
                 else if (typeof err === "string") errorMessage = err;
-            } catch { errorMessage = "Failed to parse error response"; }
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
             setListBookingsResult({error: errorMessage});
             setListBookingsStatus("error");
         }
@@ -1353,3 +1369,4 @@ const { bookingId, status } = booking.data;`}</pre>
         </div>
     );
 }
+

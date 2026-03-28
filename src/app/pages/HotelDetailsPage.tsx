@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router';
 import { Star, MapPin, Wifi, Utensils, ParkingSquare, Dumbbell, Heart, ArrowLeft, Check, Users, Calendar, Clock, Info, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -102,6 +102,9 @@ function getFacilityIcon(name: string): React.ComponentType<{ className?: string
 export function HotelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const checkIn = searchParams.get('checkIn') ?? '';
+  const checkOut = searchParams.get('checkOut') ?? '';
   const [selectedImage, setSelectedImage] = useState(0);
   const [guests, setGuests] = useState(2);
   const [nights, setNights] = useState(1);
@@ -498,9 +501,20 @@ export function HotelDetailsPage() {
                     const prebook = await api.getRatesPrebook({ offerId: selectedOfferId, usePaymentSdk: false });
                     const prebookData = prebook?.data;
                     if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
-                    sessionStorage.setItem(`prebook:${prebookData.prebookId}`, JSON.stringify(prebookData));
+                    sessionStorage.setItem(
+                      `prebook:${prebookData.prebookId}`,
+                      JSON.stringify({ ...prebookData, checkin: checkIn || undefined, checkout: checkOut || undefined })
+                    );
                     navigate(`/payment?prebookId=${prebookData.prebookId}`);
-                  } catch (err) {
+                  } catch (err: any) {
+                    // 409 means the user already has a booking on overlapping dates
+                    if (err?.context?.status === 409) {
+                      const body = await err.context.json().catch(() => null);
+                      if (body?.error === 'booking_conflict') {
+                        toast.error(body.message ?? 'You already have a booking on overlapping dates.');
+                        return;
+                      }
+                    }
                     toast.error('Failed to reserve rate. Please try again.');
                   } finally {
                     setPrebookLoading(false);

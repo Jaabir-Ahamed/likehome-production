@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router';
-import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users } from 'lucide-react';
+import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -9,9 +9,10 @@ import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { toast } from 'sonner';
+import { api } from '../../api/liteApi';
 
-// Mock hotel data (simplified for payment page)
-const hotels = [
+// Mock hotel data (fallback for demo/mock navigation without a real prebook)
+const mockHotels = [
   { id: 1, name: 'The Grand Palace Hotel', location: 'Paris, France', price: 320, image: 'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=400' },
   { id: 2, name: 'Ocean View Resort', location: 'Bali, Indonesia', price: 180, image: 'https://images.unsplash.com/photo-1729717949782-f40c4a07e3c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMHJlc29ydCUyMGhvdGVsfGVufDF8fHx8MTc3MTg1Mjk5Nnww&ixlib=rb-4.1.0&q=80&w=400' },
   { id: 3, name: 'Metropolitan Suites', location: 'New York, USA', price: 280, image: 'https://images.unsplash.com/photo-1731336478850-6bce7235e320?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHN1aXRlJTIwbHV4dXJ5fGVufDF8fHx8MTc3MTgxOTE3Nnww&ixlib=rb-4.1.0&q=80&w=400' },
@@ -22,17 +23,33 @@ const hotels = [
   { id: 8, name: 'Alpine Luxury Lodge', location: 'Zurich, Switzerland', price: 390, image: 'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=400' },
 ];
 
+type PrebookData = {
+  prebookId: string;
+  hotelId?: string;
+  roomType?: { name?: string };
+  rate?: {
+    retailRate?: { total?: { amount?: number; currency?: string }[] };
+    cancellationPolicies?: { cancelPolicyInfos?: { cancelTime?: string; amount?: number }[] };
+    boardName?: string;
+  };
+  priceDifferencePercent?: number;
+  cancellationChanged?: boolean;
+  boardChanged?: boolean;
+  checkin?: string;
+  checkout?: string;
+};
+
 export function PaymentPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
 
+  const prebookId = searchParams.get('prebookId');
   const guests = Number(searchParams.get('guests')) || 2;
   const nights = Number(searchParams.get('nights')) || 1;
 
-  const hotel = hotels.find(h => h.id === Number(id));
-
+  const [prebookData, setPrebookData] = useState<PrebookData | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -43,14 +60,60 @@ export function PaymentPage() {
     expiryDate: '',
     cvv: '',
   });
-
   const [processing, setProcessing] = useState(false);
 
-  if (!hotel) {
+  // Load prebook data from sessionStorage when prebookId is present
+  useEffect(() => {
+    if (!prebookId) return;
+    const raw = sessionStorage.getItem(`prebook:${prebookId}`);
+    if (raw) {
+      try {
+        setPrebookData(JSON.parse(raw));
+      } catch {
+        // invalid JSON in sessionStorage — ignore
+      }
+    }
+  }, [prebookId]);
+
+  // --- Mock fallback (used when navigating via /payment/:id without prebook) ---
+  const mockHotel = mockHotels.find(h => h.id === Number(id));
+
+  // Determine which "mode" we're in
+  const isRealPrebook = !!prebookData;
+
+  // Price from prebook (first total entry in USD), or mock
+  const prebookPrice = isRealPrebook
+    ? (prebookData!.rate?.retailRate?.total?.[0]?.amount ?? 0)
+    : 0;
+  const mockPrice = mockHotel?.price ?? 0;
+
+  const basePrice = isRealPrebook ? convertPrice(prebookPrice) : convertPrice(mockPrice * nights);
+  const serviceFee = Math.round(basePrice * 0.1);
+  const finalTotal = basePrice + serviceFee;
+  const priceSymbol = getCurrencySymbol();
+
+  // Validity warnings to show before submit
+  const warnings: string[] = [];
+  if (isRealPrebook) {
+    if (prebookData!.priceDifferencePercent && prebookData!.priceDifferencePercent !== 0) {
+      warnings.push(`Price has changed by ${prebookData!.priceDifferencePercent}%`);
+    }
+    if (prebookData!.cancellationChanged) {
+      warnings.push('Cancellation policy has changed since you last viewed this rate');
+    }
+    if (prebookData!.boardChanged) {
+      warnings.push('Meal plan (board) has changed since you last viewed this rate');
+    }
+  }
+
+  if (!isRealPrebook && !mockHotel) {
     return (
       <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
         <Card className="p-8 text-center">
-          <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
+          <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Booking Not Found</h2>
+          <p className="text-[#717182] mb-6">
+            {prebookId ? 'Prebook data has expired or is missing. Please start a new search.' : 'No hotel selected.'}
+          </p>
           <Button asChild>
             <Link to="/hotels">Back to Hotels</Link>
           </Button>
@@ -59,29 +122,63 @@ export function PaymentPage() {
     );
   }
 
-  const totalPrice = convertPrice(hotel.price * nights);
-  const serviceFee = Math.round(totalPrice * 0.1);
-  const finalTotal = totalPrice + serviceFee;
-  const priceSymbol = getCurrencySymbol();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setProcessing(false);
-      toast.success('Booking confirmed! Check your email for details.');
-      navigate('/bookings');
-    }, 2000);
+    if (isRealPrebook) {
+      try {
+        await api.getRatesBook({
+          prebookId: prebookData!.prebookId,
+          holder: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+          },
+          guests: [
+            {
+              occupancyNumber: 1,
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+            },
+          ],
+          payment: { method: 'CREDIT' },
+        });
+        sessionStorage.removeItem(`prebook:${prebookData!.prebookId}`);
+        toast.success('Booking confirmed! Check your email for details.');
+        navigate('/bookings');
+      } catch (err) {
+        toast.error('Booking failed. Please try again.');
+        setProcessing(false);
+      }
+    } else {
+      // Mock/demo mode simulation
+      setTimeout(() => {
+        setProcessing(false);
+        toast.success('Booking confirmed! Check your email for details.');
+        navigate('/bookings');
+      }, 2000);
+    }
   };
+
+  // Display values
+  const hotelName = isRealPrebook
+    ? (prebookData!.roomType?.name ?? `Hotel ${prebookData!.hotelId ?? ''}`)
+    : mockHotel!.name;
+  const hotelLocation = isRealPrebook ? '' : mockHotel!.location;
+  const hotelImage = isRealPrebook ? null : mockHotel!.image;
+  const cancellationText = isRealPrebook
+    ? (prebookData!.cancellationChanged ? 'Cancellation policy has changed — review before booking.' : 'See cancellation policy details below.')
+    : 'You can cancel this reservation up to 24 hours before check-in for a full refund.';
+  const backHref = id ? `/hotel/${id}` : '/hotels';
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8 py-8">
-        {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
-          <Link to={`/hotel/${id}`}>
+          <Link to={backHref}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Hotel Details
           </Link>
@@ -98,6 +195,21 @@ export function PaymentPage() {
                 You're just one step away from your perfect stay
               </p>
             </div>
+
+            {/* Validity warnings */}
+            {warnings.length > 0 && (
+              <Card className="p-4 border-amber-300 bg-amber-50">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-800 mb-1">Rate details have changed</p>
+                    <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                      {warnings.map((w, i) => <li key={i}>{w}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {/* Guest Information */}
             <Card className="p-6">
@@ -239,13 +351,18 @@ export function PaymentPage() {
 
               {/* Hotel Info */}
               <div className="mb-6">
-                <img
-                  src={hotel.image}
-                  alt={hotel.name}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                />
-                <h3 className="font-bold text-[#1f2937] mb-1">{hotel.name}</h3>
-                <p className="text-sm text-[#717182]">{hotel.location}</p>
+                {hotelImage && (
+                  <img
+                    src={hotelImage}
+                    alt={hotelName}
+                    className="w-full h-48 object-cover rounded-lg mb-4"
+                  />
+                )}
+                <h3 className="font-bold text-[#1f2937] mb-1">{hotelName}</h3>
+                {hotelLocation && <p className="text-sm text-[#717182]">{hotelLocation}</p>}
+                {isRealPrebook && prebookData!.rate?.boardName && (
+                  <p className="text-sm text-[#717182] mt-1">{prebookData!.rate.boardName}</p>
+                )}
               </div>
 
               <Separator className="my-4" />
@@ -255,7 +372,11 @@ export function PaymentPage() {
                 <div className="flex items-center gap-2 text-[#1f2937]">
                   <Calendar className="w-4 h-4 text-[#2563eb]" />
                   <span className="text-sm">
-                    {nights} {nights === 1 ? 'Night' : 'Nights'}
+                    {isRealPrebook && prebookData!.checkin && prebookData!.checkout
+                      ? `${prebookData!.checkin} → ${prebookData!.checkout}`
+                      : isRealPrebook
+                      ? 'Selected rate'
+                      : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[#1f2937]">
@@ -272,9 +393,9 @@ export function PaymentPage() {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-[#1f2937]">
                   <span className="text-sm">
-                    {priceSymbol}{convertPrice(hotel.price)} × {nights} {nights === 1 ? 'night' : 'nights'}
+                    {isRealPrebook ? 'Rate total' : `${priceSymbol}${convertPrice(mockPrice)} × ${nights} ${nights === 1 ? 'night' : 'nights'}`}
                   </span>
-                  <span className="text-sm">{priceSymbol}{totalPrice}</span>
+                  <span className="text-sm">{priceSymbol}{basePrice}</span>
                 </div>
                 <div className="flex justify-between text-[#1f2937]">
                   <span className="text-sm">Service fee</span>
@@ -287,15 +408,15 @@ export function PaymentPage() {
                 </div>
               </div>
 
-              <Badge variant="secondary" className="w-full justify-center bg-green-100 text-green-800 py-2">
-                <Check className="w-4 h-4 mr-2" />
-                Free cancellation
-              </Badge>
+              {!isRealPrebook && (
+                <Badge variant="secondary" className="w-full justify-center bg-green-100 text-green-800 py-2">
+                  <Check className="w-4 h-4 mr-2" />
+                  Free cancellation
+                </Badge>
+              )}
 
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-xs text-[#717182] leading-relaxed">
-                  You can cancel this reservation up to 24 hours before check-in for a full refund.
-                </p>
+                <p className="text-xs text-[#717182] leading-relaxed">{cancellationText}</p>
               </div>
             </Card>
           </div>

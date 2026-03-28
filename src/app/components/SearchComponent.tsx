@@ -1,313 +1,396 @@
-import { MapPin, Calendar, Users, Search, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, Users, Search, Loader2, Plus, Minus, X, BedDouble } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../../api/liteApi';
-import type { Place } from '../../types/hotel';
 import { placesFromResponse } from '../../lib/placesFromApi';
+
+type Place = {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  types: string[];
+};
+
+export type Occupancy = {
+  adults: number;
+  children: number[]; // ages
+};
+
+const STORAGE_KEY = 'likehome_search';
+
+function dateToString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultDates() {
+  const checkIn = new Date();
+  checkIn.setDate(checkIn.getDate() + 7);
+  const checkOut = new Date(checkIn);
+  checkOut.setDate(checkOut.getDate() + 2);
+  return { checkIn: dateToString(checkIn), checkOut: dateToString(checkOut) };
+}
+
+function loadStored(): { checkIn: string; checkOut: string; occupancies: Occupancy[] } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStored(checkIn: string, checkOut: string, occupancies: Occupancy[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ checkIn, checkOut, occupancies }));
+  } catch {
+    // ignore
+  }
+}
+
+function summarizeOccupancies(occupancies: Occupancy[]) {
+  const rooms = occupancies.length;
+  const guests = occupancies.reduce((sum, o) => sum + o.adults + o.children.length, 0);
+  return `${rooms} room${rooms !== 1 ? 's' : ''} · ${guests} guest${guests !== 1 ? 's' : ''}`;
+}
 
 export function SearchComponent() {
   const navigate = useNavigate();
 
+  const defaults = getDefaultDates();
+  const stored = loadStored();
+
   const [location, setLocation] = useState('');
-  const [placeId, setPlaceId] = useState<string | null>(null);
+  const [checkIn, setCheckIn] = useState(stored?.checkIn ?? defaults.checkIn);
+  const [checkOut, setCheckOut] = useState(stored?.checkOut ?? defaults.checkOut);
+  const [occupancies, setOccupancies] = useState<Occupancy[]>(
+    stored?.occupancies ?? [{ adults: 2, children: [] }]
+  );
+
   const [places, setPlaces] = useState<Place[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showPlaces, setShowPlaces] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [showRooms, setShowRooms] = useState(false);
 
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [adults, setAdults] = useState(2);
-  const [rooms, setRooms] = useState(1);
+  const placesRef = useRef<HTMLDivElement>(null);
+  const roomsRef = useRef<HTMLDivElement>(null);
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localToday = dateToString(new Date());
 
-  const getToday = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const localToday = getToday();
-
-  function dateToString(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
+  // Persist dates + occupancies on change
+  useEffect(() => {
+    saveStored(checkIn, checkOut, occupancies);
+  }, [checkIn, checkOut, occupancies]);
 
   // Debounced place search
   useEffect(() => {
-    if (placeId) return;
-
-    const query = location.trim();
-    if (query.length < 2) {
+    if (!location.trim() || selectedPlaceId) {
       setPlaces([]);
-      setShowDropdown(false);
+      setShowPlaces(false);
       return;
     }
-
     const timer = setTimeout(async () => {
       setIsLoadingPlaces(true);
       try {
-        const raw = await api.getPlaces(query);
-        const results = placesFromResponse(raw);
-        setPlaces(results);
-        setShowDropdown(results.length > 0);
-        setHighlightedIndex(-1);
+        const result = await api.getPlaces(location);
+        const data = placesFromResponse(result);
+        setPlaces(data);
+        setShowPlaces(data.length > 0);
       } catch {
         setPlaces([]);
-        setShowDropdown(false);
+        setShowPlaces(false);
       } finally {
         setIsLoadingPlaces(false);
       }
     }, 300);
-
     return () => clearTimeout(timer);
-  }, [location, placeId]);
+  }, [location, selectedPlaceId]);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
+    const handleClick = (e: MouseEvent) => {
+      if (placesRef.current && !placesRef.current.contains(e.target as Node)) {
+        setShowPlaces(false);
+      }
+      if (roomsRef.current && !roomsRef.current.contains(e.target as Node)) {
+        setShowRooms(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const selectPlace = useCallback((place: Place) => {
-    setPlaceId(place.placeId);
-    setLocation(place.displayName || place.formattedAddress);
-    setShowDropdown(false);
+  const handlePlaceSelect = (place: Place) => {
+    setLocation(place.displayName);
+    setSelectedPlaceId(place.placeId);
+    setShowPlaces(false);
     setPlaces([]);
-    setHighlightedIndex(-1);
-  }, []);
-
-  const handleLocationChange = (value: string) => {
-    setLocation(value);
-    setPlaceId(null);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showDropdown || places.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((prev) =>
-        prev < places.length - 1 ? prev + 1 : 0
-      );
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((prev) =>
-        prev > 0 ? prev - 1 : places.length - 1
-      );
-    } else if (e.key === "Enter" && highlightedIndex >= 0) {
-      e.preventDefault();
-      selectPlace(places[highlightedIndex]);
-    } else if (e.key === "Escape") {
-      setShowDropdown(false);
-    }
   };
 
   const handleSearch = () => {
-    if (!placeId) return;
-
-    const params = new URLSearchParams({
-      placeId,
-      location: location.trim(),
+    const queryParams = new URLSearchParams({
       checkIn,
       checkOut,
-      adults: adults.toString(),
-      rooms: rooms.toString(),
+      occupancies: JSON.stringify(occupancies),
     });
+    if (selectedPlaceId) {
+      queryParams.set('placeId', selectedPlaceId);
+      queryParams.set('location', location);
+    } else if (location.trim()) {
+      queryParams.set('location', location.trim());
+    }
+    navigate(`/hotels?${queryParams.toString()}`);
+  };
 
-    navigate(`/hotels?${params.toString()}`);
+  // Occupancy helpers
+  const updateAdults = (roomIdx: number, delta: number) => {
+    setOccupancies(prev =>
+      prev.map((o, i) =>
+        i === roomIdx ? { ...o, adults: Math.max(1, o.adults + delta) } : o
+      )
+    );
+  };
+
+  const addChild = (roomIdx: number) => {
+    setOccupancies(prev =>
+      prev.map((o, i) =>
+        i === roomIdx ? { ...o, children: [...o.children, 5] } : o
+      )
+    );
+  };
+
+  const updateChildAge = (roomIdx: number, childIdx: number, age: number) => {
+    setOccupancies(prev =>
+      prev.map((o, i) =>
+        i === roomIdx
+          ? { ...o, children: o.children.map((a, j) => (j === childIdx ? Math.max(0, Math.min(17, age)) : a)) }
+          : o
+      )
+    );
+  };
+
+  const removeChild = (roomIdx: number, childIdx: number) => {
+    setOccupancies(prev =>
+      prev.map((o, i) =>
+        i === roomIdx ? { ...o, children: o.children.filter((_, j) => j !== childIdx) } : o
+      )
+    );
+  };
+
+  const addRoom = () => {
+    setOccupancies(prev => [...prev, { adults: 2, children: [] }]);
+  };
+
+  const removeRoom = (roomIdx: number) => {
+    setOccupancies(prev => prev.filter((_, i) => i !== roomIdx));
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <div className="bg-white shadow-md rounded-2xl md:rounded-full p-3 md:p-2">
-        <div className="flex flex-col md:flex-row md:items-stretch">
-          {/* Location with Autocomplete */}
-          <div className="relative flex-1 px-4 py-2 md:py-1 md:pl-6 md:pr-4 md:border-r md:border-gray-200" ref={dropdownRef}>
-            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
-              Location
-            </label>
-            <MapPin className="absolute left-4 md:left-6 top-[34px] md:top-[30px] w-5 h-5 text-[#717182] z-10" />
+    <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+
+        {/* Location */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-[#1f2937] mb-2">Location</label>
+          <div className="relative" ref={placesRef}>
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182] z-10" />
             {isLoadingPlaces && (
-              <Loader2 className="absolute right-4 top-[34px] md:top-[30px] w-4 h-4 text-[#717182] animate-spin z-10" />
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182] animate-spin z-10" />
             )}
             <Input
-              ref={inputRef}
               type="text"
               placeholder="Where are you going?"
               value={location}
-              onChange={(e) => handleLocationChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => {
-                if (places.length > 0 && !placeId) setShowDropdown(true);
+              onChange={(e) => {
+                setLocation(e.target.value);
+                setSelectedPlaceId('');
               }}
-              className="h-10 pl-10 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
-              autoComplete="off"
+              onFocus={() => places.length > 0 && setShowPlaces(true)}
+              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
-
-            {/* Autocomplete Dropdown */}
-            {showDropdown && places.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-64 overflow-y-auto z-50">
-                {places.map((place, index) => (
+            {showPlaces && places.length > 0 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-64 overflow-y-auto">
+                {places.map((place) => (
                   <button
                     key={place.placeId}
-                    type="button"
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      index === highlightedIndex
-                        ? "bg-[#eff6ff]"
-                        : "hover:bg-[#f3f3f5]"
-                    } ${index === 0 ? "rounded-t-xl" : ""} ${
-                      index === places.length - 1 ? "rounded-b-xl" : ""
-                    }`}
-                    onClick={() => selectPlace(place)}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                    aria-label={`Select ${place.displayName}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handlePlaceSelect(place)}
+                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[#f3f3f5] text-left transition-colors"
                   >
-                    <MapPin className="w-4 h-4 text-[#2563eb] shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#1f2937] truncate">
-                        {place.displayName}
-                      </p>
-                      <p className="text-xs text-[#717182] truncate">
-                        {place.formattedAddress}
-                      </p>
+                    <MapPin className="w-4 h-4 text-[#717182] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-[#1f2937]">{place.displayName}</p>
+                      <p className="text-xs text-[#717182]">{place.formattedAddress}</p>
                     </div>
                   </button>
                 ))}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Check-in */}
-          <div className="relative flex-1 px-4 py-2 md:py-1 md:border-r md:border-gray-200">
-            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
-              Check-in
-            </label>
-            <Calendar className="absolute left-4 top-[34px] md:top-[30px] w-5 h-5 text-[#717182]" />
+        {/* Check-in */}
+        <div className="md:col-span-1">
+          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-in</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
             <Input
               type="date"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-              onBlur={() => {
-                let newCheckIn = checkIn;
-                if (!checkIn || checkIn < localToday) {
-                  newCheckIn = localToday;
-                  setCheckIn(localToday);
-                }
-                const tmp = new Date(newCheckIn + "T00:00:00");
-                tmp.setDate(tmp.getDate() + 1);
-                if (!checkOut || checkOut < dateToString(tmp)) {
-                  setCheckOut(dateToString(tmp));
+              min={localToday}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCheckIn(val);
+                // Push checkout forward if needed
+                const minOut = new Date(val + 'T00:00:00');
+                minOut.setDate(minOut.getDate() + 1);
+                if (!checkOut || checkOut <= val) {
+                  setCheckOut(dateToString(minOut));
                 }
               }}
-              className="h-10 pl-10 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
+        </div>
 
-          {/* Check-out */}
-          <div className="relative flex-1 px-4 py-2 md:py-1 md:border-r md:border-gray-200">
-            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
-              Check-out
-            </label>
-            <Calendar className="absolute left-4 top-[34px] md:top-[30px] w-5 h-5 text-[#717182]" />
+        {/* Check-out */}
+        <div className="md:col-span-1">
+          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-out</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
             <Input
               type="date"
               value={checkOut}
+              min={(() => { const d = new Date(checkIn + 'T00:00:00'); d.setDate(d.getDate() + 1); return dateToString(d); })()}
               onChange={(e) => setCheckOut(e.target.value)}
-              onBlur={() => {
-                const minDate = checkIn || localToday;
-                const tmp = new Date(minDate + "T00:00:00");
-                tmp.setDate(tmp.getDate() + 1);
-                if (!checkOut || checkOut < dateToString(tmp)) {
-                  setCheckOut(dateToString(tmp));
-                }
-              }}
-              className="h-10 pl-10 bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
+        </div>
 
-          {/* Guests */}
-          <div className="flex-[1.2] px-4 py-2 md:py-1">
-            <label className="block text-[11px] font-bold text-[#1f2937] leading-none mb-1">
-              Guests
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="relative flex items-center">
-                <Users className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182]" />
-                <div className="flex items-center w-full h-10 rounded-md pl-6 pr-1 border border-transparent hover:border-gray-200 transition-colors">
-                  <button
-                    type="button"
-                    onClick={() => setAdults(Math.max(1, adults - 1))}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-                    aria-label="Decrease adults"
-                  >
-                    -
-                  </button>
-                  <span className="flex-1 text-center text-sm font-medium">
-                    {adults} {adults === 1 ? 'Adult' : 'Adults'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setAdults(adults + 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-                    aria-label="Increase adults"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <div className="flex items-center w-full h-10 rounded-md px-1 border border-transparent hover:border-gray-200 transition-colors">
-                  <button
-                    type="button"
-                    onClick={() => setRooms(Math.max(1, rooms - 1))}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-                    aria-label="Decrease rooms"
-                  >
-                    -
-                  </button>
-                  <span className="flex-1 text-center text-sm font-medium">
-                    {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setRooms(rooms + 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-                    aria-label="Increase rooms"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Search Button */}
-          <div className="mt-3 md:mt-0 md:pl-2 flex items-center">
-            <Button
-              onClick={handleSearch}
-              className="w-full md:w-12 h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-xl md:rounded-full transition-colors px-4 md:px-0"
-              aria-label="Search"
+        {/* Occupancies */}
+        <div className="md:col-span-1">
+          <label className="block text-sm font-medium text-[#1f2937] mb-2">Rooms & Guests</label>
+          <div className="relative" ref={roomsRef}>
+            <button
+              type="button"
+              onClick={() => setShowRooms((v) => !v)}
+              className="w-full h-12 bg-[#f3f3f5] rounded-lg flex items-center gap-2 px-3 text-sm text-[#1f2937] hover:bg-[#e9ebef] transition-colors"
             >
-              <Search className="w-5 h-5" />
-              <span className="md:hidden ml-2">Search</span>
-            </Button>
+              <Users className="w-5 h-5 text-[#717182] shrink-0" />
+              <span className="truncate">{summarizeOccupancies(occupancies)}</span>
+            </button>
+
+            {showRooms && (
+              <div className="absolute z-50 top-full right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 w-80 p-4 space-y-4">
+                {occupancies.map((room, ri) => (
+                  <div key={ri} className="border border-gray-100 rounded-lg p-3 space-y-3">
+                    {/* Room header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-[#1f2937]">
+                        <BedDouble className="w-4 h-4" />
+                        Room {ri + 1}
+                      </div>
+                      {occupancies.length > 1 && (
+                        <button
+                          onClick={() => removeRoom(ri)}
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-[#717182] hover:text-red-500 transition-colors"
+                          aria-label="Remove room"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Adults */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#1f2937]">Adults</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateAdults(ri, -1)}
+                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40"
+                          disabled={room.adults <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="w-5 text-center text-sm font-medium">{room.adults}</span>
+                        <button
+                          onClick={() => updateAdults(ri, 1)}
+                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Children */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#1f2937]">Children</span>
+                        <button
+                          onClick={() => addChild(ri)}
+                          className="text-xs text-[#2563eb] hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add child
+                        </button>
+                      </div>
+                      {room.children.map((age, ci) => (
+                        <div key={ci} className="flex items-center gap-2">
+                          <span className="text-xs text-[#717182] w-16 shrink-0">Age</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={17}
+                            value={age}
+                            onChange={(e) => updateChildAge(ri, ci, Number(e.target.value))}
+                            className="w-16 h-7 text-center text-sm border border-gray-200 rounded px-1 focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                          />
+                          <button
+                            onClick={() => removeChild(ri, ci)}
+                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-[#717182] hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add room */}
+                <button
+                  onClick={addRoom}
+                  className="w-full h-9 border border-dashed border-gray-300 rounded-lg text-sm text-[#2563eb] hover:border-[#2563eb] hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-4 h-4" /> Add room
+                </button>
+
+                <Button
+                  size="sm"
+                  onClick={() => setShowRooms(false)}
+                  className="w-full bg-[#2563eb] hover:bg-[#1e40af] text-white"
+                >
+                  Done
+                </Button>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Search Button */}
+        <div className="md:col-span-1 flex items-end">
+          <Button
+            onClick={handleSearch}
+            className="w-full h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-lg transition-colors px-4"
+          >
+            <Search className="w-5 h-5" />
+            <span className="hidden lg:inline ml-2">Search</span>
+          </Button>
         </div>
       </div>
     </div>
