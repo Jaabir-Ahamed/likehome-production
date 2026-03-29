@@ -173,15 +173,8 @@ export const api = {
         const {data, error} = await supabase
             .from("bookings")
             .select("booking_id")
-        // .eq("user_id", (await supabase.auth.getUser()).data.user?.id);
-
+            .order('created_at', {ascending: false});
         if (error) throw error;
-        return {
-            "data":
-                {
-                    data
-                }
-
-        };
+        return {data: data ?? []};
     },
 };
