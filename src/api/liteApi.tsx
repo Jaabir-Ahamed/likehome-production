@@ -177,4 +177,13 @@ export const api = {
         if (error) throw error;
         return {data: data ?? []};
     },
+
+    cancelBooking: async (bookingId: string) => {
+        const {data, error} = await supabase.functions.invoke("cancel-booking", {
+            body: {bookingId},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
 };

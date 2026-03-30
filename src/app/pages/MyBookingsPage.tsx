@@ -6,6 +6,7 @@ import {
   Download,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -14,10 +15,28 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { api } from "../../api/liteApi";
+
+interface CancelPolicyInfo {
+  cancelTime: string;
+  amount: number;
+  currency: string;
+  type: string;
+  timezone: string;
+}
 
 interface BookingDetail {
   bookingId: string;
@@ -30,6 +49,10 @@ interface BookingDetail {
   currency?: string;
   clientReference?: string;
   roomTypeName?: string;
+  cancellationPolicies?: {
+    cancelPolicyInfos?: CancelPolicyInfo[];
+    refundableTag?: "RFN" | "NRFN";
+  };
 }
 
 export function MyBookingsPage() {
@@ -38,6 +61,8 @@ export function MyBookingsPage() {
   const [bookings, setBookings] = useState<BookingDetail[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<BookingDetail | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     api.getListBookings()
@@ -51,6 +76,19 @@ export function MyBookingsPage() {
             .filter(Boolean)
             .map((d: any) => d?.data ?? d)
             .filter((b: any) => b?.bookingId)
+            .map((b: any) => ({
+              bookingId: b.bookingId,
+              status: b.status,
+              hotelName: b.hotel?.name ?? b.hotelName,
+              checkin: b.checkin,
+              checkout: b.checkout,
+              holder: b.holder,
+              totalAmount: b.price ?? b.totalAmount,
+              currency: b.currency,
+              clientReference: b.clientReference,
+              roomTypeName: b.bookedRooms?.[0]?.roomType?.name ?? b.roomTypeName,
+              cancellationPolicies: b.cancellationPolicies,
+            }))
         );
       })
       .catch(err => setFetchError(err.message))
@@ -58,11 +96,30 @@ export function MyBookingsPage() {
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
-  const scheduledBookings = bookings.filter(b => b.checkin >= today && b.status !== 'CANCELLED');
-  const previousBookings = bookings.filter(b => b.checkin < today || b.status === 'CANCELLED');
+  const isCancelled = (b: BookingDetail) => b.status === 'CANCELLED' || b.status === 'CANCELLED_WITH_CHARGES';
+  const scheduledBookings = bookings.filter(b => b.checkin >= today && !isCancelled(b));
+  const previousBookings = bookings.filter(b => b.checkin < today || isCancelled(b));
 
-  const handleCancelBooking = (bookingId: string) => {
-    console.log("Cancelling booking:", bookingId);
+  const handleCancelBooking = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      const result = await api.cancelBooking(cancelTarget.bookingId);
+      const status = result?.data?.status ?? "CANCELLED";
+      setBookings(prev =>
+        prev.map(b => b.bookingId === cancelTarget.bookingId ? { ...b, status } : b)
+      );
+      toast.success(
+        status === "CANCELLED_WITH_CHARGES"
+          ? "Booking cancelled with charges applied."
+          : "Booking cancelled successfully."
+      );
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to cancel booking.");
+    } finally {
+      setCancelling(false);
+      setCancelTarget(null);
+    }
   };
 
   const handleDownloadReceipt = (bookingId: string) => {
@@ -158,7 +215,7 @@ export function MyBookingsPage() {
                 Download Receipt
               </Button>
               {canCancel && (
-                <Button variant="destructive" size="sm" onClick={() => handleCancelBooking(booking.bookingId)}>
+                <Button variant="destructive" size="sm" onClick={() => setCancelTarget(booking)}>
                   <X className="w-4 h-4 mr-2" />
                   Cancel Booking
                 </Button>
@@ -249,6 +306,60 @@ export function MyBookingsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={open => { if (!open) setCancelTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
+            {cancelTarget?.cancellationPolicies?.refundableTag && (
+              <div className="mt-1">
+                <Badge
+                  className={
+                    cancelTarget.cancellationPolicies.refundableTag === "RFN"
+                      ? "bg-[#10b981] hover:bg-[#059669]"
+                      : "bg-[#ef4444] hover:bg-[#dc2626]"
+                  }
+                >
+                  {cancelTarget.cancellationPolicies.refundableTag === "RFN"
+                    ? "Free cancellation available"
+                    : "Non-refundable"}
+                </Badge>
+              </div>
+            )}
+            <AlertDialogDescription>
+              Review the policy below before confirming. This action cannot be undone.
+            </AlertDialogDescription>
+            {cancelTarget?.cancellationPolicies?.cancelPolicyInfos?.length ? (
+              <ul className="mt-2 space-y-1 text-sm text-[#374151]">
+                {cancelTarget.cancellationPolicies.cancelPolicyInfos.map((p, i) => {
+                  const date = new Date(p.cancelTime).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", year: "numeric", hour: "numeric",
+                  });
+                  return (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="text-[#6b7280]">•</span>
+                      {p.amount === 0
+                        ? <span>Cancel before <span className="font-medium">{date}</span> — no charge</span>
+                        : <span>Cancel after <span className="font-medium">{date}</span> — <span className="font-medium text-[#ef4444]">{p.currency} {p.amount}</span> charge</span>
+                      }
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep Booking</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              disabled={cancelling}
+              className="bg-[#ef4444] hover:bg-[#dc2626]"
+            >
+              {cancelling ? "Cancelling..." : "Yes, Cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

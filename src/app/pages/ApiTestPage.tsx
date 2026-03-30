@@ -6,6 +6,7 @@ import ratesPrebookMd from "../../../docs/api/rates-prebook.md?raw";
 import ratesBookMd from "../../../docs/api/rates-book.md?raw";
 import bookingsRetrieveMd from "../../../docs/api/bookings-retrieve.md?raw";
 import listbookingsMd from "../../../docs/api/listbookings.md?raw";
+import cancelBookingMd from "../../../docs/api/cancel-booking.md?raw";
 
 import {supabase} from "../../lib/supabaseClient";
 
@@ -313,6 +314,15 @@ const API_METHODS = [
         returns: "data[] — array of booking objects",
         doc: "get_listbookings",
     },
+    {
+        name: "cancelBooking(bookingId)",
+        method: "PUT",
+        edge: "cancel-booking",
+        description: "Cancel an existing booking. Returns final status (CANCELLED or CANCELLED_WITH_CHARGES).",
+        params: "bookingId: string",
+        returns: "data.status, data.cancellationPolicies, data.price",
+        doc: "put_bookings-bookingid",
+    },
 ];
 
 const LITEAPI_DOCS_BASE = "https://docs.liteapi.travel/reference/";
@@ -331,12 +341,14 @@ const NAV_ITEMS = [
     {href: "#test-book", label: "Book"},
     {href: "#test-retrieve", label: "Retrieve Booking"},
     {href: "#test-list-bookings", label: "List Bookings"},
+    {href: "#test-cancel-booking", label: "Cancel Booking"},
     {group: "Docs"},
     {href: "#doc-hotels-rates", label: "hotels-rates"},
     {href: "#doc-rates-prebook", label: "rates-prebook"},
     {href: "#doc-rates-book", label: "rates-book"},
     {href: "#doc-bookings-retrieve", label: "bookings-retrieve"},
     {href: "#doc-listbookings", label: "listbookings"},
+    {href: "#doc-cancel-booking", label: "cancel-booking"},
 ] as ({ group: string } | { href: string; label: string })[];
 
 export function ApiTestPage() {
@@ -663,6 +675,35 @@ export function ApiTestPage() {
             }
             setListBookingsResult({error: errorMessage});
             setListBookingsStatus("error");
+        }
+    }
+
+    // ── Cancel Booking ────────────────────────────────────────
+    const [cancelBookingId, setCancelBookingId] = useState("");
+    const [cancelStatus, setCancelStatus] = useState<Status>("idle");
+    const [cancelResult, setCancelResult] = useState<unknown>(null);
+
+    async function handleCancelBooking() {
+        if (!cancelBookingId.trim()) {
+            alert("bookingId is required");
+            return;
+        }
+        setCancelStatus("loading");
+        try {
+            const data = await api.cancelBooking(cancelBookingId.trim());
+            setCancelResult(data);
+            setCancelStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setCancelResult({error: errorMessage});
+            setCancelStatus("error");
         }
     }
 
@@ -1345,6 +1386,39 @@ const { bookingId, status } = booking.data;`}</pre>
                                     </AccordionContent>
                                 </AccordionItem>
 
+
+                                {/* Cancel Booking */}
+                                <AccordionItem value="cancel-booking" id="test-cancel-booking"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-cancel-booking")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="purple">PUT</Badge>
+                      cancelBooking — cancel a booking
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={cancelBookingId}
+                                                onChange={setCancelBookingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <button
+                                                onClick={handleCancelBooking}
+                                                disabled={cancelStatus === "loading"}
+                                                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {cancelStatus === "loading" ? "Loading…" : "PUT /bookings/{bookingId}"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={cancelStatus} result={cancelResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
                             </Accordion>
                         </div>
                     </section>
@@ -1356,6 +1430,7 @@ const { bookingId, status } = booking.data;`}</pre>
                         {id: "doc-rates-book", title: "rates-book", content: ratesBookMd},
                         {id: "doc-bookings-retrieve", title: "bookings-retrieve", content: bookingsRetrieveMd},
                         {id: "doc-listbookings", title: "listbookings", content: listbookingsMd},
+                        {id: "doc-cancel-booking", title: "cancel-booking", content: cancelBookingMd},
                     ] as { id: string; title: string; content: string }[]).map(({id, title, content}) => (
                         <section key={id} id={id} className="scroll-mt-6">
                             <div className="bg-white rounded-xl border border-gray-200 p-6">
