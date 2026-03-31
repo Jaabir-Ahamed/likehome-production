@@ -91,6 +91,11 @@ type AlternativePrebooksParams = {
     boardType?: string;
 };
 
+type RebookParams = {
+    prebookId: string;
+    existingBookingId: string;
+};
+
 
 export const api = {
     getCountries: async () => {
@@ -222,6 +227,15 @@ export const api = {
     getAlternativePrebooks: async (bookingId: string, params: AlternativePrebooksParams) => {
         const {data, error} = await supabase.functions.invoke("booking-alternative-prebooks", {
             body: {bookingId, ...params},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getRatesRebook: async (params: RebookParams) => {
+        const {data, error} = await supabase.functions.invoke("rates-rebook", {
+            body: params,
             method: "POST",
         });
         if (error) throw error;
