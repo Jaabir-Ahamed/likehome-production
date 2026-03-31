@@ -44,6 +44,7 @@ type BookGuest = {
     firstName: string;
     lastName: string;
     email: string;
+    remarks?: string;
 };
 
 type BookHolder = {
@@ -66,6 +67,26 @@ type BookParams = {
     clientReference?: string;
     metadata?: Record<string, unknown>;
     guestPayment?: Record<string, unknown>;
+};
+
+type AmendBookingParams = {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    remarks?: string;
+};
+
+type AlternativePrebooksOccupancy = {
+    adults: number;
+    children?: number[];
+};
+
+type AlternativePrebooksParams = {
+    occupancies: AlternativePrebooksOccupancy[];
+    checkin?: string;
+    checkout?: string;
+    refundableRatesOnly?: boolean;
+    boardType?: string;
 };
 
 
@@ -181,6 +202,24 @@ export const api = {
     cancelBooking: async (bookingId: string) => {
         const {data, error} = await supabase.functions.invoke("cancel-booking", {
             body: {bookingId},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    amendBooking: async (bookingId: string, params: AmendBookingParams) => {
+        const {data, error} = await supabase.functions.invoke("bookings-amend", {
+            body: {bookingId, ...params},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getAlternativePrebooks: async (bookingId: string, params: AlternativePrebooksParams) => {
+        const {data, error} = await supabase.functions.invoke("booking-alternative-prebooks", {
+            body: {bookingId, ...params},
             method: "POST",
         });
         if (error) throw error;
