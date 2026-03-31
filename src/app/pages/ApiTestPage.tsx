@@ -7,6 +7,7 @@ import ratesBookMd from "../../../docs/api/rates-book.md?raw";
 import bookingsRetrieveMd from "../../../docs/api/bookings-retrieve.md?raw";
 import listbookingsMd from "../../../docs/api/listbookings.md?raw";
 import cancelBookingMd from "../../../docs/api/cancel-booking.md?raw";
+import bookingsAmendMd from "../../../docs/api/bookings-amend.md?raw";
 
 import {supabase} from "../../lib/supabaseClient";
 
@@ -323,6 +324,15 @@ const API_METHODS = [
         returns: "data.status, data.cancellationPolicies, data.price",
         doc: "put_bookings-bookingid",
     },
+    {
+        name: "amendBooking(bookingId, params)",
+        method: "POST",
+        edge: "bookings-amend",
+        description: "Update guest details (name, email, remarks) on an existing booking.",
+        params: "bookingId: string, firstName?, lastName?, email?, remarks?",
+        returns: "data — updated booking object with amended holder/remarks",
+        doc: "put_bookings-bookingid-amend",
+    },
 ];
 
 const LITEAPI_DOCS_BASE = "https://docs.liteapi.travel/reference/";
@@ -342,6 +352,7 @@ const NAV_ITEMS = [
     {href: "#test-retrieve", label: "Retrieve Booking"},
     {href: "#test-list-bookings", label: "List Bookings"},
     {href: "#test-cancel-booking", label: "Cancel Booking"},
+    {href: "#test-bookings-amend", label: "Amend Booking"},
     {group: "Docs"},
     {href: "#doc-hotels-rates", label: "hotels-rates"},
     {href: "#doc-rates-prebook", label: "rates-prebook"},
@@ -349,6 +360,7 @@ const NAV_ITEMS = [
     {href: "#doc-bookings-retrieve", label: "bookings-retrieve"},
     {href: "#doc-listbookings", label: "listbookings"},
     {href: "#doc-cancel-booking", label: "cancel-booking"},
+    {href: "#doc-bookings-amend", label: "bookings-amend"},
 ] as ({ group: string } | { href: string; label: string })[];
 
 export function ApiTestPage() {
@@ -675,6 +687,44 @@ export function ApiTestPage() {
             }
             setListBookingsResult({error: errorMessage});
             setListBookingsStatus("error");
+        }
+    }
+
+    // ── Amend Booking ─────────────────────────────────────────
+    const [amendBookingId, setAmendBookingId] = useState("");
+    const [amendFirstName, setAmendFirstName] = useState("");
+    const [amendLastName, setAmendLastName] = useState("");
+    const [amendEmail, setAmendEmail] = useState("");
+    const [amendRemarks, setAmendRemarks] = useState("");
+    const [amendStatus, setAmendStatus] = useState<Status>("idle");
+    const [amendResult, setAmendResult] = useState<unknown>(null);
+
+    async function handleAmendBooking() {
+        if (!amendBookingId.trim()) return alert("bookingId is required");
+        if (!amendFirstName.trim() || !amendLastName.trim() || !amendEmail.trim()) {
+            return alert("firstName, lastName, and email are all required (LiteAPI needs the full holder object)");
+        }
+        setAmendStatus("loading");
+        try {
+            const data = await api.amendBooking(amendBookingId.trim(), {
+                firstName: amendFirstName.trim(),
+                lastName: amendLastName.trim(),
+                email: amendEmail.trim(),
+                ...(amendRemarks.trim() ? {remarks: amendRemarks.trim()} : {}),
+            });
+            setAmendResult(data);
+            setAmendStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setAmendResult({error: errorMessage});
+            setAmendStatus("error");
         }
     }
 
@@ -1419,6 +1469,63 @@ const { bookingId, status } = booking.data;`}</pre>
                                     </AccordionContent>
                                 </AccordionItem>
 
+                                {/* Amend Booking */}
+                                <AccordionItem value="bookings-amend" id="test-bookings-amend"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-bookings-amend")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="green">POST</Badge>
+                      amendBooking — update guest details on a booking
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={amendBookingId}
+                                                onChange={setAmendBookingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <Field
+                                                label="firstName *"
+                                                value={amendFirstName}
+                                                onChange={setAmendFirstName}
+                                                placeholder="e.g. Jane"
+                                            />
+                                            <Field
+                                                label="lastName *"
+                                                value={amendLastName}
+                                                onChange={setAmendLastName}
+                                                placeholder="e.g. Doe"
+                                            />
+                                            <Field
+                                                label="email *"
+                                                value={amendEmail}
+                                                onChange={setAmendEmail}
+                                                placeholder="e.g. jane@example.com"
+                                            />
+                                            <Field
+                                                label="remarks"
+                                                value={amendRemarks}
+                                                onChange={setAmendRemarks}
+                                                placeholder="e.g. Ground floor room, late check-in"
+                                            />
+                                            <p className="text-xs text-gray-400">LiteAPI requires the full holder object — provide all three of firstName, lastName, email even if only one is changing.</p>
+                                            <button
+                                                onClick={handleAmendBooking}
+                                                disabled={amendStatus === "loading"}
+                                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {amendStatus === "loading" ? "Loading…" : "PUT /bookings/{bookingId}/amend"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={amendStatus} result={amendResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
                             </Accordion>
                         </div>
                     </section>
@@ -1431,6 +1538,7 @@ const { bookingId, status } = booking.data;`}</pre>
                         {id: "doc-bookings-retrieve", title: "bookings-retrieve", content: bookingsRetrieveMd},
                         {id: "doc-listbookings", title: "listbookings", content: listbookingsMd},
                         {id: "doc-cancel-booking", title: "cancel-booking", content: cancelBookingMd},
+                        {id: "doc-bookings-amend", title: "bookings-amend", content: bookingsAmendMd},
                     ] as { id: string; title: string; content: string }[]).map(({id, title, content}) => (
                         <section key={id} id={id} className="scroll-mt-6">
                             <div className="bg-white rounded-xl border border-gray-200 p-6">
