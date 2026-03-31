@@ -61,6 +61,8 @@ type BookPayment = {
 
 type BookParams = {
     prebookId: string;
+    checkin?: string;
+    checkout?: string;
     holder: BookHolder;
     guests: BookGuest[];
     payment: BookPayment;

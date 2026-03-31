@@ -117,6 +117,7 @@ export function PaymentPage() {
   const [remarks, setRemarks] = useState('');
 
   const [processing, setProcessing] = useState(false);
+  const [overlapError, setOverlapError] = useState(false);
 
   // Load prebook data from sessionStorage when prebookId is present
   useEffect(() => {
@@ -201,6 +202,7 @@ export function PaymentPage() {
 
     if (isRealPrebook) {
       try {
+        setOverlapError(false);
         const primaryGuest = roomGuestsList[0]?.[0] ?? { firstName: '', lastName: '', email: '' };
         const holder = {
           firstName: primaryGuest.firstName,
@@ -222,6 +224,8 @@ export function PaymentPage() {
 
         await api.getRatesBook({
           prebookId: prebookData!.prebookId,
+          checkin: prebookData!.checkin,
+          checkout: prebookData!.checkout,
           holder,
           guests,
           payment: { method: 'CREDIT' },
@@ -229,8 +233,13 @@ export function PaymentPage() {
         sessionStorage.removeItem(`prebook:${prebookData!.prebookId}`);
         toast.success('Booking confirmed! Check your email for details.');
         navigate('/bookings');
-      } catch (err) {
-        toast.error('Booking failed. Please try again.');
+      } catch (err: unknown) {
+        const status = (err as { context?: { status?: number } })?.context?.status;
+        if (status === 409) {
+          setOverlapError(true);
+        } else {
+          toast.error('Booking failed. Please try again.');
+        }
         setProcessing(false);
       }
     } else {
@@ -286,6 +295,24 @@ export function PaymentPage() {
                     <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
                       {warnings.map((w, i) => <li key={i}>{w}</li>)}
                     </ul>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Overlap conflict error */}
+            {overlapError && (
+              <Card className="p-4 border-red-300 bg-red-50">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-red-800 mb-1">Booking dates conflict</p>
+                    <p className="text-sm text-red-700 mb-3">
+                      You already have a hotel booking that overlaps these dates. Cancel or change your existing booking before booking another stay.
+                    </p>
+                    <Button variant="outline" size="sm" asChild className="border-red-400 text-red-700 hover:bg-red-100">
+                      <Link to="/bookings">View my bookings</Link>
+                    </Button>
                   </div>
                 </div>
               </Card>
