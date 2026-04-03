@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useRewards } from '../contexts/RewardsContext';
 import { toast } from 'sonner';
 import { api } from '../../api/liteApi';
 
@@ -100,6 +101,7 @@ export function PaymentPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
+  const { addPoints, dollarsToPoints } = useRewards();
 
   const prebookId = searchParams.get('prebookId');
   const guestsParam = Number(searchParams.get('guests')) || 2;
@@ -230,8 +232,16 @@ export function PaymentPage() {
           guests,
           payment: { method: 'CREDIT' },
         });
+        // call api to convert dollors to points and add to user's profile on supabase (await to ensure points are added before showing success toast)
+        const pointsEarned = dollarsToPoints(finalTotal);
+        const newPointsTotal = await addPoints(pointsEarned);
+        if (newPointsTotal === null) {
+          toast.error('Failed to add reward points.');
+        } else {
+          toast.success(`Booking confirmed! You've earned ${pointsEarned} points${newPointsTotal !== null ? ` (total: ${newPointsTotal})` : ''}. Check your email for details.`);
+        }
+
         sessionStorage.removeItem(`prebook:${prebookData!.prebookId}`);
-        toast.success('Booking confirmed! Check your email for details.');
         navigate('/bookings');
       } catch (err: unknown) {
         const status = (err as { context?: { status?: number } })?.context?.status;
@@ -591,6 +601,8 @@ export function PaymentPage() {
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg text-[#1f2937]">
+                  <span>Points you'll earn</span>
+                  <span>+{dollarsToPoints(finalTotal)} pts</span>
                   <span>Total</span>
                   <span>{priceSymbol}{finalTotal}</span>
                 </div>

@@ -27,18 +27,14 @@ export function LoginPage() {
             if (error) {
                 throw error;
             }
-
+            //don't need use finally since this only executes when no error is thrown. 
+            //Finally won't work anyways because setLoginSuccess is a React state update (asynchronous)
             setLoginSuccess(true);
+            navigate("/");
         } catch (error: any) {
             console.log("Error:", error.message);
             alert(error.message);
-        } finally {
-            if (loginSuccess) {
-                navigate("/");
-            }
         }
-
-
     };
 
     return (
@@ -201,9 +197,9 @@ export function LoginPage() {
                         <Button
                             type="submit"
                             className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] h-12 text-base"
-                            onClick={() => {
-                                handleLogin
-                            }}
+                            //onClick={() => {
+                            //    handleLogin
+                            //}}
                         >
                             Sign In
                         </Button>

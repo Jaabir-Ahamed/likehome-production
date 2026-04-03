@@ -96,6 +96,15 @@ type RebookParams = {
     existingBookingId: string;
 };
 
+type Profile = {
+    id: string;
+    email: string;
+    full_name: string;
+    reward_points: number;
+    role: string;
+    created_at: string;
+};
+
 
 export const api = {
     getCountries: async () => {
@@ -240,5 +249,71 @@ export const api = {
         });
         if (error) throw error;
         return data;
+    },
+    // returns null if no session, throws error if supabase query fails, returns Profile if successful
+    getProfile: async (): Promise<Profile | null> => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+    
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+
+            console.log('getProfile raw data:', data);
+            if (error) throw error;
+            return data as Profile;
+    },
+    // throws error if number is non-positive, if no session, or if supabase query fails. returns new total if successful
+    addRewardPoints: async (points: number): Promise<number> => {
+        if (points <= 0) throw new Error("Points to add must be a positive number.");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User must be logged in to earn reward points.");
+
+        // This calls a Postgres function (already created) for a safe atomic increment.
+        //function is --> increment_rewards_points(user_id uuid, amount integer)
+        const { data, error } = await supabase.rpc("increment_reward_points", {
+            user_id: user.id,
+            amount: points,
+        });
+
+        if (error) throw error;
+        return data as number; // returns new total
+    },
+    // throws error if number is non-positive, if no session, or if supabase query fails. returns new total if successful
+    redeemRewardPoints: async (points: number): Promise<number> => {
+        if (points <= 0) throw new Error("Points to redeem must be a positive number.");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User must be logged in to redeem reward points.");
+
+        // This calls a Postgres function (already created) for a safe atomic decrement.
+        //function is --> decrement_rewards_points(user_id uuid, amount integer)
+        const { data, error } = await supabase.rpc("decrement_reward_points", {
+            user_id: user.id,
+            amount: points,
+        });
+
+        if (error) throw error; // note: DB function throws if insufficient points
+        return data as number; // returns new total
+    },
+    // admin function. 
+    setRewardPoints: async (points: number): Promise<number> => {
+        if (points < 0) throw new Error("Reward points cannot be negative.");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User must be logged in.");
+
+        const { data, error } = await supabase
+            .from("profiles")
+            .update({ reward_points: points })
+            .eq("id", user.id)
+            .select("reward_points")
+            .single();
+
+        if (error) throw error;
+        return (data as { reward_points: number }).reward_points;
     },
 };

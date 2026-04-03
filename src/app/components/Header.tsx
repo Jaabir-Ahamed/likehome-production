@@ -11,7 +11,7 @@ import {
 import {Button} from './ui/button';
 import {ListPropertyDialog} from './ListPropertyDialog';
 import {Currency, useCurrency} from '../contexts/CurrencyContext';
-import {useAuth} from "../../context/AuthContext";
+import {useAuth} from "../contexts/AuthContext";
 import {supabase} from "../../lib/supabaseClient";
 import {Badge} from './ui/badge';
 import {ScrollArea} from './ui/scroll-area';

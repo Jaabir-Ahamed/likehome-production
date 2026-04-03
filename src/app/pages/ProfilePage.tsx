@@ -1,33 +1,112 @@
-import { useState } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Edit2, Camera } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Mail, Phone, MapPin, Calendar, Edit2, Camera, Trophy } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { useAuth } from '../contexts/AuthContext';
+import { useRewards } from '../contexts/RewardsContext';
+import { api } from '../../api/liteApi';
+import { toast } from 'sonner';
 
 export function ProfilePage() {
+  const { user } = useAuth();
+  const { points, pointsToDollars, loading: rewardsLoading } = useRewards();
+
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Editable fields — populated from the profiles table on mount
   const [userData, setUserData] = useState({
-    name: 'John Anderson',
-    email: 'john.anderson@email.com',
-    phone: '+1 (555) 123-4567',
-    location: 'New York, USA',
-    dateOfBirth: '1990-05-15',
-    joinedDate: 'January 2024',
-    bio: 'Travel enthusiast exploring the world one hotel at a time.',
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    dateOfBirth: '',
+    joinedDate: '',
+    bio: '',
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would typically save to backend
+  // Load real profile from Supabase profiles table on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await api.getProfile();
+        if (profile) {
+          setUserData({
+            name: profile.full_name ?? '',
+            email: profile.email ?? user?.email ?? '',
+            // phone/location/dob/bio aren't in profiles table yet —
+            // they fall back to user_metadata (set during signup) or empty.
+            // TODO: Add these columns to profiles in supabase and update this code to read/write from there.
+            phone: user?.user_metadata?.phone ?? '',
+            location: '',
+            dateOfBirth: '',
+            joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric',
+            }),
+            bio: '',
+          });
+        }
+      } catch (err) {
+        toast.error('Failed to load profile.');
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    if (user) loadProfile();
+  }, [user]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // TODO:
+      // Currently this only saves full_name as it is the only attribute to save in the profiles table.
+      // Extend this update call to include other fields once they are added to the profiles table in Supabase.
+      const { supabase } = await import('../../lib/supabaseClient');
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: userData.name })
+        .eq('id', user!.id);
+
+      if (error) throw error;
+      toast.success('Profile updated!');
+      setIsEditing(false);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to save profile.');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Initials for avatar fallback
+  const initials = userData.name
+    ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : user?.email?.[0]?.toUpperCase() ?? '?';
+
+  const avatarUrl =
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    '';
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header Section */}
+
+        {/* Header */}
         <div className="mb-8">
           <h1 className="font-bold text-[#1f2937] mb-2">My Profile</h1>
           <p className="text-[#6b7280]">Manage your personal information and preferences</p>
@@ -36,12 +115,13 @@ export function ProfilePage() {
         {/* Profile Card */}
         <Card className="p-8 mb-6 border-gray-200">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-8 mb-8">
-            {/* Avatar Section */}
+
+            {/* Avatar */}
             <div className="relative">
               <Avatar className="h-32 w-32">
-                <AvatarImage src="" alt={userData.name} />
+                <AvatarImage src={avatarUrl} alt={userData.name} />
                 <AvatarFallback className="bg-[#2563eb] text-white text-3xl">
-                  {userData.name.split(' ').map(n => n[0]).join('')}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <button className="absolute bottom-0 right-0 bg-[#2563eb] text-white p-2 rounded-full hover:bg-[#1d4ed8] transition-colors">
@@ -49,18 +129,23 @@ export function ProfilePage() {
               </button>
             </div>
 
-            {/* User Info Header */}
+            {/* Name / bio / edit button */}
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold text-[#1f2937]">{userData.name}</h2>
+                <h2 className="font-bold text-[#1f2937]">
+                  {userData.name || user?.email}
+                </h2>
                 <Button
-                  variant={isEditing ? "default" : "outline"}
+                  variant={isEditing ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                  className={isEditing ? "bg-[#2563eb] hover:bg-[#1d4ed8]" : ""}
+                  disabled={saving}
+                  onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                  className={isEditing ? 'bg-[#2563eb] hover:bg-[#1d4ed8]' : ''}
                 >
-                  {isEditing ? (
-                    <>Save Changes</>
+                  {saving ? (
+                    'Saving...'
+                  ) : isEditing ? (
+                    'Save Changes'
                   ) : (
                     <>
                       <Edit2 className="w-4 h-4 mr-2" />
@@ -69,10 +154,23 @@ export function ProfilePage() {
                   )}
                 </Button>
               </div>
-              <p className="text-[#6b7280] mb-4">{userData.bio}</p>
+
+              {isEditing ? (
+                <Input
+                  value={userData.bio}
+                  placeholder="Tell us about yourself..."
+                  onChange={(e) => setUserData({ ...userData, bio: e.target.value })}
+                  className="mb-4"
+                />
+              ) : (
+                <p className="text-[#6b7280] mb-4">
+                  {userData.bio || 'No bio yet.'}
+                </p>
+              )}
+
               <div className="flex items-center gap-2 text-sm text-[#6b7280]">
                 <Calendar className="w-4 h-4" />
-                <span>Member since {userData.joinedDate}</span>
+                <span>Member since {userData.joinedDate || '—'}</span>
               </div>
             </div>
           </div>
@@ -84,7 +182,6 @@ export function ProfilePage() {
             <h3 className="font-semibold text-[#1f2937] mb-4">Personal Information</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="flex items-center gap-2 text-[#1f2937]">
                   <User className="w-4 h-4" />
@@ -99,23 +196,21 @@ export function ProfilePage() {
                 />
               </div>
 
-              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2 text-[#1f2937]">
                   <Mail className="w-4 h-4" />
                   Email Address
                 </Label>
+                {/* Email comes from auth, not editable here */}
                 <Input
                   id="email"
                   type="email"
                   value={userData.email}
-                  onChange={(e) => setUserData({ ...userData, email: e.target.value })}
-                  disabled={!isEditing}
-                  className="bg-white"
+                  disabled
+                  className="bg-gray-50 text-[#6b7280]"
                 />
               </div>
 
-              {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-2 text-[#1f2937]">
                   <Phone className="w-4 h-4" />
@@ -131,7 +226,6 @@ export function ProfilePage() {
                 />
               </div>
 
-              {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location" className="flex items-center gap-2 text-[#1f2937]">
                   <MapPin className="w-4 h-4" />
@@ -146,7 +240,6 @@ export function ProfilePage() {
                 />
               </div>
 
-              {/* Date of Birth */}
               <div className="space-y-2">
                 <Label htmlFor="dob" className="flex items-center gap-2 text-[#1f2937]">
                   <Calendar className="w-4 h-4" />
@@ -165,21 +258,40 @@ export function ProfilePage() {
           </div>
         </Card>
 
-        {/* Statistics Card */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#2563eb] mb-2">12</div>
             <p className="text-[#6b7280]">Total Bookings</p>
           </Card>
+
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#f59e0b] mb-2">8</div>
             <p className="text-[#6b7280]">Favorite Hotels</p>
           </Card>
+
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#10b981] mb-2">15</div>
             <p className="text-[#6b7280]">Cities Visited</p>
           </Card>
+
+          {/* Rewards points card — pulls from RewardsContext */}
+          <Card className="p-6 border-gray-200 text-center bg-gradient-to-br from-amber-50 to-yellow-50">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Trophy className="w-6 h-6 text-[#f59e0b]" />
+              <div className="text-4xl font-bold text-[#f59e0b]">
+                {rewardsLoading ? '...' : (points ?? 0).toLocaleString()}
+              </div>
+            </div>
+            <p className="text-[#6b7280]">Reward Points</p>
+            {!rewardsLoading && points !== null && points > 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                ≈ ${pointsToDollars(points).toFixed(2)} value
+              </p>
+            )}
+          </Card>
         </div>
+
       </div>
     </div>
   );

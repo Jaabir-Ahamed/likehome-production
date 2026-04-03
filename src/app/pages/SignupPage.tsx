@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router";
 import {Eye, EyeOff, Lock, Mail, Phone, User,} from "lucide-react";
 import {Button} from "../components/ui/button";
@@ -26,6 +26,22 @@ export function SignupPage() {
     });
     const [agreeToTerms, setAgreeToTerms] = useState(false);
     const [loading, setLoading] = useState(false);
+    // RE-ENABLE only when using supabase's email confirmation flow.
+    /*const [sessionReady, setSessionReady] = useState(false);
+
+    useEffect(() => {
+        if (!signupSuccess) return; // Only run this effect after signup is successful
+
+        const interval = setInterval(async () => {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+                setSessionReady(true);
+                clearInterval(interval);
+            }
+        }, 1500); // Check every 1.5 seconds
+
+        return () => clearInterval(interval);
+    }, [signupSuccess]); */
 
     async function handleSignup(e: React.FormEvent) {
         e.preventDefault();
@@ -225,26 +241,27 @@ export function SignupPage() {
                             <div className="space-y-6 text-center">
                                 <div className="text-6xl">📩</div>
 
-                                <h2 className="text-2xl font-bold text-[#1f2937]">
+                                {/*<h2 className="text-2xl font-bold text-[#1f2937]">
                                     Check Your Email
                                 </h2>
-
+                                
                                 <p className="text-[#6b7280]">
                                     We've sent a verification link to
                                     <br/>
                                     <span className="font-medium text-[#1f2937]">
-          {formData.email}
-        </span>
+                                        {formData.email}
+                                    </span>
                                     <br/>
                                     Please verify your account before signing in.
-                                </p>
-
+                                </p>*/}
+                                
                                 <div className="space-y-3">
                                     <Button
                                         className="w-full bg-[#2563eb] hover:bg-[#1d4ed8]"
+                                        //disabled={!sessionReady} <-- RE-ENABLE only when using supabase's email confirmation flow.
                                         onClick={() => navigate("/login")}
                                     >
-                                        Go to Login
+                                        Go To Login
                                     </Button>
 
                                     {/*<Button*/}
@@ -256,10 +273,10 @@ export function SignupPage() {
                                     {/*    {loading ? "Resending..." : "Resend Email"}*/}
                                     {/*</Button>*/}
 
-                                    <ResendEmailButton
+                                    {/*<ResendEmailButton
                                         onResend={handleResendEmail}
                                         loading={loading}
-                                    />
+                                    />*/}
                                 </div>
                             </div>
                         ) : (
