@@ -45,10 +45,18 @@ type PrebookParams = {
 };
 
 type BookGuest = {
+<<<<<<< HEAD
   occupancyNumber: number;
   firstName: string;
   lastName: string;
   email: string;
+=======
+    occupancyNumber: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    remarks?: string;
+>>>>>>> upstream/main
 };
 
 type BookHolder = {
@@ -64,6 +72,7 @@ type BookPayment = {
 };
 
 type BookParams = {
+<<<<<<< HEAD
   prebookId: string;
   holder: BookHolder;
   guests: BookGuest[];
@@ -77,6 +86,45 @@ type BookParams = {
  * Matches LikeHome-CMPE-165/likehome-web `src/api/liteApi.tsx` (Supabase edge names:
  * places, list-hotels, hotel-rate, rates-prebook, rates-book, bookings-retrieve, …)
  */
+=======
+    prebookId: string;
+    checkin?: string;
+    checkout?: string;
+    holder: BookHolder;
+    guests: BookGuest[];
+    payment: BookPayment;
+    clientReference?: string;
+    metadata?: Record<string, unknown>;
+    guestPayment?: Record<string, unknown>;
+};
+
+type AmendBookingParams = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    remarks?: string;
+};
+
+type AlternativePrebooksOccupancy = {
+    adults: number;
+    children?: number[];
+};
+
+type AlternativePrebooksParams = {
+    occupancies: AlternativePrebooksOccupancy[];
+    checkin?: string;
+    checkout?: string;
+    refundableRatesOnly?: boolean;
+    boardType?: string;
+};
+
+type RebookParams = {
+    prebookId: string;
+    existingBookingId: string;
+};
+
+
+>>>>>>> upstream/main
 export const api = {
   getCountries: async () => {
     const { data, error } = await supabase.functions.invoke("countries");
@@ -191,6 +239,7 @@ export const api = {
     return data;
   },
 
+<<<<<<< HEAD
   getListBookings: async () => {
     const { data, error } = await supabase
       .from("bookings")
@@ -204,3 +253,50 @@ export const api = {
     };
   },
 };
+=======
+    getListBookings: async () => {
+        const {data, error} = await supabase
+            .from("bookings")
+            .select("booking_id")
+            .order('created_at', {ascending: false});
+        if (error) throw error;
+        return {data: data ?? []};
+    },
+
+    cancelBooking: async (bookingId: string) => {
+        const {data, error} = await supabase.functions.invoke("cancel-booking", {
+            body: {bookingId},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    amendBooking: async (bookingId: string, params: AmendBookingParams) => {
+        const {data, error} = await supabase.functions.invoke("bookings-amend", {
+            body: {bookingId, ...params},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getAlternativePrebooks: async (bookingId: string, params: AlternativePrebooksParams) => {
+        const {data, error} = await supabase.functions.invoke("booking-alternative-prebooks", {
+            body: {bookingId, ...params},
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    getRatesRebook: async (params: RebookParams) => {
+        const {data, error} = await supabase.functions.invoke("rates-rebook", {
+            body: params,
+            method: "POST",
+        });
+        if (error) throw error;
+        return data;
+    },
+};
+>>>>>>> upstream/main

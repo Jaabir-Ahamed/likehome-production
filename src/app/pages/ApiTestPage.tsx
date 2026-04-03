@@ -6,6 +6,10 @@ import ratesPrebookMd from "../../../docs/api/rates-prebook.md?raw";
 import ratesBookMd from "../../../docs/api/rates-book.md?raw";
 import bookingsRetrieveMd from "../../../docs/api/bookings-retrieve.md?raw";
 import listbookingsMd from "../../../docs/api/listbookings.md?raw";
+import cancelBookingMd from "../../../docs/api/cancel-booking.md?raw";
+import bookingsAmendMd from "../../../docs/api/bookings-amend.md?raw";
+import bookingAlternativePrebooksMd from "../../../docs/api/booking-alternative-prebooks.md?raw";
+import ratesRebookMd from "../../../docs/api/rates-rebook.md?raw";
 
 import {supabase} from "../../lib/supabaseClient";
 
@@ -313,6 +317,42 @@ const API_METHODS = [
         returns: "data[] — array of booking objects",
         doc: "get_listbookings",
     },
+    {
+        name: "cancelBooking(bookingId)",
+        method: "PUT",
+        edge: "cancel-booking",
+        description: "Cancel an existing booking. Returns final status (CANCELLED or CANCELLED_WITH_CHARGES).",
+        params: "bookingId: string",
+        returns: "data.status, data.cancellationPolicies, data.price",
+        doc: "put_bookings-bookingid",
+    },
+    {
+        name: "amendBooking(bookingId, params)",
+        method: "POST",
+        edge: "bookings-amend",
+        description: "Update guest details (name, email, remarks) on an existing booking.",
+        params: "bookingId: string, firstName?, lastName?, email?, remarks?",
+        returns: "data — updated booking object with amended holder/remarks",
+        doc: "put_bookings-bookingid-amend",
+    },
+    {
+        name: "api.getAlternativePrebooks(bookingId, params)",
+        method: "POST",
+        edge: "booking-alternative-prebooks",
+        description: "Get alternative rates for amending an existing booking's dates or occupancies.",
+        params: "bookingId: string, occupancies: [{adults, children?}], checkin: YYYY-MM-DD, checkout: YYYY-MM-DD, refundableRatesOnly?",
+        returns: "data.prebookId — use to complete the amendment, data.priceDifferencePercent",
+        doc: "post_bookings-bookingid-alternative-prebooks",
+    },
+    {
+        name: "api.getRatesRebook(params)",
+        method: "POST",
+        edge: "rates-rebook",
+        description: "Complete a rebook — cancels the existing booking and creates a new one using the alternative prebookId.",
+        params: "prebookId: string (from getAlternativePrebooks), existingBookingId: string",
+        returns: "data.bookingId — new booking ID, data.status",
+        doc: "rates-rebook",
+    },
 ];
 
 const LITEAPI_DOCS_BASE = "https://docs.liteapi.travel/reference/";
@@ -331,12 +371,20 @@ const NAV_ITEMS = [
     {href: "#test-book", label: "Book"},
     {href: "#test-retrieve", label: "Retrieve Booking"},
     {href: "#test-list-bookings", label: "List Bookings"},
+    {href: "#test-cancel-booking", label: "Cancel Booking"},
+    {href: "#test-bookings-amend", label: "Amend Booking"},
+    {href: "#test-booking-alternative-prebooks", label: "Alternative Prebooks"},
+    {href: "#test-rates-rebook", label: "Rebook"},
     {group: "Docs"},
     {href: "#doc-hotels-rates", label: "hotels-rates"},
     {href: "#doc-rates-prebook", label: "rates-prebook"},
     {href: "#doc-rates-book", label: "rates-book"},
     {href: "#doc-bookings-retrieve", label: "bookings-retrieve"},
     {href: "#doc-listbookings", label: "listbookings"},
+    {href: "#doc-cancel-booking", label: "cancel-booking"},
+    {href: "#doc-bookings-amend", label: "bookings-amend"},
+    {href: "#doc-booking-alternative-prebooks", label: "booking-alternative-prebooks"},
+    {href: "#doc-rates-rebook", label: "rates-rebook"},
 ] as ({ group: string } | { href: string; label: string })[];
 
 export function ApiTestPage() {
@@ -663,6 +711,160 @@ export function ApiTestPage() {
             }
             setListBookingsResult({error: errorMessage});
             setListBookingsStatus("error");
+        }
+    }
+
+    // ── Amend Booking ─────────────────────────────────────────
+    const [amendBookingId, setAmendBookingId] = useState("");
+    const [amendFirstName, setAmendFirstName] = useState("");
+    const [amendLastName, setAmendLastName] = useState("");
+    const [amendEmail, setAmendEmail] = useState("");
+    const [amendRemarks, setAmendRemarks] = useState("");
+    const [amendStatus, setAmendStatus] = useState<Status>("idle");
+    const [amendResult, setAmendResult] = useState<unknown>(null);
+
+    async function handleAmendBooking() {
+        if (!amendBookingId.trim()) return alert("bookingId is required");
+        if (!amendFirstName.trim() || !amendLastName.trim() || !amendEmail.trim()) {
+            return alert("firstName, lastName, and email are all required (LiteAPI needs the full holder object)");
+        }
+        setAmendStatus("loading");
+        try {
+            const data = await api.amendBooking(amendBookingId.trim(), {
+                firstName: amendFirstName.trim(),
+                lastName: amendLastName.trim(),
+                email: amendEmail.trim(),
+                ...(amendRemarks.trim() ? {remarks: amendRemarks.trim()} : {}),
+            });
+            setAmendResult(data);
+            setAmendStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setAmendResult({error: errorMessage});
+            setAmendStatus("error");
+        }
+    }
+
+    // ── Alternative Prebooks ──────────────────────────────────
+    const [altPrebooksBookingId, setAltPrebooksBookingId] = useState("");
+    const [altPrebooksCheckin, setAltPrebooksCheckin] = useState("");
+    const [altPrebooksCheckout, setAltPrebooksCheckout] = useState("");
+    const [altPrebooksOccupancies, setAltPrebooksOccupancies] = useState<{ adults: number; children: string }[]>([{adults: 2, children: ""}]);
+    const [altPrebooksRefundable, setAltPrebooksRefundable] = useState(false);
+    const [altPrebooksStatus, setAltPrebooksStatus] = useState<Status>("idle");
+    const [altPrebooksResult, setAltPrebooksResult] = useState<unknown>(null);
+
+    function addAltOccupancy() {
+        setAltPrebooksOccupancies((prev) => [...prev, {adults: 1, children: ""}]);
+    }
+
+    function removeAltOccupancy(i: number) {
+        setAltPrebooksOccupancies((prev) => prev.filter((_, idx) => idx !== i));
+    }
+
+    function updateAltOccupancy(i: number, field: "adults" | "children", value: string) {
+        setAltPrebooksOccupancies((prev) =>
+            prev.map((o, idx) => idx === i ? {...o, [field]: field === "adults" ? Number(value) || 1 : value} : o)
+        );
+    }
+
+    async function handleAlternativePrebooks() {
+        if (!altPrebooksBookingId.trim()) return alert("bookingId is required");
+        if (!altPrebooksCheckin || !altPrebooksCheckout) return alert("checkin and checkout are required");
+        setAltPrebooksStatus("loading");
+        try {
+            const parsedOccupancies = altPrebooksOccupancies.map((o) => ({
+                adults: o.adults,
+                ...(o.children.trim()
+                    ? {children: o.children.split(",").map((c) => Number(c.trim())).filter((n) => !isNaN(n))}
+                    : {}),
+            }));
+            const data = await api.getAlternativePrebooks(altPrebooksBookingId.trim(), {
+                occupancies: parsedOccupancies,
+                checkin: altPrebooksCheckin,
+                checkout: altPrebooksCheckout,
+                refundableRatesOnly: altPrebooksRefundable || undefined,
+            });
+            setAltPrebooksResult(data);
+            setAltPrebooksStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setAltPrebooksResult({error: errorMessage});
+            setAltPrebooksStatus("error");
+        }
+    }
+
+    // ── Rebook ────────────────────────────────────────────────
+    const [rebookPrebookId, setRebookPrebookId] = useState("");
+    const [rebookExistingId, setRebookExistingId] = useState("");
+    const [rebookStatus, setRebookStatus] = useState<Status>("idle");
+    const [rebookResult, setRebookResult] = useState<unknown>(null);
+
+    async function handleRebook() {
+        if (!rebookPrebookId.trim()) return alert("prebookId is required");
+        if (!rebookExistingId.trim()) return alert("existingBookingId is required");
+        setRebookStatus("loading");
+        try {
+            const data = await api.getRatesRebook({
+                prebookId: rebookPrebookId.trim(),
+                existingBookingId: rebookExistingId.trim(),
+            });
+            setRebookResult(data);
+            setRebookStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setRebookResult({error: errorMessage});
+            setRebookStatus("error");
+        }
+    }
+
+    // ── Cancel Booking ────────────────────────────────────────
+    const [cancelBookingId, setCancelBookingId] = useState("");
+    const [cancelStatus, setCancelStatus] = useState<Status>("idle");
+    const [cancelResult, setCancelResult] = useState<unknown>(null);
+
+    async function handleCancelBooking() {
+        if (!cancelBookingId.trim()) {
+            alert("bookingId is required");
+            return;
+        }
+        setCancelStatus("loading");
+        try {
+            const data = await api.cancelBooking(cancelBookingId.trim());
+            setCancelResult(data);
+            setCancelStatus("success");
+        } catch (err) {
+            let errorMessage: unknown = "Unknown error";
+            try {
+                if (err instanceof FunctionsHttpError) errorMessage = await err.context.json();
+                else if (err instanceof Error) errorMessage = err.message;
+                else if (typeof err === "string") errorMessage = err;
+            } catch {
+                errorMessage = "Failed to parse error response";
+            }
+            setCancelResult({error: errorMessage});
+            setCancelStatus("error");
         }
     }
 
@@ -1345,6 +1547,211 @@ const { bookingId, status } = booking.data;`}</pre>
                                     </AccordionContent>
                                 </AccordionItem>
 
+
+                                {/* Cancel Booking */}
+                                <AccordionItem value="cancel-booking" id="test-cancel-booking"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-cancel-booking")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="purple">PUT</Badge>
+                      cancelBooking — cancel a booking
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={cancelBookingId}
+                                                onChange={setCancelBookingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <button
+                                                onClick={handleCancelBooking}
+                                                disabled={cancelStatus === "loading"}
+                                                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {cancelStatus === "loading" ? "Loading…" : "PUT /bookings/{bookingId}"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={cancelStatus} result={cancelResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* Amend Booking */}
+                                <AccordionItem value="bookings-amend" id="test-bookings-amend"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-bookings-amend")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="green">POST</Badge>
+                      amendBooking — update guest details on a booking
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={amendBookingId}
+                                                onChange={setAmendBookingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <Field
+                                                label="firstName *"
+                                                value={amendFirstName}
+                                                onChange={setAmendFirstName}
+                                                placeholder="e.g. Jane"
+                                            />
+                                            <Field
+                                                label="lastName *"
+                                                value={amendLastName}
+                                                onChange={setAmendLastName}
+                                                placeholder="e.g. Doe"
+                                            />
+                                            <Field
+                                                label="email *"
+                                                value={amendEmail}
+                                                onChange={setAmendEmail}
+                                                placeholder="e.g. jane@example.com"
+                                            />
+                                            <Field
+                                                label="remarks"
+                                                value={amendRemarks}
+                                                onChange={setAmendRemarks}
+                                                placeholder="e.g. Ground floor room, late check-in"
+                                            />
+                                            <p className="text-xs text-gray-400">LiteAPI requires the full holder object — provide all three of firstName, lastName, email even if only one is changing.</p>
+                                            <button
+                                                onClick={handleAmendBooking}
+                                                disabled={amendStatus === "loading"}
+                                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {amendStatus === "loading" ? "Loading…" : "PUT /bookings/{bookingId}/amend"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={amendStatus} result={amendResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* Alternative Prebooks */}
+                                <AccordionItem value="booking-alternative-prebooks" id="test-booking-alternative-prebooks"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-booking-alternative-prebooks")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="green">POST</Badge>
+                      getAlternativePrebooks — get alternative rates for amending a booking
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="bookingId *"
+                                                value={altPrebooksBookingId}
+                                                onChange={setAltPrebooksBookingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Field label="checkin *" value={altPrebooksCheckin} onChange={setAltPrebooksCheckin} placeholder="YYYY-MM-DD"/>
+                                                <Field label="checkout *" value={altPrebooksCheckout} onChange={setAltPrebooksCheckout} placeholder="YYYY-MM-DD"/>
+                                            </div>
+                                            {/* Occupancies */}
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="block text-xs font-medium text-gray-600">Occupancies *</label>
+                                                    <button type="button" onClick={addAltOccupancy} className="text-xs text-blue-600 hover:underline">+ Add room</button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {altPrebooksOccupancies.map((o, i) => (
+                                                        <div key={i} className="flex gap-2 items-start bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                                            <div className="flex-1 space-y-1">
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div>
+                                                                        <label className="block text-xs text-gray-500 mb-0.5">Adults</label>
+                                                                        <input type="number" min={1} value={o.adults} onChange={(e) => updateAltOccupancy(i, "adults", e.target.value)} className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs text-gray-500 mb-0.5">Children ages (comma-separated)</label>
+                                                                        <input type="text" value={o.children} onChange={(e) => updateAltOccupancy(i, "children", e.target.value)} placeholder="e.g. 5, 10" className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {altPrebooksOccupancies.length > 1 && (
+                                                                <button type="button" onClick={() => removeAltOccupancy(i)} className="text-xs text-red-500 hover:text-red-700 mt-1 shrink-0">Remove</button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    id="altPrebooksRefundable"
+                                                    type="checkbox"
+                                                    checked={altPrebooksRefundable}
+                                                    onChange={(e) => setAltPrebooksRefundable(e.target.checked)}
+                                                    className="rounded"
+                                                />
+                                                <label htmlFor="altPrebooksRefundable" className="text-sm text-gray-600">refundableRatesOnly</label>
+                                            </div>
+                                            <button
+                                                onClick={handleAlternativePrebooks}
+                                                disabled={altPrebooksStatus === "loading"}
+                                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {altPrebooksStatus === "loading" ? "Loading…" : "POST /bookings/{bookingId}/alternative-prebooks"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={altPrebooksStatus} result={altPrebooksResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
+                                {/* Rebook */}
+                                <AccordionItem value="rates-rebook" id="test-rates-rebook"
+                                               className="scroll-mt-6 px-6 border-t border-gray-200">
+                                    <AccordionTrigger
+                                        className="text-base font-semibold text-gray-800"
+                                        onClick={() => setActiveSection("#test-rates-rebook")}
+                                    >
+                    <span className="flex items-center gap-2">
+                      <Badge color="green">POST</Badge>
+                      getRatesRebook — complete a booking amendment
+                    </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-xs text-gray-500 mb-3">
+                                            Step 2 of the rebook flow. Cancels the existing booking and creates a new one. Run <strong>Alternative Prebooks</strong> first to get a <code className="bg-gray-100 px-1 rounded">prebookId</code>.
+                                        </p>
+                                        <div className="space-y-3 pb-2">
+                                            <Field
+                                                label="prebookId *"
+                                                value={rebookPrebookId}
+                                                onChange={setRebookPrebookId}
+                                                placeholder="From getAlternativePrebooks()"
+                                            />
+                                            <Field
+                                                label="existingBookingId *"
+                                                value={rebookExistingId}
+                                                onChange={setRebookExistingId}
+                                                placeholder="e.g. BK-12345"
+                                            />
+                                            <button
+                                                onClick={handleRebook}
+                                                disabled={rebookStatus === "loading"}
+                                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                                            >
+                                                {rebookStatus === "loading" ? "Loading…" : "POST /rates/rebook"}
+                                            </button>
+                                        </div>
+                                        <JsonOutput status={rebookStatus} result={rebookResult}/>
+                                    </AccordionContent>
+                                </AccordionItem>
+
                             </Accordion>
                         </div>
                     </section>
@@ -1356,6 +1763,10 @@ const { bookingId, status } = booking.data;`}</pre>
                         {id: "doc-rates-book", title: "rates-book", content: ratesBookMd},
                         {id: "doc-bookings-retrieve", title: "bookings-retrieve", content: bookingsRetrieveMd},
                         {id: "doc-listbookings", title: "listbookings", content: listbookingsMd},
+                        {id: "doc-cancel-booking", title: "cancel-booking", content: cancelBookingMd},
+                        {id: "doc-bookings-amend", title: "bookings-amend", content: bookingsAmendMd},
+                        {id: "doc-booking-alternative-prebooks", title: "booking-alternative-prebooks", content: bookingAlternativePrebooksMd},
+                        {id: "doc-rates-rebook", title: "rates-rebook", content: ratesRebookMd},
                     ] as { id: string; title: string; content: string }[]).map(({id, title, content}) => (
                         <section key={id} id={id} className="scroll-mt-6">
                             <div className="bg-white rounded-xl border border-gray-200 p-6">

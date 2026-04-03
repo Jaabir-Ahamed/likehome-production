@@ -226,6 +226,10 @@ export function LoginPage() {
                                 onClick={async () => {
                                     await supabase.auth.signInWithOAuth({
                                         provider: "google",
+                                        options: {
+                                            // Must match an entry in Supabase → Authentication → URL Configuration → Redirect URLs
+                                            redirectTo: `${window.location.origin}/`,
+                                        },
                                     });
                                 }}
                             >
