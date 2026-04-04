@@ -441,7 +441,7 @@ export function HotelListingPage() {
                         {showMap && (
                             <div className="mb-6">
                                 <MapComponent
-                                    location="Hotels in Various Locations"
+                                    location={searchParams.get('location')?.trim() || 'Search results'}
                                     height="500px"
                                     className="w-full"
                                 />
