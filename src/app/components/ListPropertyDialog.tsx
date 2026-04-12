@@ -48,7 +48,7 @@ export function ListPropertyDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
+        <button className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium cursor-pointer">
           List Your Property
         </button>
       </DialogTrigger>

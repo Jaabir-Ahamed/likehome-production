@@ -181,7 +181,7 @@ function BookingCard({
     return (
         <Card className="overflow-hidden border-gray-200 transition-shadow hover:shadow-lg">
             <div className="flex flex-col md:flex-row">
-                <div className="md:w-4 bg-[#2563eb]"/>
+                <div className="md:w-4 bg-[#1d2d44]"/>
 
                 <div className="flex-1 p-6">
                     <div className="mb-4 flex flex-col justify-between md:flex-row">
@@ -207,8 +207,8 @@ function BookingCard({
                         <div className="text-right">
                             {booking.totalAmount != null && (
                                 <>
-                                    <div className="mb-1 font-bold text-[#2563eb]">
-                                        {convertPrice(booking.totalAmount)}
+                                    <div className="mb-1 font-bold text-[#1d2d44]">
+                                        ${convertPrice(booking.totalAmount)}
                                     </div>
                                     <div className="text-sm text-[#6b7280]">Total</div>
                                 </>
@@ -439,14 +439,14 @@ export function MyBookingsPage() {
                     <TabsList className="mb-8 grid w-full max-w-md grid-cols-2 border border-gray-200 bg-white">
                         <TabsTrigger
                             value="scheduled"
-                            className="data-[state=active]:bg-[#2563eb] data-[state=active]:text-white"
+                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white"
                         >
                             Scheduled Bookings ({scheduledBookings.length})
                         </TabsTrigger>
 
                         <TabsTrigger
                             value="previous"
-                            className="data-[state=active]:bg-[#2563eb] data-[state=active]:text-white"
+                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white"
                         >
                             Previous Bookings ({previousBookings.length})
                         </TabsTrigger>
@@ -475,7 +475,7 @@ export function MyBookingsPage() {
                                 <p className="mb-6 text-[#6b7280]">
                                     You don&apos;t have any upcoming reservations.
                                 </p>
-                                <Button className="bg-[#2563eb] hover:bg-[#1d4ed8]">
+                                <Button className="bg-[#1d2d44] hover:bg-[#1d4ed8]">
                                     Browse Hotels
                                 </Button>
                             </Card>

@@ -27,9 +27,9 @@ function getDefaultDates() {
 
 function getRatingLabel(rating: number): string {
     if (rating >= 9) return 'Exceptional';
-    if (rating >= 8) return 'Excellent';
-    if (rating >= 7) return 'Very Good';
-    if (rating >= 6) return 'Good';
+    if (rating >= 8) return 'Great';
+    if (rating >= 7) return 'Decent';
+    if (rating >= 6) return 'Average';
     return 'Fair';
 }
 
@@ -243,7 +243,7 @@ export function HotelListingPage() {
     };
 
     return (
-        <div className="w-full bg-gray-50 min-h-screen">
+        <div className="w-full bg-background min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 {/* Page Header */}
                 <div className="mb-8">
@@ -521,10 +521,10 @@ export function HotelListingPage() {
                                                             <div>
                                                                 <h3 className="text-xl font-bold text-[#1f2937] mb-1">{hotel.name}</h3>
 
-                                                                {hotel.address && (
+                                                                {hotel.address != null && (
                                                                     <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
                                                                         <MapPin className="w-3.5 h-3.5"/>
-                                                                        {[hotel.address.city, hotel.address.country].filter(Boolean).join(', ')}
+                                                                        {[hotel.city, hotel.country.toUpperCase()].filter(Boolean).join(', ')}
                                                                     </p>
                                                                 )}
 
@@ -540,8 +540,10 @@ export function HotelListingPage() {
                                                                 {hotel.rating != null && (
                                                                     <div className="flex items-center gap-2 mb-3">
                                                                         <span
-                                                                            className="bg-[#2563eb] text-white text-sm font-bold px-2 py-0.5 rounded">
-                                                                            {hotel.rating}
+                                                                            className={` text-white text-sm font-bold px-2 py-0.5 rounded
+                                                                            ${hotel.rating >= 9 ? "bg-[#007c3e]" : hotel.rating >= 8 ? "bg-[#40ad10]" : hotel.rating >= 7 ? "bg-[#ecce00]" : hotel.rating >= 6 ? "bg-[#d6883a]" : "bg-[#d63a3a]"}`}>
+                                                                                
+                                                                            {hotel.rating.toFixed(1)}
                                                                         </span>
                                                                         <span
                                                                             className="text-sm font-medium text-[#1f2937]">
@@ -586,7 +588,7 @@ export function HotelListingPage() {
                                                                     )}
                                                                 </div>
                                                                 <Button asChild
-                                                                        className="bg-[#2563eb] hover:bg-[#1e40af] text-white px-6 flex-shrink-0">
+                                                                        className="bg-[#1d2d44] hover:bg-[#1e40af] text-white px-6 flex-shrink-0">
                                                                     <Link to={detailLink}>View Details</Link>
                                                                 </Button>
                                                             </div>
@@ -635,7 +637,7 @@ export function HotelListingPage() {
                                                                 size="sm"
                                                                 onClick={() => setCurrentPage(page)}
                                                                 disabled={isFetchingMore}
-                                                                className={page === currentPage ? 'bg-[#2563eb] hover:bg-[#1e40af] text-white' : ''}
+                                                                className={page === currentPage ? 'bg-[#1d2d44] hover:bg-[#1e40af] text-white' : ''}
                                                             >
                                                                 {page}
                                                             </Button>

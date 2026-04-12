@@ -219,6 +219,7 @@ export function HomePage() {
                     </p>
 
                     {/* Action Buttons */}
+                    {/*
                     <div className="flex flex-col sm:flex-row gap-4 mb-16">
                         <Button
                             asChild
@@ -238,6 +239,7 @@ export function HomePage() {
                             </Link>
                         </Button>
                     </div>
+                    */}
 
                     {/* Search Component */}
                     <div className="w-full px-4">
@@ -247,7 +249,7 @@ export function HomePage() {
             </section>
 
             {/* Trending Destinations Section */}
-            <section className="py-16 md:py-24 bg-gray-50">
+            <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
@@ -296,7 +298,7 @@ export function HomePage() {
             </section>
 
             {/* Top Rated Hotels Section */}
-            <section className="py-16 md:py-24 bg-white">
+            <section className="py-16 md:py-24 bg-gray-50">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
@@ -351,7 +353,7 @@ export function HomePage() {
                                                         className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
                                                     <span className="text-sm text-[#717182]">/night</span>
                                                 </div>
-                                                <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] text-white">
                                                     Quick View
                                                 </Button>
                                             </div>
@@ -365,7 +367,7 @@ export function HomePage() {
             </section>
 
             {/* Recommended for You Section */}
-            <section className="py-16 md:py-24 bg-gray-50">
+            <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
@@ -420,7 +422,7 @@ export function HomePage() {
                                                         className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
                                                     <span className="text-sm text-[#717182]">/night</span>
                                                 </div>
-                                                <Button className="bg-[#2563eb] hover:bg-[#1e40af] text-white">
+                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] text-white">
                                                     Quick View
                                                 </Button>
                                             </div>
@@ -434,23 +436,22 @@ export function HomePage() {
             </section>
 
             {/* Call to Action Section */}
-            <section className="py-20 bg-gradient-to-r from-[#2563eb] to-[#1e40af]">
+            <section className="py-20 bg-gradient-to-r from-secondary to-secondary/80">
                 <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                        Ready to start your journey?
-                    </h2>
-                    <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                        Join thousands of travelers who trust LikeHome for their perfect stay
-                    </p>
-                    <Button
-                        asChild
-                        size="lg"
-                        className="bg-[#f59e0b] hover:bg-[#d97706] text-white px-12 py-6 text-lg rounded-xl"
-                    >
-                        <Link to="/hotels">
-                            Explore Hotels
-                        </Link>
-                    </Button>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    Ready to start your journey?
+                </h2>
+                <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                    Join thousands of travelers who trust LikeHome for
+                    their perfect stay
+                </p>
+                <Button
+                    asChild
+                    size="lg"
+                    className="bg-[#f59e0b] hover:bg-[#d97706] text-white px-12 py-6 text-lg rounded-xl"
+                >
+                    <Link to="/hotels">Explore Hotels</Link>
+                </Button>
                 </div>
             </section>
         </div>
