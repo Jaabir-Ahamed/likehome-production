@@ -18,6 +18,7 @@ import {LoginPage} from "./pages/LoginPage";
 import {SignupPage} from "./pages/SignupPage";
 import {NotFoundPage} from "./pages/NotFoundPage";
 import {ApiTestPage} from "./pages/ApiTestPage";
+import SlotMachinePage from "./pages/SlotMachinePage";
 
 export const router = createBrowserRouter([
     {
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
             {path: "hotels", Component: HotelListingPage},
             {path: "hotel/:id", Component: HotelDetailsPage},
             {path: "cities", Component: CitiesPage},
+            {path: "slot", Component: SlotMachinePage},
 
 
             // ✅ Protected routes grouped together
