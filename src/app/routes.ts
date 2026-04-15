@@ -8,6 +8,7 @@ import {HotelListingPage} from "./pages/HotelListingPage";
 import {HotelDetailsPage} from "./pages/HotelDetailsPage";
 import {PaymentPage} from "./pages/PaymentPage";
 import {ProfilePage} from "./pages/ProfilePage";
+import {RewardsPage} from "./pages/RewardsPage";
 import {MyBookingsPage} from "./pages/MyBookingsPage";
 import {FavoritesPage} from "./pages/FavoritesPage";
 import {PaymentsPage} from "./pages/PaymentsPage";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
                     {path: "favorites", Component: FavoritesPage},
                     {path: "payments", Component: PaymentsPage},
                     {path: "settings", Component: SettingsPage},
+                    {path: "rewards", Component: RewardsPage},
 
                     {path: "test", Component: ApiTestPage},
                 ],

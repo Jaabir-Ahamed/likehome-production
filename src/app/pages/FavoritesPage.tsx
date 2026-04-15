@@ -22,7 +22,7 @@ const initialFavorites = [
     name: "The Grand Palace Hotel",
     location: "Paris, France",
     neighborhood: "Champs-Élysées",
-    rating: 4.9,
+    rating: 9.8,
     reviews: 1243,
     price: 320,
     image:
@@ -36,7 +36,7 @@ const initialFavorites = [
     name: "Ocean View Resort",
     location: "Bali, Indonesia",
     neighborhood: "Seminyak",
-    rating: 4.8,
+    rating: 9.6,
     reviews: 892,
     price: 180,
     image:
@@ -50,7 +50,7 @@ const initialFavorites = [
     name: "Metropolitan Suites",
     location: "New York, USA",
     neighborhood: "Manhattan",
-    rating: 4.7,
+    rating: 9.4,
     reviews: 1567,
     price: 280,
     image:
@@ -64,7 +64,7 @@ const initialFavorites = [
     name: "Skyline Boutique Hotel",
     location: "Tokyo, Japan",
     neighborhood: "Shibuya",
-    rating: 4.9,
+    rating: 9.8,
     reviews: 723,
     price: 240,
     image:
@@ -78,7 +78,7 @@ const initialFavorites = [
     name: "City Lights Premium",
     location: "Dubai, UAE",
     neighborhood: "Downtown Dubai",
-    rating: 4.8,
+    rating: 9.6,
     reviews: 1034,
     price: 350,
     image:
@@ -92,7 +92,7 @@ const initialFavorites = [
     name: "Riverside Luxury Inn",
     location: "London, UK",
     neighborhood: "Westminster",
-    rating: 4.6,
+    rating: 9.2,
     reviews: 956,
     price: 290,
     image:
@@ -106,7 +106,7 @@ const initialFavorites = [
     name: "Coastal Paradise Hotel",
     location: "Santorini, Greece",
     neighborhood: "Oia",
-    rating: 4.9,
+    rating: 9.8,
     reviews: 1678,
     price: 380,
     image:
@@ -120,7 +120,7 @@ const initialFavorites = [
     name: "Alpine Chalet Resort",
     location: "Zurich, Switzerland",
     neighborhood: "Alps View",
-    rating: 4.7,
+    rating: 9.4,
     reviews: 645,
     price: 420,
     image:
@@ -139,7 +139,7 @@ const amenityIcons = {
 };
 
 export function FavoritesPage() {
-  const { convertPrice } = useCurrency();
+  const {convertPrice, getCurrencySymbol} = useCurrency();
   const [favorites, setFavorites] = useState(initialFavorites);
   const [sortBy, setSortBy] = useState<
     "recent" | "price-low" | "price-high" | "rating"
@@ -194,7 +194,7 @@ export function FavoritesPage() {
               id="sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#1d2d44]"
             >
               <option value="recent">Recently Added</option>
               <option value="price-low">
@@ -232,17 +232,25 @@ export function FavoritesPage() {
                   >
                     <Heart className="w-5 h-5 fill-current" />
                   </button>
-                  <Badge className="absolute top-4 left-4 bg-[#2563eb] hover:bg-[#1d4ed8]">
-                    {hotel.stars} Star
-                    {hotel.stars !== 1 ? "s" : ""}
+                  <Badge className="absolute top-4 left-4 bg-[#1d2d44] hover:bg-[#1d4ed8] flex items-center justify-center p-1">
+                    {hotel.stars != null && (
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: Math.round(hotel.stars) }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className="w-3.5 h-3.5 fill-[#f59e0b] text-[#f59e0b]"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </Badge>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
+                <div className="p-6 relative">
                   <Link
                     to={`/hotel/${hotel.id}`}
-                    className="block group-hover:text-[#2563eb] transition-colors"
+                    className="block group-hover:text-[#1d2d44] transition-colors"
                   >
                     <h3 className="font-bold text-[#1f2937] mb-2 line-clamp-1">
                       {hotel.name}
@@ -258,13 +266,16 @@ export function FavoritesPage() {
 
                   {/* Rating */}
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center gap-1 bg-[#2563eb] text-white px-2 py-1 rounded">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="font-semibold">
+                    <div
+                      className={`flex items-center gap-1 text-white px-2 py-1 rounded ${
+                        hotel.rating >= 9 ? "bg-[#007c3e]" : hotel.rating >= 8 ? "bg-[#40ad10]" : hotel.rating >= 7 ? "bg-[#ecce00]" : hotel.rating >= 6 ? "bg-[#d6883a]" : "bg-[#d63a3a]"
+                      }`}
+                    >                     
+                    <span className="font-semibold">
                         {hotel.rating}
                       </span>
                     </div>
-                    <span className="text-sm text-[#6b7280]">
+                    <span className="text-sm text-[#1d2d44]">
                       ({hotel.reviews} reviews)
                     </span>
                   </div>
@@ -293,17 +304,16 @@ export function FavoritesPage() {
                   {/* Price & CTA */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                     <div>
-                      <div className="font-bold text-[#2563eb]">
-                        {convertPrice(hotel.price)}
-                      </div>
-                      <div className="text-xs text-[#6b7280]">
-                        per night
+                      <div>
+                          <span
+                              className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                          <span className="text-sm text-[#717182]">/night</span>
                       </div>
                     </div>
                     <Link to={`/hotel/${hotel.id}`}>
                       <Button
                         size="sm"
-                        className="bg-[#2563eb] hover:bg-[#1d4ed8]"
+                        className="bg-[#1d2d44] hover:bg-[#1d4ed8]"
                       >
                         View Details
                       </Button>
@@ -336,7 +346,7 @@ export function FavoritesPage() {
               here.
             </p>
             <Link to="/hotels">
-              <Button className="bg-[#2563eb] hover:bg-[#1d4ed8]">
+              <Button className="bg-[#1d2d44] hover:bg-[#1d4ed8]">
                 Browse Hotels
               </Button>
             </Link>

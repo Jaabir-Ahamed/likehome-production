@@ -143,6 +143,7 @@ export function SearchComponent() {
     } else if (location.trim()) {
       queryParams.set('location', location.trim());
     }
+    console.log(queryParams.toString());
     navigate(`/hotels?${queryParams.toString()}`);
   };
 
@@ -191,10 +192,10 @@ export function SearchComponent() {
 
   return (
     <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
 
         {/* Location */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-4">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Location</label>
           <div className="relative" ref={placesRef}>
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182] z-10" />
@@ -234,7 +235,7 @@ export function SearchComponent() {
         </div>
 
         {/* Check-in */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-in</label>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
@@ -258,7 +259,7 @@ export function SearchComponent() {
         </div>
 
         {/* Check-out */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-out</label>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
@@ -273,7 +274,7 @@ export function SearchComponent() {
         </div>
 
         {/* Occupancies */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-3">
           <label className="block text-sm font-medium text-[#1f2937] mb-2">Rooms & Guests</label>
           <div className="relative" ref={roomsRef}>
             <button
@@ -382,13 +383,12 @@ export function SearchComponent() {
         </div>
 
         {/* Search Button */}
-        <div className="md:col-span-1 flex items-end">
+        <div className="md:col-span-1">
           <Button
             onClick={handleSearch}
-            className="w-full h-12 bg-[#2563eb] hover:bg-[#1e40af] text-white font-medium rounded-lg transition-colors px-4"
+            className="w-20 h-12 bg-secondary hover:bg-secondary/90 text-white font-medium rounded-lg transition-colors px-3"
           >
             <Search className="w-5 h-5" />
-            <span className="hidden lg:inline ml-2">Search</span>
           </Button>
         </div>
       </div>

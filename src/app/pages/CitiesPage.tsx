@@ -2,6 +2,8 @@ import { MapPin, ArrowRight, Building2, Users, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { api } from '../../api/liteApi';
+import { useState, useEffect } from 'react';
 
 // Top cities data
 const topCities = [
@@ -140,10 +142,33 @@ const topCities = [
 ];
 
 export function CitiesPage() {
+  {/* Calls api for placeId of all city.names and stores for when user clicks on a city*/}
+  {/*
+  const [placeIds, setPlaceIds] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+  async function fetchPlaces() {
+    const results = {};
+
+    for (const city of topCities) {
+      try {
+        const res = await api.getPlaces(city.name);
+        results[city.name] = res.data?.[0]?.placeId || '';
+      } catch {
+        results[city.name] = '';
+      }
+    }
+
+    setPlaceIds(results);
+  }
+
+  fetchPlaces();
+  }, [topCities]);
+  */}
   return (
     <div className="w-full bg-gray-50 min-h-screen">
       {/* Hero Header with Background Image */}
-      <div className="relative bg-gradient-to-br from-[#2563eb] to-[#1e40af] text-white py-16 md:py-24 overflow-hidden">
+      <div className="relative bg-gradient-to-r from-secondary to-secondary text-white py-16 md:py-24 overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0">
           <img 
@@ -212,7 +237,10 @@ export function CitiesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {topCities.map((city) => (
+          {topCities.map((city) => {
+            {/* placeId to search for when user clicks explore hotels*/}
+            {/*const placeId = placeIds[city.name];*/}
+            return(
             <Card 
               key={city.id}
               className="group overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
@@ -278,8 +306,10 @@ export function CitiesPage() {
                 {/* CTA Button */}
                 <Button 
                   asChild
-                  className="w-full bg-[#2563eb] hover:bg-[#1e40af] text-white"
+                  className="w-full bg-[#1d2d44] hover:bg-[#1e40af] text-white"
                 >
+                  {/* This takes the user to the city they pressed on but it is a bit buggy*/}
+                  {/*<Link to={`/hotels?placeId=${placeId || ''}`} className="flex items-center justify-center gap-2">*/}
                   <Link to="/hotels" className="flex items-center justify-center gap-2">
                     Explore Hotels
                     <ArrowRight className="w-4 h-4" />
@@ -287,12 +317,12 @@ export function CitiesPage() {
                 </Button>
               </div>
             </Card>
-          ))}
+          )})}
         </div>
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-br from-[#2563eb] to-[#1e40af] text-white py-16">
+      <div className="relative bg-gradient-to-r from-secondary to-secondary text-white py-16">
         <div className="container mx-auto px-4 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Can't Find Your City?

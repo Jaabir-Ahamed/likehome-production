@@ -1,4 +1,4 @@
-import {Bell, ChevronDown, CreditCard, Heart, Home, LogOut, Search, Settings, User, X} from 'lucide-react';
+import {Bell, ChevronDown, CreditCard, Heart, Home, LogOut, Search, Settings, User, X, Calendar, Gift} from 'lucide-react';
 import {Link} from 'react-router';
 import {useState} from 'react';
 import {
@@ -83,7 +83,7 @@ export function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-gray-200">
+        <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-background border-b border-gray-200">
             <div className="container mx-auto px-4 lg:px-8">
                 <div className="flex items-center justify-between h-24">
                     {/* Logo */}
@@ -93,7 +93,7 @@ export function Header() {
                     </Link>
 
                     {/* Center Navigation */}
-                    <nav className="hidden lg:flex items-center gap-8">
+                    <nav className="hidden lg:flex items-center gap-10 absolute left-1/2 transform -translate-x-1/2">
                         <Link to="/" className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
                             Home
                         </Link>
@@ -101,9 +101,9 @@ export function Header() {
                               className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
                             My Bookings
                         </Link>
-                        <Link to="/favorites"
+                        <Link to="/cities"
                               className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
-                            Favorites
+                            Search Cities
                         </Link>
                     </nav>
 
@@ -112,7 +112,7 @@ export function Header() {
                         {/* Currency Selector */}
                         <DropdownMenu>
                             <DropdownMenuTrigger
-                                className="hidden md:flex items-center gap-1 text-[#1f2937] hover:text-[#2563eb] transition-colors outline-none">
+                                className="hidden md:flex items-center gap-1 text-[#1f2937] hover:text-[#2563eb] transition-colors outline-none cursor-pointer">
                                 <span className="text-lg">{currencyFlags[currency]}</span>
                                 <span className="font-medium">{currency}</span>
                                 <ChevronDown className="w-4 h-4"/>
@@ -145,7 +145,7 @@ export function Header() {
                         {/* Notifications */}
                         <DropdownMenu>
                             <DropdownMenuTrigger
-                                className="relative inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground outline-none">
+                                className="relative inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground outline-none cursor-pointer">
                                 <Bell className="w-5 h-5 text-[#1f2937]"/>
                                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#f59e0b] rounded-full"></span>
                             </DropdownMenuTrigger>
@@ -234,7 +234,7 @@ export function Header() {
                         {user
                             ? <DropdownMenu>
                                 <DropdownMenuTrigger
-                                    className="inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground outline-none">
+                                    className="inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground outline-none cursor-pointer">
                                     <div
                                         className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2563eb] text-white">
                                         {avatarUrl ? (
@@ -250,34 +250,49 @@ export function Header() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56">
                                     <Link to="/profile">
-                                        <DropdownMenuItem>
+                                        <DropdownMenuItem className="cursor-pointer">
                                             <User className="mr-2 h-4 w-4"/>
                                             <span>Profile</span>
                                         </DropdownMenuItem>
-                                    </Link>
-                                    <Link to="/payments">
-                                        <DropdownMenuItem>
-                                            <CreditCard className="mr-2 h-4 w-4"/>
+                                        </Link>
+                                        <Link to="/bookings">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <Calendar className="mr-2 h-4 w-4"/>
+                                            <span>My Bookings</span>
+                                        </DropdownMenuItem>
+                                        </Link>
+                                        <Link to="/favorites">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <Heart className="mr-2 h-4 w-4" />
+                                            <span>Favorites</span>
+                                        </DropdownMenuItem>
+                                        </Link>
+                                        <Link to="/rewards">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <Gift className="mr-2 h-4 w-4" />
+                                            <span>Rewards</span>
+                                        </DropdownMenuItem>
+                                        </Link>
+                                        <DropdownMenuSeparator />
+                                        <Link to="/payments">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <CreditCard className="mr-2 h-4 w-4" />
                                             <span>Payments</span>
                                         </DropdownMenuItem>
-                                    </Link>
-                                    <Link to="/settings">
-                                        <DropdownMenuItem>
-                                            <Settings className="mr-2 h-4 w-4"/>
+                                        </Link>
+                                        <Link to="/settings">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <Settings className="mr-2 h-4 w-4" />
                                             <span>Settings</span>
                                         </DropdownMenuItem>
-                                    </Link>
-                                    <DropdownMenuSeparator/>
-                                    <Link to="/login">
-                                        <DropdownMenuItem
-                                            className="text-red-600"
-                                            onClick={async () => {
-                                                await supabase.auth.signOut();
-                                            }}
-                                        ><LogOut className="mr-2 h-4 w-4"/>
+                                        </Link>
+                                        <DropdownMenuSeparator />
+                                        <Link to="/login">
+                                        <DropdownMenuItem className="text-red-600 cursor-pointer">
+                                            <LogOut className="mr-2 h-4 w-4" />
                                             <span>Logout</span>
                                         </DropdownMenuItem>
-                                    </Link>
+                                        </Link>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             : (
