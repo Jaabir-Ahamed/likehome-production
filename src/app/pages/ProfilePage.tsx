@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Edit2, Camera, Trophy } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User, Mail, Phone, MapPin, Calendar, Edit2, Trophy } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,23 +11,49 @@ import { useRewards } from '../contexts/RewardsContext';
 import { api } from '../../api/liteApi';
 import { toast } from 'sonner';
 
+const PHONE_CODES = [
+  { code: '+1',   short: 'USA' },
+  { code: '+1',   short: 'CAN' },
+  { code: '+44',  short: 'GBR' },
+  { code: '+61',  short: 'AUS' },
+  { code: '+49',  short: 'DEU' },
+  { code: '+33',  short: 'FRA' },
+  { code: '+81',  short: 'JPN' },
+  { code: '+86',  short: 'CHN' },
+  { code: '+91',  short: 'IND' },
+  { code: '+55',  short: 'BRA' },
+  { code: '+52',  short: 'MEX' },
+  { code: '+34',  short: 'ESP' },
+  { code: '+39',  short: 'ITA' },
+  { code: '+7',   short: 'RUS' },
+  { code: '+82',  short: 'KOR' },
+  { code: '+65',  short: 'SGP' },
+  { code: '+971', short: 'UAE' },
+  { code: '+966', short: 'SAU' },
+  { code: '+31',  short: 'NLD' },
+  { code: '+46',  short: 'SWE' },
+];
+
 export function ProfilePage() {
   const { user } = useAuth();
   const { points, pointsToDollars, loading: rewardsLoading } = useRewards();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // Editable fields — populated from the profiles table on mount
   const [userData, setUserData] = useState({
     name: '',
     email: '',
-    phone: '',
+    phoneCode: '+1',
+    phoneNumber: '',
     location: '',
     dateOfBirth: '',
     joinedDate: '',
     bio: '',
+    avatarUrl: '',
   });
 
   // Load real profile from Supabase profiles table on mount
@@ -36,23 +62,36 @@ export function ProfilePage() {
       try {
         const profile = await api.getProfile();
         if (profile) {
+          // Parse stored phone string (e.g. "+1 5106579876") into code + number
+          let phoneCode = '+1';
+          let phoneNumber = '';
+          const storedPhone = profile.phone ?? user?.user_metadata?.phone ?? '';
+          if (storedPhone) {
+            const match = storedPhone.match(/^(\+\d{1,3})\s*(.*)$/);
+            if (match) {
+              phoneCode = match[1];
+              phoneNumber = match[2];
+            } else {
+              phoneNumber = storedPhone;
+            }
+          }
+
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
-            // phone/location/dob/bio aren't in profiles table yet —
-            // they fall back to user_metadata (set during signup) or empty.
-            // TODO: Add these columns to profiles in supabase and update this code to read/write from there.
-            phone: user?.user_metadata?.phone ?? '',
-            location: '',
-            dateOfBirth: '',
+            phoneCode,
+            phoneNumber,
+            location: profile.location ?? '',
+            dateOfBirth: profile.date_of_birth ?? '',
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
               month: 'long',
               year: 'numeric',
             }),
-            bio: '',
+            bio: profile.bio ?? '',
+            avatarUrl: profile.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture ?? '',
           });
         }
-      } catch (err) {
+      } catch {
         toast.error('Failed to load profile.');
       } finally {
         setProfileLoading(false);
@@ -65,34 +104,72 @@ export function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // TODO:
-      // Currently this only saves full_name as it is the only attribute to save in the profiles table.
-      // Extend this update call to include other fields once they are added to the profiles table in Supabase.
       const { supabase } = await import('../../lib/supabaseClient');
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: userData.name })
+        .update({
+          full_name: userData.name,
+          phone: userData.phoneNumber ? `${userData.phoneCode} ${userData.phoneNumber}` : null,
+          location: userData.location || null,
+          date_of_birth: userData.dateOfBirth || null,
+          bio: userData.bio || null,
+        })
         .eq('id', user!.id);
 
       if (error) throw error;
       toast.success('Profile updated!');
       setIsEditing(false);
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save profile.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
   };
 
-  // Initials for avatar fallback
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${user.id}/avatar.${ext}`;
+
+    setAvatarUploading(true);
+    try {
+      const { supabase } = await import('../../lib/supabaseClient');
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(path);
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (dbError) throw dbError;
+
+      setUserData(prev => ({ ...prev, avatarUrl: publicUrl }));
+      toast.success('Profile picture updated!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to upload image.';
+      toast.error(msg);
+    } finally {
+      setAvatarUploading(false);
+      // Reset file input so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const initials = userData.name
     ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : user?.email?.[0]?.toUpperCase() ?? '?';
-
-  const avatarUrl =
-    user?.user_metadata?.avatar_url ||
-    user?.user_metadata?.picture ||
-    '';
 
   if (profileLoading) {
     return (
@@ -116,16 +193,37 @@ export function ProfilePage() {
         <Card className="p-8 mb-6 border-gray-200">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-8 mb-8">
 
-            {/* Avatar */}
+            {/* Avatar with upload */}
             <div className="relative">
               <Avatar className="h-32 w-32">
-                <AvatarImage src={avatarUrl} alt={userData.name} />
+                <AvatarImage src={userData.avatarUrl} alt={userData.name} />
                 <AvatarFallback className="bg-[#2563eb] text-white text-3xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <button className="absolute bottom-0 right-0 bg-[#2563eb] text-white p-2 rounded-full hover:bg-[#1d4ed8] transition-colors">
-                <Camera className="w-4 h-4" />
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <button
+                type="button"
+                disabled={avatarUploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 bg-[#2563eb] text-white p-2 rounded-full hover:bg-[#1d4ed8] transition-colors disabled:opacity-60"
+                aria-label="Upload profile picture"
+              >
+                {avatarUploading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
               </button>
             </div>
 
@@ -201,7 +299,6 @@ export function ProfilePage() {
                   <Mail className="w-4 h-4" />
                   Email Address
                 </Label>
-                {/* Email comes from auth, not editable here */}
                 <Input
                   id="email"
                   type="email"
@@ -212,18 +309,33 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2 text-[#1f2937]">
+                <Label className="flex items-center gap-2 text-[#1f2937]">
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={userData.phone}
-                  onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                  disabled={!isEditing}
-                  className="bg-white"
-                />
+                <div className="flex gap-2">
+                  <select
+                    className="border border-input rounded-md px-3 py-2 text-sm bg-background w-28 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={userData.phoneCode}
+                    disabled={!isEditing}
+                    onChange={(e) => setUserData({ ...userData, phoneCode: e.target.value })}
+                  >
+                    {PHONE_CODES.map((c, i) => (
+                      <option key={i} value={c.code}>
+                        {c.short} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="e.g. 5106579876"
+                    value={userData.phoneNumber}
+                    onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
+                    disabled={!isEditing}
+                    className="bg-white flex-1"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

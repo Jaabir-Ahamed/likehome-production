@@ -103,6 +103,11 @@ type Profile = {
     reward_points: number;
     role: string;
     created_at: string;
+    phone: string | null;
+    location: string | null;
+    date_of_birth: string | null;
+    bio: string | null;
+    avatar_url: string | null;
 };
 
 
