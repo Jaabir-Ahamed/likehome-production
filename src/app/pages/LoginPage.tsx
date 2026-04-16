@@ -20,17 +20,18 @@ export function LoginPage() {
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
         try {
-            const {data, error} = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password,
-            })
+            });
             if (error) {
                 throw error;
             }
-            //don't need use finally since this only executes when no error is thrown. 
-            //Finally won't work anyways because setLoginSuccess is a React state update (asynchronous)
             setLoginSuccess(true);
-            navigate("/");
+            // Navigate to home; AuthRedirectHandler inside RootLayout will
+            // automatically pick up any 'loginRedirect' from sessionStorage
+            // and send the user to the correct page (works for OAuth too).
+            navigate('/');
         } catch (error: any) {
             console.log("Error:", error.message);
             alert(error.message);

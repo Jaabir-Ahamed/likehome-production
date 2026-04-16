@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {Link, useNavigate, useParams, useSearchParams} from 'react-router';
+import {useEffect, useRef, useState} from 'react';
+import {Link, useLocation, useNavigate, useParams, useSearchParams} from 'react-router';
 import {
   ArrowLeft,
   Calendar,
@@ -23,6 +23,7 @@ import {Badge} from '../components/ui/badge';
 import {Separator} from '../components/ui/separator';
 import {MapComponent} from '../components/MapComponent';
 import {api} from '../../api/liteApi';
+import {useAuth} from '../contexts/AuthContext';
 import {toast} from 'sonner';
 
 interface HotelImage {
@@ -118,11 +119,19 @@ function getFacilityIcon(name: string): React.ComponentType<{ className?: string
 export function HotelDetailsPage() {
     const {id} = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
+    const {user, loading: authLoading} = useAuth();
     const checkIn = searchParams.get('checkIn') ?? '';
     const checkOut = searchParams.get('checkOut') ?? '';
     const occupanciesParam = searchParams.get('occupancies');
-    const occupancies = occupanciesParam ? JSON.parse(occupanciesParam) : [{adults: 2}];
+    const occupancies = (() => {
+        try {
+            return occupanciesParam ? JSON.parse(occupanciesParam) : [{adults: 2}];
+        } catch {
+            return [{adults: 2}];
+        }
+    })();
     const [selectedImage, setSelectedImage] = useState(0);
     const [guests, setGuests] = useState(2);
     const [manualNights, setManualNights] = useState(1);
@@ -133,6 +142,62 @@ export function HotelDetailsPage() {
     const [hotel, setHotel] = useState<HotelDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Auto-complete a pending reservation if the user just logged in from this page
+    const autoTriggered = useRef(false);
+    useEffect(() => {
+        if (authLoading || !user || autoTriggered.current) return;
+
+        const raw = sessionStorage.getItem('pendingReservation');
+        if (!raw) return;
+
+        let pending: { offerId: string; hotelId?: string };
+        try {
+            pending = JSON.parse(raw);
+        } catch {
+            sessionStorage.removeItem('pendingReservation');
+            return;
+        }
+
+        if (!pending.offerId) {
+            sessionStorage.removeItem('pendingReservation');
+            return;
+        }
+
+        // Only auto-trigger for the hotel the user was originally booking.
+        // If the user ended up on a different hotel page, discard the stale reservation.
+        if (pending.hotelId && pending.hotelId !== id) {
+            sessionStorage.removeItem('pendingReservation');
+            return;
+        }
+
+        autoTriggered.current = true;
+        sessionStorage.removeItem('pendingReservation');
+        setPrebookLoading(true);
+        toast.loading('Resuming your reservation…', {id: 'auto-prebook'});
+
+        api.getRatesPrebook({offerId: pending.offerId, usePaymentSdk: false})
+            .then((prebook) => {
+                const prebookData = prebook?.data;
+                if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
+                sessionStorage.setItem(
+                    `prebook:${prebookData.prebookId}`,
+                    JSON.stringify({
+                        ...prebookData,
+                        checkin: checkIn || undefined,
+                        checkout: checkOut || undefined,
+                    })
+                );
+                toast.dismiss('auto-prebook');
+                navigate(`/payment?prebookId=${prebookData.prebookId}`);
+            })
+            .catch(() => {
+                toast.dismiss('auto-prebook');
+                toast.error('Your selected rate has expired. Please choose a room again.');
+            })
+            .finally(() => setPrebookLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, authLoading]);
 
     const isSelectionComplete = Object.keys(selectedRates).length === occupancies.length;
 
@@ -652,6 +717,20 @@ export function HotelDetailsPage() {
                                 disabled={prebookLoading || !isSelectionComplete}
                                 onClick={async () => {
                                     if (!isSelectionComplete) return;
+
+                                    // If the user is not logged in, save the selected offer and
+                                    // send them to login, then auto-resume on return.
+                                    if (!user) {
+                                        const firstRate = Object.values(selectedRates)[0];
+                                        sessionStorage.setItem(
+                                            'pendingReservation',
+                                            JSON.stringify({offerId: firstRate.offerId, hotelId: id})
+                                        );
+                                        sessionStorage.setItem('loginRedirect', location.pathname + location.search);
+                                        navigate('/login');
+                                        return;
+                                    }
+
                                     setPrebookLoading(true);
                                     try {
                                         // Use the offerId from the first selected rate (single-room booking)
