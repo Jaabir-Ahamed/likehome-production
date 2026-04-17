@@ -88,7 +88,7 @@ export function HotelListingPage() {
     const [guestRating, setGuestRating] = useState<number>(0);
     const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState('recommended');
-    const [showMap, setShowMap] = useState(true);
+    const [showMap, setShowMap] = useState(false);
 
     const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
