@@ -1,4 +1,17 @@
-import {Bell, ChevronDown, CreditCard, Heart, Home, LogOut, Search, Settings, User, X, Calendar, Gift} from 'lucide-react';
+import {
+    Bell,
+    Calendar,
+    ChevronDown,
+    CreditCard,
+    Gift,
+    Heart,
+    Home,
+    LogOut,
+    Search,
+    Settings,
+    User,
+    X
+} from 'lucide-react';
 import {Link} from 'react-router';
 import {useState} from 'react';
 import {
@@ -254,45 +267,48 @@ export function Header() {
                                             <User className="mr-2 h-4 w-4"/>
                                             <span>Profile</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <Link to="/bookings">
+                                    </Link>
+                                    <Link to="/bookings">
                                         <DropdownMenuItem className="cursor-pointer">
                                             <Calendar className="mr-2 h-4 w-4"/>
                                             <span>My Bookings</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <Link to="/favorites">
+                                    </Link>
+                                    <Link to="/favorites">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Heart className="mr-2 h-4 w-4" />
+                                            <Heart className="mr-2 h-4 w-4"/>
                                             <span>Favorites</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <Link to="/rewards">
+                                    </Link>
+                                    <Link to="/rewards">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Gift className="mr-2 h-4 w-4" />
+                                            <Gift className="mr-2 h-4 w-4"/>
                                             <span>Rewards</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <DropdownMenuSeparator />
-                                        <Link to="/payments">
+                                    </Link>
+                                    <DropdownMenuSeparator/>
+                                    <Link to="/payments">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <CreditCard className="mr-2 h-4 w-4" />
+                                            <CreditCard className="mr-2 h-4 w-4"/>
                                             <span>Payments</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <Link to="/settings">
+                                    </Link>
+                                    <Link to="/settings">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Settings className="mr-2 h-4 w-4" />
+                                            <Settings className="mr-2 h-4 w-4"/>
                                             <span>Settings</span>
                                         </DropdownMenuItem>
-                                        </Link>
-                                        <DropdownMenuSeparator />
-                                        <Link to="/login">
-                                        <DropdownMenuItem className="text-red-600 cursor-pointer">
-                                            <LogOut className="mr-2 h-4 w-4" />
+                                    </Link>
+                                    <DropdownMenuSeparator/>
+                                    <Link to="/login">
+                                        <DropdownMenuItem className="text-red-600 cursor-pointer"
+                                                          onClick={async () => {
+                                                              await supabase.auth.signOut();
+                                                          }}>
+                                            <LogOut className="mr-2 h-4 w-4"/>
                                             <span>Logout</span>
                                         </DropdownMenuItem>
-                                        </Link>
+                                    </Link>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             : (
