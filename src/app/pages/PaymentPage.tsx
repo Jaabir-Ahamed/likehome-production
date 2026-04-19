@@ -9,6 +9,7 @@ import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useRewards } from '../contexts/RewardsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { api } from '../../api/liteApi';
 
@@ -102,6 +103,7 @@ export function PaymentPage() {
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
   const { addPoints, dollarsToPoints } = useRewards();
+  const { user } = useAuth();
 
   const prebookId = searchParams.get('prebookId');
   const guestsParam = Number(searchParams.get('guests')) || 2;
@@ -121,6 +123,49 @@ export function PaymentPage() {
   const [processing, setProcessing] = useState(false);
   const [overlapError, setOverlapError] = useState(false);
 
+  // Autofill Room 1 guest fields from the user's saved profile
+  useEffect(() => {
+    if (!user) return;
+    api.getProfile().then((profile) => {
+      if (!profile) return;
+      const fullName = profile.full_name ?? '';
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] ?? '';
+      const lastName = nameParts.slice(1).join(' ');
+
+      setRoomGuestsList(prev =>
+        prev.map((room, ri) =>
+          ri === 0
+            ? room.map((g, gi) =>
+                gi === 0
+                  ? {
+                      firstName: g.firstName || firstName,
+                      lastName: g.lastName || lastName,
+                      email: g.email || profile.email || user.email || '',
+                    }
+                  : g
+              )
+            : room
+        )
+      );
+
+      if (profile.phone) {
+        // Split stored phone into country code and number (e.g. "+1 2025551234" or "+442071234567")
+        const phoneStr = profile.phone.trim();
+        const match = phoneStr.match(/^(\+\d{1,3})\s*(.*)$/);
+        if (match) {
+          setHolderPhone(prev =>
+            prev.number ? prev : { countryCode: match[1], number: match[2] }
+          );
+        }
+      }
+    }).catch(() => {
+      // Profile load failure is non-critical — fields stay empty
+    });
+  // Run once after user is available
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   // Load prebook data from sessionStorage when prebookId is present
   useEffect(() => {
     if (!prebookId) return;
@@ -131,7 +176,10 @@ export function PaymentPage() {
         setPrebookData(data);
         // Init room guest slots: one required guest per room
         const nums = getOccupancyNumbers(data);
-        setRoomGuestsList(nums.map(() => [{ firstName: '', lastName: '', email: '' }]));
+        setRoomGuestsList(prev => {
+          const filled = prev[0]?.[0] ?? { firstName: '', lastName: '', email: '' };
+          return nums.map((_, i) => (i === 0 ? [filled] : [{ firstName: '', lastName: '', email: '' }]));
+        });
       } catch {
         // invalid JSON in sessionStorage — ignore
       }

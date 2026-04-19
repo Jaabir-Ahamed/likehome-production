@@ -259,7 +259,7 @@ export function SignupPage() {
                                     <Button
                                         className="w-full bg-[#2563eb] hover:bg-[#1d4ed8]"
                                         disabled={!sessionReady} // <-- RE-ENABLE only when using supabase's email confirmation flow.
-                                        onClick={() => navigate("/login")}
+                                        onClick={() => navigate('/login')}
                                     >
                                         {sessionReady ? "Go To Login" : "Waiting for verification..."}
                                     </Button>
