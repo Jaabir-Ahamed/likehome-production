@@ -471,10 +471,8 @@ export function AmendBookingPage() {
                   Changing the dates and rooms will cancel the original booking and rebook with the new inputs. This will incur charges or refunds based on the price differences, as well as the cancellation policy.
                 </p>
 
-                <div className="mt-4 p-4 rounded-lg border bg-gray-50">
-
-                
                 {(bookingData.tag === 'NRFN' || cancellationFee > 0) && (
+                <div className="mt-4 p-4 rounded-lg border bg-gray-50">
                   <>
                     <h3 className="font-semibold text-sm mb-2 text-red-600">
                       Cancellation Policy Alerts:
@@ -490,8 +488,9 @@ export function AmendBookingPage() {
                       </p>
                     )}
                   </>
+                </div>
                 )}
-              </div>
+              
 
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={cancelContinue}>
