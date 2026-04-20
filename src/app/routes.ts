@@ -10,6 +10,7 @@ import {PaymentPage} from "./pages/PaymentPage";
 import {ProfilePage} from "./pages/ProfilePage";
 import {RewardsPage} from "./pages/RewardsPage";
 import {MyBookingsPage} from "./pages/MyBookingsPage";
+import {AmendBookingPage} from "./pages/AmendBookingPage";
 import {FavoritesPage} from "./pages/FavoritesPage";
 import {PaymentsPage} from "./pages/PaymentsPage";
 import {CitiesPage} from "./pages/CitiesPage";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
                     {path: "payment/:id", Component: PaymentPage},
                     {path: "profile", Component: ProfilePage},
                     {path: "bookings", Component: MyBookingsPage},
+                    {path: "editDetails", Component: AmendBookingPage},
                     {path: "favorites", Component: FavoritesPage},
                     {path: "payments", Component: PaymentsPage},
                     {path: "settings", Component: SettingsPage},

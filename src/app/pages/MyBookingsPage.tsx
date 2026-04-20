@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from "react";
-import {Calendar, CreditCard, Download, ExternalLink, MapPin, X} from "lucide-react";
+import {Calendar, CreditCard, Download, ExternalLink, PencilIcon, MapPin, X} from "lucide-react";
 import {Link} from "react-router";
+import {useNavigate} from "react-router";
 import {toast} from "sonner";
 
 import {api} from "../../api/liteApi";
@@ -178,6 +179,7 @@ function BookingCardSkeleton() {
 interface BookingCardProps {
     booking: BookingDetail;
     canCancel: boolean;
+    onAmend: (booking: BookingDetail) => void;
     onCancel: (booking: BookingDetail) => void;
     onDownloadReceipt: (bookingId: string) => void;
     convertPrice: (amount: number) => number;
@@ -189,6 +191,7 @@ function BookingCard({
                          booking,
                          canCancel,
                          onCancel,
+                         onAmend,
                          onDownloadReceipt,
                          convertPrice,
                          hotelId,
@@ -323,6 +326,17 @@ function BookingCard({
 
                             {canCancel && (
                                 <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onAmend(booking)}
+                                >
+                                    <PencilIcon className="mr-2 h-4 w-4"/>
+                                    Edit Booking
+                                </Button>
+                            )}
+
+                            {canCancel && (
+                                <Button
                                     variant="destructive"
                                     size="sm"
                                     onClick={() => onCancel(booking)}
@@ -340,6 +354,7 @@ function BookingCard({
 }
 
 export function MyBookingsPage() {
+    const navigate = useNavigate();
     const {convertPrice} = useCurrency();
     const {user, loading: authLoading} = useAuth();
 
@@ -348,6 +363,7 @@ export function MyBookingsPage() {
     const [loadingBookings, setLoadingBookings] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [pendingCount, setPendingCount] = useState(0);
+    const [amendTarget, setAmendTarget] = useState<BookingDetail | null>(null);
     const [cancelTarget, setCancelTarget] = useState<BookingDetail | null>(null);
     const [cancelling, setCancelling] = useState(false);
     const [hotelSummaries, setHotelSummaries] = useState<Record<string, HotelSummary>>({});
@@ -535,6 +551,7 @@ export function MyBookingsPage() {
                                 booking={booking}
                                 canCancel
                                 onCancel={setCancelTarget}
+                                onAmend={(booking) => navigate(`/editDetails?bookingId=${booking.bookingId}`)}
                                 onDownloadReceipt={handleDownloadReceipt}
                                 convertPrice={convertPrice}
                                 hotelSummary={hotelSummaries[booking.bookingId]}
