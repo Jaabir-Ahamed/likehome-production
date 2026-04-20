@@ -10,6 +10,8 @@ import { api } from '../../api/liteApi';
 import { Badge, Check, Calendar, Users, CreditCard, Lock } from 'lucide-react';
 import { Label } from '@radix-ui/react-label';
 
+import { FunctionsHttpError } from '@supabase/supabase-js';
+
 // match PaymentPage structure
 const PHONE_CODES = [
   { code: '+1', short: 'USA' },
@@ -67,7 +69,7 @@ export function AmendBookingPage() {
         setBookingData(data);
 
         setRoomGuestsList(
-          data.bookedRooms.map((room: any) => ([{
+          (data.bookedRooms ?? []).map((room: any) => ([{
             firstName: room.firstName,
             lastName: room.lastName,
             email: data.holder.email
@@ -91,6 +93,7 @@ export function AmendBookingPage() {
   }, [bookingId]);
 
   const handleDateBlur = (() => {
+    if (!bookingData) return;
     setIsDateChanged(
       editCheckin !== bookingData.checkin ||
       editCheckout !== bookingData.checkout
@@ -116,7 +119,7 @@ export function AmendBookingPage() {
       setRatesByOccupancy({});
       setSelectedRates({});
 
-      const occupancies = bookingData.bookedRooms.map((room: any) => ({
+      const occupancies = (bookingData.bookedRooms ?? []).map((room: any) => ({
         adults: room.adults,
         childrenAges: []
       }));
@@ -175,25 +178,51 @@ export function AmendBookingPage() {
         email: holderEmail || "",
         remarks: ""});
 
-      await api.amendBooking(bookingId || '', {
-        firstName: holderFirstName || "",
-        lastName: holderLastName || "",
-        email: holderEmail || "",
-        remarks: remarks
-      });
-
-      if(showMore) {  
+      if(showMore) {  //new rate
         console.log(selectedRates[occupancyNumber].prebookId);
-        await api.getRatesRebook({
-          prebookId: selectedRates[occupancyNumber].prebookId,
-          existingBookingId: bookingId || ''
+        
+        const selectedRate = selectedRates[occupancyNumber];
+        if (!selectedRate) throw new Error("No rate selected");
+
+        await api.getRatesBook({
+          prebookId: selectedRate.prebookId,
+          checkin: editCheckin,
+          checkout: editCheckout,
+          holder: {
+            firstName: holderFirstName,
+            lastName: holderLastName,
+            email: holderEmail,
+            phone: `${holderPhone.countryCode}${holderPhone.number}`,
+          },
+          guests: [{
+            occupancyNumber: occupancyNumber,
+            firstName: holderFirstName,
+            lastName: holderLastName,
+            email: holderEmail,
+          }],
+          payment: { method: "CREDIT" },
+          existingBookingId: bookingId || undefined,
         });
+      } else { //details only
+          await api.amendBooking(bookingId || '', {
+            firstName: holderFirstName || "",
+            lastName: holderLastName || "",
+            email: holderEmail || "",
+            remarks: remarks
+          });
       }
 
       toast.success('Booking updated');
       navigate('/bookings');
-    } catch {
-      toast.error('Failed to update booking');
+    } catch (err) {
+      if (err instanceof FunctionsHttpError) { //if/else for dev use
+        const errorMessage = await err.context.json();
+        console.error('Edge function error:', errorMessage);
+      }
+      else {
+        console.error("Error caught: ", err);
+      }
+      toast.error('Failed to update booking'); //for user experience
     } finally {
       setProcessing(false);
     }
@@ -234,6 +263,7 @@ export function AmendBookingPage() {
   };
 
   const checkCancelPolicy = () => {
+    if (!bookingData?.bookedRooms?.[0]?.rate || !bookingData?.bookedRooms?.length) return;
     const room = bookingData.bookedRooms?.[0];
     if (!room) return;
 
@@ -432,7 +462,7 @@ export function AmendBookingPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    <span>{bookingData.bookedRooms.length} rooms</span>
+                    <span>{bookingData.bookedRooms?.length ?? 1} rooms</span>
                   </div>
                 </div>
 
@@ -442,7 +472,7 @@ export function AmendBookingPage() {
                 <div className="space-y-2 mt-4">
                   <div className="flex justify-between">
                     <span>Current</span>
-                    <span>-${bookingData.price}</span>
+                    <span>-${bookingData.sellingPriceToUser ?? bookingData.price}</span>
                   </div>
                   { (cancellationFee > 0) && (
                     <div className="flex justify-between text-red-600">
@@ -484,7 +514,7 @@ export function AmendBookingPage() {
                       </p>
                     ) : (
                       <p className="text-xs text-red-600 mt-2">
-                        The booking has passed the free cancellation deadline of {bookingData.bookedRooms[0].rate.cancellationPolicies.cancellationPolicyInfos.cancelTime} and a fee of ${cancellationFee} will be applied.
+                        The booking has passed the free cancellation deadline of {bookingData.bookedRooms?.[0]?.rate?.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime ?? 'N/A'} and a fee of ${cancellationFee} will be applied.
                       </p>
                     )}
                   </>

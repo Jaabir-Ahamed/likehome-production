@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from "react";
-import {Calendar, CreditCard, Download, ExternalLink, PencilIcon, MapPin, X} from "lucide-react";
+import {Calendar, CreditCard, Download, ExternalLink, PencilIcon, MapPin, X, User, Mail} from "lucide-react";
 import {Link} from "react-router";
 import {useNavigate} from "react-router";
 import {toast} from "sonner";
@@ -42,6 +42,7 @@ interface BookingDetail {
     holder?: {
         firstName: string;
         lastName: string;
+        email: string;
     };
     totalAmount?: number;
     currency?: string;
@@ -66,6 +67,7 @@ const MAX_BOOKINGS = 20;
 const CANCELLED_STATUSES: BookingStatus[] = [
     "CANCELLED",
     "CANCELLED_WITH_CHARGES",
+    "cancelled",
 ];
 
 function isCancelledBooking(booking: BookingDetail) {
@@ -111,6 +113,7 @@ function getRefundableBadgeClass(refundableTag?: "RFN" | "NRFN") {
 }
 
 function mapBookingResponse(raw: any): BookingDetail | null {
+    console.log('[mapBookingResponse] raw:', JSON.stringify(raw));
     if (!raw?.bookingId) return null;
 
     return {
@@ -120,8 +123,14 @@ function mapBookingResponse(raw: any): BookingDetail | null {
         hotelName: raw.hotel?.name ?? raw.hotelName,
         checkin: raw.checkin,
         checkout: raw.checkout,
-        holder: raw.holder,
-        totalAmount: raw.price ?? raw.totalAmount,
+        holder: raw.holder
+            ? {
+                firstName: raw.holder.firstName,
+                lastName: raw.holder.lastName,
+                email: raw.holder.email,
+            }
+            : undefined,
+        totalAmount: raw.sellingPriceToUser ?? raw.price ?? raw.totalAmount,
         currency: raw.currency,
         clientReference: raw.clientReference,
         roomTypeName: raw.bookedRooms?.[0]?.roomType?.name ?? raw.roomTypeName,
@@ -197,6 +206,10 @@ function BookingCard({
                          hotelId,
                          hotelSummary,
                      }: BookingCardProps) {
+    const holderName = booking.holder 
+        ? `${booking.holder.firstName} ${booking.holder.lastName}`.trim()
+        : null;
+    const holderEmail = booking.holder?.email ?? null;
     return (
         <Card className="overflow-hidden border-gray-200 transition-shadow hover:shadow-lg">
             <div className="flex flex-col md:flex-row">
@@ -294,14 +307,40 @@ function BookingCard({
                     <Separator className="my-4"/>
 
                     <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                        <div className="flex items-center gap-2 text-sm text-[#6b7280]">
-                            <CreditCard className="h-4 w-4"/>
-                            <span>
-                                Booking ID:{" "}
-                                <span className="font-medium text-[#1f2937]">
-                                    {booking.bookingId}
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+                                <CreditCard className="h-4 w-4"/>
+                                <span>
+                                    Booking ID:{" "}
+                                    <span className="font-medium text-[#1f2937]">
+                                        {booking.bookingId}
+                                    </span>
                                 </span>
-                            </span>
+                            </div>
+
+                            {holderName && (
+                                <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+                                    <User className="h-4 w-4 shrink-0"/>
+                                    <span>
+                                        Registered Name:{" "}
+                                        <span className="font-medium text-[#1f2937]">
+                                            {holderName}
+                                        </span>
+                                    </span>
+                                </div>
+                            )}
+
+                            {holderEmail && (
+                                <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+                                    <Mail className="h-4 w-4 shrink-0"/>
+                                    <span>
+                                        Registered Email:{" "}
+                                        <span className="font-medium text-[#1f2937]">
+                                            {holderEmail}
+                                        </span>
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-wrap gap-2">

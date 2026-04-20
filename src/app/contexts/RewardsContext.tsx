@@ -81,7 +81,7 @@ const REWARDS_CONFIG = {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-const RewardsContext = createContext<RewardsContextType | undefined>(undefined);
+export const RewardsContext = createContext<RewardsContextType | undefined>(undefined);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 

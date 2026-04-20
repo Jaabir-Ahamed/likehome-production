@@ -67,6 +67,7 @@ type BookParams = {
     guests: BookGuest[];
     payment: BookPayment;
     clientReference?: string;
+    existingBookingId?: string;
     metadata?: Record<string, unknown>;
     guestPayment?: Record<string, unknown>;
 };
