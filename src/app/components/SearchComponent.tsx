@@ -287,7 +287,7 @@ export function SearchComponent() {
             </button>
 
             {showRooms && (
-              <div className="absolute z-50 top-full right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 w-80 p-4 space-y-4">
+              <div className="absolute z-50 top-full right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 w-80 p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                 {occupancies.map((room, ri) => (
                   <div key={ri} className="border border-gray-100 rounded-lg p-3 space-y-3">
                     {/* Room header */}
