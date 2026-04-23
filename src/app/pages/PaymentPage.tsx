@@ -100,14 +100,34 @@ function getOccupancyNumbers(prebookData: PrebookData | null): number[] {
 export function PaymentPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
+  const checkIn = searchParams.get('checkIn') || '';
+  const checkOut = searchParams.get('checkOut') || '';
+  const occupanciesParam = searchParams.get('occupancies');
+
+const occupancies: { adults: number; children: number[] }[] =
+  occupanciesParam
+    ? JSON.parse(occupanciesParam)
+    : [{ adults: 2, children: [] }];
+
+const guestsParam = occupancies.reduce(
+  (total, room) => total + room.adults + room.children.length,
+  0
+);
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
   const { addPoints, dollarsToPoints } = useRewards();
   const { user } = useAuth();
 
   const prebookId = searchParams.get('prebookId');
-  const guestsParam = Number(searchParams.get('guests')) || 2;
-  const nights = Number(searchParams.get('nights')) || 1;
+  const nights =
+  checkIn && checkOut
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000
+        )
+      )
+    : 1;
 
   const [prebookData, setPrebookData] = useState<PrebookData | null>(null);
 
@@ -612,27 +632,24 @@ export function PaymentPage() {
               <Separator className="my-4" />
 
               {/* Booking Details */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2 text-[#1f2937]">
-                  <Calendar className="w-4 h-4 text-[#2563eb]" />
-                  <span className="text-sm">
-                    {isRealPrebook && prebookData!.checkin && prebookData!.checkout
-                      ? `${prebookData!.checkin} → ${prebookData!.checkout}`
-                      : isRealPrebook
-                      ? 'Selected rate'
-                      : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-[#1f2937]">
-                  <Users className="w-4 h-4 text-[#2563eb]" />
-                  <span className="text-sm">
-                    {isRealPrebook
-                      ? `${occupancyNumbers.length} ${occupancyNumbers.length === 1 ? 'Room' : 'Rooms'}`
-                      : `${guestsParam} ${guestsParam === 1 ? 'Guest' : 'Guests'}`}
-                  </span>
-                </div>
-              </div>
+  
+<div className="space-y-3 mb-6">
+  <div className="flex items-center gap-2 text-[#1f2937]">
+    <Calendar className="w-4 h-4 text-[#2563eb]" />
+    <span className="text-sm">
+      {checkIn && checkOut
+        ? `${checkIn} → ${checkOut}`
+        : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
+    </span>
+  </div>
 
+  <div className="flex items-center gap-2 text-[#1f2937]">
+    <Users className="w-4 h-4 text-[#2563eb]" />
+    <span className="text-sm">
+      {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} • {guestsParam} {guestsParam === 1 ? 'Guest' : 'Guests'}
+    </span>
+  </div>
+</div>
               <Separator className="my-4" />
 
               {/* Price Breakdown */}
