@@ -87,7 +87,7 @@ export function HotelListingPage() {
     const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
     const [guestRating, setGuestRating] = useState<number>(0);
     const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
-    const [sortBy, setSortBy] = useState('price-low');
+    const [sortBy, setSortBy] = useState('recommended');
     const [showMap, setShowMap] = useState(false);
 
     const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
@@ -257,7 +257,10 @@ export function HotelListingPage() {
 
                 {/* Search Component */}
                 <div className="mb-8">
-                    <SearchComponent/>
+                    <SearchComponent
+                      initialLocation={searchParams.get('location') || ''}
+                      initialPlaceId={searchParams.get('placeId') || ''}
+                    />
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">

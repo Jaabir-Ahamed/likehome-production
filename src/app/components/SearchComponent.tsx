@@ -57,13 +57,13 @@ function summarizeOccupancies(occupancies: Occupancy[]) {
   return `${rooms} room${rooms !== 1 ? 's' : ''} · ${guests} guest${guests !== 1 ? 's' : ''}`;
 }
 
-export function SearchComponent() {
+export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
   const navigate = useNavigate();
 
   const defaults = getDefaultDates();
   const stored = loadStored();
 
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState(initialLocation);
   const [checkIn, setCheckIn] = useState(stored?.checkIn ?? defaults.checkIn);
   const [checkOut, setCheckOut] = useState(stored?.checkOut ?? defaults.checkOut);
   const [occupancies, setOccupancies] = useState<Occupancy[]>(
@@ -72,7 +72,7 @@ export function SearchComponent() {
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [showPlaces, setShowPlaces] = useState(false);
-  const [selectedPlaceId, setSelectedPlaceId] = useState('');
+  const [selectedPlaceId, setSelectedPlaceId] = useState(initialPlaceId);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [showRooms, setShowRooms] = useState(false);
 
@@ -80,6 +80,8 @@ export function SearchComponent() {
   const roomsRef = useRef<HTMLDivElement>(null);
 
   const localToday = dateToString(new Date());
+
+  const [hasUserTyped, setHasUserTyped] = useState(false);
 
   // Persist dates + occupancies on change
   useEffect(() => {
@@ -93,6 +95,7 @@ export function SearchComponent() {
       setShowPlaces(false);
       return;
     }
+    if (!hasUserTyped) return;
     const timer = setTimeout(async () => {
       setIsLoadingPlaces(true);
       try {
@@ -209,6 +212,7 @@ export function SearchComponent() {
               onChange={(e) => {
                 setLocation(e.target.value);
                 setSelectedPlaceId('');
+                setHasUserTyped(true);
               }}
               onFocus={() => places.length > 0 && setShowPlaces(true)}
               className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
