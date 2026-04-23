@@ -122,18 +122,54 @@ export function HotelDetailsPage() {
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const {user, loading: authLoading} = useAuth();
-    const checkIn = searchParams.get('checkIn') ?? '';
-    const checkOut = searchParams.get('checkOut') ?? '';
+    const initialCheckIn = searchParams.get('checkIn') ?? '';
+    const initialCheckOut = searchParams.get('checkOut') ?? '';
+    const [checkIn, setCheckIn] = useState(initialCheckIn);
+    const [checkOut, setCheckOut] = useState(initialCheckOut);
     const occupanciesParam = searchParams.get('occupancies');
-    const occupancies = (() => {
-        try {
-            return occupanciesParam ? JSON.parse(occupanciesParam) : [{adults: 2}];
-        } catch {
-            return [{adults: 2}];
-        }
-    })();
-    const [selectedImage, setSelectedImage] = useState(0);
-    const [guests, setGuests] = useState(2);
+
+const initialOccupancies = (() : { adults: number; children: number[] }[] => {
+  try {
+    return occupanciesParam
+      ? (JSON.parse(occupanciesParam) as { adults: number; children: number[] }[])
+      : [{ adults: 2, children: [] }];
+  } catch {
+    return [{ adults: 2, children: [] }];
+  }
+})();
+
+const [occupancies, setOccupancies] = useState<{ adults: number; children: number[] }[]>(initialOccupancies);
+
+const totalGuests = occupancies.reduce(
+  (total: number, room: { adults: number; children: number[] }) =>
+    total + room.adults + room.children.length,
+  0
+);
+const roomCount = occupancies.length;
+const rebuildOccupancies = (newRoomCount: number, newGuestCount: number) => {
+  const safeRoomCount = Math.max(1, newRoomCount);
+  const safeGuestCount = Math.max(safeRoomCount, newGuestCount);
+
+  const base = Math.floor(safeGuestCount / safeRoomCount);
+  const remainder = safeGuestCount % safeRoomCount;
+
+  const next = Array.from({ length: safeRoomCount }, (_, i) => ({
+    adults: base + (i < remainder ? 1 : 0),
+    children: [] as number[],
+  }));
+
+  setOccupancies(next);
+};
+const handleGuestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const newGuestCount = Math.max(1, Number(e.target.value) || 1);
+  rebuildOccupancies(roomCount, newGuestCount);
+};
+
+const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const newRoomCount = Math.max(1, Number(e.target.value) || 1);
+  rebuildOccupancies(newRoomCount, totalGuests);
+};
+    const [selectedImage, setSelectedImage] = useState(0); 
     const [manualNights, setManualNights] = useState(1);
     const [prebookLoading, setPrebookLoading] = useState(false);
     const [ratesByOccupancy, setRatesByOccupancy] = useState<Record<number, any[]>>({});
@@ -652,7 +688,7 @@ export function HotelDetailsPage() {
                                         <p className="text-lg font-semibold text-[#1f2937]">
                                             {checkIn && checkOut
                                                 ? occupancies.length > 1
-                                                    ? `Select a room for each of ${occupancies.length} guests`
+                                                    ?`Select a room for each of ${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`
                                                     : 'Select a room below'
                                                 : 'Select dates for pricing'}
                                         </p>
@@ -668,48 +704,104 @@ export function HotelDetailsPage() {
                             <Separator className="my-6"/>
 
                             {/* Booking Options */}
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-                                        <Users className="w-4 h-4"/>
-                                        Guests
-                                    </label>
-                                    <select
-                                        value={guests}
-                                        onChange={(e) => setGuests(Number(e.target.value))}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                                    >
-                                        {[1, 2, 3, 4, 5, 6].map((num) => (
-                                            <option key={num} value={num}>
-                                                {num} {num === 1 ? 'Guest' : 'Guests'}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                  <div className="space-y-4 mb-6">
+  <div></div>
+    <label className="text-sm font-medium text-[#1f2937] mb-2 block">
+      Rooms
+    </label>
+    <input
+  type="number"
+  min={1}
+  value={occupancies.length}
+  onChange={(e) => {
+    const roomCount = Math.max(1, Number(e.target.value) || 1);
+
+    setOccupancies((prev) => {
+      const totalGuests = prev.reduce(
+        (sum, room) => sum + room.adults + room.children.length,
+        0
+      );
+
+      const base = Math.floor(totalGuests / roomCount);
+      let remainder = totalGuests % roomCount;
+
+      return Array.from({ length: roomCount }, () => {
+        const adults = base + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+        return { adults: Math.max(1, adults), children: [] };
+      });
+    });
+
+    setSelectedRates({});
+  }}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+/>
+  </div>
+  <div>
+    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+      <Users className="w-4 h-4"/>
+      Guests
+    </label>
+   <input
+  type="number"
+  min={1}
+  value={totalGuests}
+  onChange={(e) => {
+    const guestCount = Math.max(1, Number(e.target.value) || 1);
+
+    setOccupancies((prev) => {
+      const roomCount = prev.length;
+
+      const base = Math.floor(guestCount / roomCount);
+      let remainder = guestCount % roomCount;
+
+      return Array.from({ length: roomCount }, () => {
+        const adults = base + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+        return { adults: Math.max(1, adults), children: [] };
+      });
+    });
+
+    setSelectedRates({});
+  }}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+/>
+  </div>
+
 
                                 <div>
-                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-                                        <Calendar className="w-4 h-4"/>
-                                        {checkIn && checkOut ? 'Stay' : 'Number of Nights'}
-                                    </label>
-                                    {checkIn && checkOut ? (
-                                        <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-[#1f2937]">
-                                            {checkIn} → {checkOut} <span className="text-[#717182]">({actualNights} {actualNights === 1 ? 'night' : 'nights'})</span>
-                                        </div>
-                                    ) : (
-                                        <select
-                                            value={manualNights}
-                                            onChange={(e) => setManualNights(Number(e.target.value))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                                        >
-                                            {[1, 2, 3, 4, 5, 6, 7, 14, 21, 30].map((num) => (
-                                                <option key={num} value={num}>
-                                                    {num} {num === 1 ? 'Night' : 'Nights'}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
+    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+        <Calendar className="w-4 h-4"/>
+        Stay
+    </label>
+
+    <div className="grid grid-cols-1 gap-3">
+        <input
+            type="date"
+            value={checkIn}
+            onChange={(e) => {
+                setCheckIn(e.target.value);
+                setSelectedRates({});
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+        />
+
+        <input
+            type="date"
+            value={checkOut}
+            onChange={(e) => {
+                setCheckOut(e.target.value);
+                setSelectedRates({});
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+        />
+
+        {checkIn && checkOut && (
+            <div className="text-sm text-[#717182]">
+                {actualNights} {actualNights === 1 ? 'night' : 'nights'}
+            </div>
+        )}
+    </div>
                             </div>
 
                             <Button
@@ -749,7 +841,8 @@ export function HotelDetailsPage() {
                                                 checkout: checkOut || undefined
                                             })
                                         );
-                                        navigate(`/payment?prebookId=${prebookData.prebookId}`);
+                                        navigate(`/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(occupancies))}`
+);
                                     } catch (err: any) {
                                         if (err?.context?.status === 409) {
                                             const body = await err.context.json().catch(() => null);
