@@ -196,7 +196,7 @@ export function HomePage() {
     return (
         <div className="w-full">
             {/* Hero Section */}
-            <section className="relative h-[824px] w-full overflow-hidden">
+            <section className="relative h-[824px] w-full overflow-visible">
                 {/* Background Image */}
                 <div className="absolute inset-0">
                     <img
