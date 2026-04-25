@@ -33,6 +33,16 @@ const PHONE_CODES = [
   { code: '+31',  short: 'NLD' },
   { code: '+46',  short: 'SWE' },
 ];
+function splitPhoneParts(rawPhone: string): { phoneCode: string; phoneNumber: string } {
+  const normalized = rawPhone.trim();
+  if (!normalized) return { phoneCode: '+1', phoneNumber: '' };
+  const match = normalized.match(/^(\+\d{1,4})(.*)$/);
+  if (!match) return { phoneCode: '+1', phoneNumber: normalized };
+  return {
+    phoneCode: match[1],
+    phoneNumber: match[2].trim(),
+  };
+}
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -70,10 +80,12 @@ export function ProfilePage() {
             typeof profile.phone === 'string' && profile.phone.length > 0
               ? profile.phone
               : metadataPhone;
+          const { phoneCode, phoneNumber } = splitPhoneParts(phoneFromProfile);
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
-            phone: phoneFromProfile,
+            phoneCode,
+            phoneNumber,
             location: metadataLocation,
             dateOfBirth: metadataDateOfBirth,
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
@@ -81,6 +93,11 @@ export function ProfilePage() {
               year: 'numeric',
             }),
             bio: metadataBio,
+            avatarUrl:
+              (typeof (profile as { avatar_url?: string | null }).avatar_url === 'string' &&
+              (profile as { avatar_url?: string | null }).avatar_url) ||
+              (typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : '') ||
+              (typeof user?.user_metadata?.picture === 'string' ? user.user_metadata.picture : ''),
           });
         }
       } catch {
@@ -102,7 +119,9 @@ export function ProfilePage() {
     try {
       const { supabase } = await import('../../lib/supabaseClient');
       const trimmedName = userData.name.trim();
-      const trimmedPhone = userData.phone.trim();
+      const trimmedPhoneCode = userData.phoneCode.trim() || '+1';
+      const trimmedPhoneNumber = userData.phoneNumber.trim();
+      const trimmedPhone = `${trimmedPhoneCode}${trimmedPhoneNumber}`;
       const trimmedLocation = userData.location.trim();
       const trimmedDateOfBirth = userData.dateOfBirth.trim();
       const trimmedBio = userData.bio.trim();
@@ -130,6 +149,7 @@ export function ProfilePage() {
         typeof authData.user?.user_metadata?.phone === 'string'
           ? authData.user.user_metadata.phone
           : trimmedPhone;
+      const { phoneCode: nextPhoneCode, phoneNumber: nextPhoneNumber } = splitPhoneParts(nextPhone);
       const nextLocation =
         typeof authData.user?.user_metadata?.location === 'string'
           ? authData.user.user_metadata.location
@@ -147,10 +167,11 @@ export function ProfilePage() {
           ...prev,
           name: refreshed.full_name ?? trimmedName,
           email: refreshed.email ?? user.email ?? prev.email,
-          phone:
+          ...(splitPhoneParts(
             typeof refreshed.phone === 'string' && refreshed.phone.length > 0
               ? refreshed.phone
-              : nextPhone,
+              : nextPhone
+          )),
           location: nextLocation,
           dateOfBirth: nextDateOfBirth,
           bio: nextBio,
@@ -159,7 +180,8 @@ export function ProfilePage() {
         setUserData((prev) => ({
           ...prev,
           name: trimmedName,
-          phone: nextPhone,
+          phoneCode: nextPhoneCode,
+          phoneNumber: nextPhoneNumber,
           location: nextLocation,
           dateOfBirth: nextDateOfBirth,
           bio: nextBio,

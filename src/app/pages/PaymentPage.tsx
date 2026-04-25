@@ -85,6 +85,24 @@ type RoomGuest = {
   email: string;
 };
 
+type RewardAdjustmentRecord = {
+  earnedPoints: number;
+  redeemedPoints: number;
+};
+
+const REWARD_ADJUSTMENTS_STORAGE_KEY = 'reward:bookingAdjustments';
+
+function persistBookingRewardAdjustment(bookingId: string, adjustment: RewardAdjustmentRecord) {
+  try {
+    const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+    const parsed: Record<string, RewardAdjustmentRecord> = raw ? JSON.parse(raw) : {};
+    parsed[bookingId] = adjustment;
+    localStorage.setItem(REWARD_ADJUSTMENTS_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    // Best-effort persistence; don't block checkout on localStorage issues.
+  }
+}
+
 function getOccupancyNumbers(prebookData: PrebookData | null): number[] {
   if (!prebookData) return [1];
   const nums: number[] = [];
@@ -328,7 +346,7 @@ const guestsParam = occupancies.reduce(
           Math.max(0, Math.floor(pointsToRedeem))
         );
 
-        await api.getRatesBook({
+        const bookingResponse = await api.getRatesBook({
           prebookId: prebookData!.prebookId,
           checkin: prebookData!.checkin,
           checkout: prebookData!.checkout,
@@ -348,6 +366,15 @@ const guestsParam = occupancies.reduce(
 
         const pointsEarned = dollarsToPoints(chargedTotal);
         const newPointsTotal = await addPoints(pointsEarned);
+        const bookingId =
+          (bookingResponse as { data?: { bookingId?: string }; bookingId?: string })?.data?.bookingId
+          ?? (bookingResponse as { bookingId?: string })?.bookingId;
+        if (bookingId) {
+          persistBookingRewardAdjustment(bookingId, {
+            earnedPoints: pointsEarned,
+            redeemedPoints: redeemNow,
+          });
+        }
         if (newPointsTotal === null) {
           toast.error('Failed to add reward points.');
         } else {
