@@ -113,6 +113,10 @@ type Profile = {
     avatar_url: string | null;
 };
 
+type PointsToDollarsResponse = {
+    dollars: number;
+};
+
 
 export const api = {
     getCountries: async () => {
@@ -257,6 +261,72 @@ export const api = {
         });
         if (error) throw error;
         return data;
+    },
+
+    callPointsToDollars: async (points: number): Promise<number> => {
+        if (!Number.isFinite(points) || points < 0 || !Number.isInteger(points)) {
+            throw new Error("Points must be a non-negative integer.");
+        }
+
+        const {data, error} = await supabase.functions.invoke("pointsToDollars", {
+            body: {points},
+            method: "POST",
+        });
+        if (error) throw error;
+
+        const response = data as PointsToDollarsResponse;
+        if (!response || typeof response.dollars !== "number") {
+            throw new Error("Invalid pointsToDollars response.");
+        }
+        return response.dollars;
+    },
+
+    // Pre-check whether the signed-in user already has a booking overlapping the given date range.
+    // Calls the `clever-action` edge function which mirrors the overlap logic inside `rates-book`
+    // but does NOT call LiteAPI — safe to run before the user fills in any booking info.
+    // Returns `{ hasConflict: boolean; conflictingBookingId?: string; message?: string }`.
+    checkBookingOverlap: async (params: { checkin: string; checkout: string }): Promise<{
+        hasConflict: boolean;
+        conflictingBookingId?: string;
+        message?: string;
+    }> => {
+        console.log('[checkBookingOverlap] invoking clever-action with:', params);
+        const {data, error} = await supabase.functions.invoke("clever-action", {
+            body: params,
+            method: "POST",
+        });
+        console.log('[checkBookingOverlap] raw response:', {data, error});
+
+        // Supabase client treats non-2xx (incl. our 409) as an error. Unwrap the JSON body.
+        if (error) {
+            const status = (error as { context?: { status?: number } })?.context?.status;
+            const ctx = (error as { context?: Response | undefined })?.context;
+            console.log('[checkBookingOverlap] error status:', status, 'has context:', !!ctx);
+            if (status === 409 && ctx && typeof (ctx as Response).json === "function") {
+                const body = await (ctx as Response).json().catch(() => null) as
+                    | { error?: string; message?: string; conflictingBookingId?: string }
+                    | null;
+                console.log('[checkBookingOverlap] 409 body:', body);
+                return {
+                    hasConflict: true,
+                    conflictingBookingId: body?.conflictingBookingId,
+                    message: body?.message,
+                };
+            }
+            throw error;
+        }
+
+        // If the function returned 200 with an explicit hasConflict flag, respect it.
+        if (data && typeof data === "object" && "hasConflict" in data) {
+            const d = data as { hasConflict?: boolean; conflictingBookingId?: string; message?: string };
+            return {
+                hasConflict: !!d.hasConflict,
+                conflictingBookingId: d.conflictingBookingId,
+                message: d.message,
+            };
+        }
+
+        return {hasConflict: false};
     },
     // returns null if no session, throws error if supabase query fails, returns Profile if successful
     getProfile: async (): Promise<Profile | null> => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router';
-import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users, AlertTriangle, Gift } from 'lucide-react';
+import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -133,15 +133,7 @@ const guestsParam = occupancies.reduce(
 );
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
-  const {
-    points,
-    addPoints,
-    dollarsToPoints,
-    pointsToDollars,
-    redeemPoints,
-    maxRedeemableForAmount,
-    loading: rewardsLoading,
-  } = useRewards();
+  const { points, loading: rewardsLoading, addPoints, redeemPoints, dollarsToPoints } = useRewards();
   const { user } = useAuth();
 
   const prebookId = searchParams.get('prebookId');
@@ -168,6 +160,11 @@ const guestsParam = occupancies.reduce(
 
   const [processing, setProcessing] = useState(false);
   const [overlapError, setOverlapError] = useState(false);
+  const [overlapChecking, setOverlapChecking] = useState(false);
+  const [pointsToRedeemInput, setPointsToRedeemInput] = useState('');
+  const [redeemDiscount, setRedeemDiscount] = useState(0);
+  const [redeemQuoteLoading, setRedeemQuoteLoading] = useState(false);
+  const [redeemQuoteError, setRedeemQuoteError] = useState<string | null>(null);
 
   // Autofill Room 1 guest fields from the user's saved profile
   useEffect(() => {
@@ -211,9 +208,6 @@ const guestsParam = occupancies.reduce(
   // Run once after user is available
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-  /** Points the user wants to redeem toward this booking (clamped on submit). */
-  const [pointsToRedeem, setPointsToRedeem] = useState(0);
-
   // Load prebook data from sessionStorage when prebookId is present
   useEffect(() => {
     if (!prebookId) return;
@@ -233,6 +227,50 @@ const guestsParam = occupancies.reduce(
       }
     }
   }, [prebookId]);
+
+  // Pre-check for overlapping bookings as soon as we know the dates — this avoids
+  // making the user fill the whole form only to be rejected by `rates-book`.
+  useEffect(() => {
+    console.log('[overlap pre-check] effect fired', {
+      hasUser: !!user,
+      userId: user?.id,
+      checkin: prebookData?.checkin,
+      checkout: prebookData?.checkout,
+    });
+
+    if (!user) {
+      console.log('[overlap pre-check] skipped: no user');
+      return;
+    }
+    if (!prebookData?.checkin || !prebookData?.checkout) {
+      console.log('[overlap pre-check] skipped: missing dates on prebookData');
+      return;
+    }
+
+    let cancelled = false;
+    setOverlapChecking(true);
+    setOverlapError(false);
+
+    api.checkBookingOverlap({
+      checkin: prebookData.checkin,
+      checkout: prebookData.checkout,
+    })
+      .then((result) => {
+        console.log('[overlap pre-check] result:', result);
+        if (cancelled) return;
+        if (result.hasConflict) setOverlapError(true);
+      })
+      .catch((err) => {
+        console.error('[overlap pre-check] failed:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setOverlapChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, prebookData?.checkin, prebookData?.checkout]);
 
   const updateRoomGuest = (roomIdx: number, guestIdx: number, field: keyof RoomGuest, value: string) => {
     setRoomGuestsList(prev =>
@@ -262,24 +300,72 @@ const guestsParam = occupancies.reduce(
   const finalTotal = basePrice + serviceFee;
   const priceSymbol = getCurrencySymbol();
 
-  const maxRedeemPoints = maxRedeemableForAmount(finalTotal);
-  const appliedRedeemPoints = useMemo(
-    () => Math.min(maxRedeemPoints, Math.max(0, Math.floor(pointsToRedeem))),
-    [maxRedeemPoints, pointsToRedeem]
-  );
-  const rewardDiscount = useMemo(
-    () => Math.min(pointsToDollars(appliedRedeemPoints), finalTotal),
-    [appliedRedeemPoints, finalTotal, pointsToDollars]
-  );
-  const chargedTotal = useMemo(
-    () => Math.max(0, Number.parseFloat((finalTotal - rewardDiscount).toFixed(2))),
-    [finalTotal, rewardDiscount]
-  );
+  const parsedPointsToRedeem = useMemo(() => {
+    const trimmed = pointsToRedeemInput.trim();
+    if (!trimmed) return 0;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) return -1;
+    return Math.floor(parsed);
+  }, [pointsToRedeemInput]);
+
+  const pointsBalance = points ?? 0;
+  const discountedTotal = Math.max(finalTotal - redeemDiscount, 0);
 
   useEffect(() => {
-    const cap = maxRedeemableForAmount(finalTotal);
-    setPointsToRedeem((prev) => (prev > cap ? cap : prev));
-  }, [finalTotal, maxRedeemableForAmount, points]);
+    if (!pointsToRedeemInput.trim()) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError(null);
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    if (parsedPointsToRedeem <= 0) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError('Enter a whole number of points greater than 0.');
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    if (!Number.isInteger(parsedPointsToRedeem)) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError('Points must be a whole number.');
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    if (parsedPointsToRedeem > pointsBalance) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError(`You only have ${pointsBalance.toLocaleString()} points.`);
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setRedeemQuoteLoading(true);
+    setRedeemQuoteError(null);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const dollars = await api.callPointsToDollars(parsedPointsToRedeem);
+        if (!cancelled) {
+          const boundedDiscount = Math.min(Math.max(dollars, 0), finalTotal);
+          setRedeemDiscount(boundedDiscount);
+        }
+      } catch {
+        if (!cancelled) {
+          setRedeemDiscount(0);
+          setRedeemQuoteError('Could not calculate points discount right now.');
+        }
+      } finally {
+        if (!cancelled) setRedeemQuoteLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [pointsToRedeemInput, parsedPointsToRedeem, pointsBalance, finalTotal]);
 
   // Validity warnings
   const warnings: string[] = [];
@@ -313,8 +399,6 @@ const guestsParam = occupancies.reduce(
 
   const occupancyNumbers = getOccupancyNumbers(prebookData);
 
-  const displayPayAmount = isRealPrebook ? chargedTotal : finalTotal;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
@@ -341,10 +425,7 @@ const guestsParam = occupancies.reduce(
           };
         });
 
-        const redeemNow = Math.min(
-          maxRedeemableForAmount(finalTotal),
-          Math.max(0, Math.floor(pointsToRedeem))
-        );
+        const redeemNow = Math.max(0, Number.isInteger(parsedPointsToRedeem) ? parsedPointsToRedeem : 0);
 
         const bookingResponse = await api.getRatesBook({
           prebookId: prebookData!.prebookId,
@@ -356,15 +437,14 @@ const guestsParam = occupancies.reduce(
         });
 
         if (redeemNow > 0) {
-          const redeemedTotal = await redeemPoints(redeemNow);
-          if (redeemedTotal === null) {
-            toast.error(
-              'Your booking was confirmed, but reward points could not be redeemed. Your balance is unchanged; contact support if this persists.'
-            );
+          const newRedeemedTotal = await redeemPoints(redeemNow);
+          if (newRedeemedTotal === null) {
+            toast.error('Booking succeeded, but we could not redeem your points.');
           }
         }
 
-        const pointsEarned = dollarsToPoints(chargedTotal);
+        // Award points after a confirmed booking.
+        const pointsEarned = dollarsToPoints(discountedTotal);
         const newPointsTotal = await addPoints(pointsEarned);
         const bookingId =
           (bookingResponse as { data?: { bookingId?: string }; bookingId?: string })?.data?.bookingId
@@ -378,10 +458,8 @@ const guestsParam = occupancies.reduce(
         if (newPointsTotal === null) {
           toast.error('Failed to add reward points.');
         } else {
-          const redeemMsg =
-            redeemNow > 0 ? ` Used ${redeemNow.toLocaleString()} points (${priceSymbol}${pointsToDollars(redeemNow).toFixed(2)} off).` : '';
           toast.success(
-            `Booking confirmed! You've earned ${pointsEarned} points (total: ${newPointsTotal}).${redeemMsg} Check your email for details.`
+            `Booking confirmed! You've earned ${pointsEarned} points${redeemNow > 0 ? ` and redeemed ${redeemNow} points` : ''}${newPointsTotal !== null ? ` (total: ${newPointsTotal})` : ''}. Check your email for details.`
           );
         }
 
@@ -389,8 +467,41 @@ const guestsParam = occupancies.reduce(
         navigate('/bookings');
       } catch (err: unknown) {
         const status = (err as { context?: { status?: number } })?.context?.status;
-        if (status === 409) {
+        const ctx = (err as { context?: Response | undefined })?.context;
+        let serverMessage = '';
+        let liteApiMessage = '';
+        if (ctx && typeof (ctx as Response).json === 'function') {
+          const body = await (ctx as Response).json().catch(() => null) as
+            | { error?: string; message?: string; liteapi_response?: string }
+            | null;
+          serverMessage = (body?.message ?? body?.error ?? '').toLowerCase();
+          if (typeof body?.liteapi_response === 'string') {
+            try {
+              const parsed = JSON.parse(body.liteapi_response) as {
+                error?: { description?: string; message?: string };
+              };
+              liteApiMessage = parsed?.error?.description ?? parsed?.error?.message ?? '';
+            } catch {
+              // Ignore parsing failures and fallback to generic handling.
+            }
+          }
+        }
+
+        const looksLikeOverlap =
+          status === 409 ||
+          (status === 403 && (
+            serverMessage.includes('overlap') ||
+            serverMessage.includes('conflict') ||
+            serverMessage.includes('already') ||
+            serverMessage.includes('existing booking')
+          ));
+
+        if (looksLikeOverlap) {
           setOverlapError(true);
+        } else if (status === 403 && liteApiMessage.toLowerCase().includes('fraud')) {
+          toast.error(`Booking was rejected by provider fraud checks: ${liteApiMessage}`);
+        } else if (status === 403) {
+          toast.error('Booking request was rejected by the server (403). Please check account permissions or function auth settings.');
         } else {
           toast.error('Booking failed. Please try again.');
         }
@@ -450,24 +561,6 @@ const guestsParam = occupancies.reduce(
                     <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
                       {warnings.map((w, i) => <li key={i}>{w}</li>)}
                     </ul>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Overlap conflict error */}
-            {overlapError && (
-              <Card className="p-4 border-red-300 bg-red-50">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-semibold text-red-800 mb-1">Booking dates conflict</p>
-                    <p className="text-sm text-red-700 mb-3">
-                      You already have a hotel booking that overlaps these dates. Cancel or change your existing booking before booking another stay.
-                    </p>
-                    <Button variant="outline" size="sm" asChild className="border-red-400 text-red-700 hover:bg-red-100">
-                      <Link to="/bookings">View my bookings</Link>
-                    </Button>
                   </div>
                 </div>
               </Card>
@@ -667,10 +760,29 @@ const guestsParam = occupancies.reduce(
                 </p>
               </div>
 
+              {/* Overlap conflict error — shown right above the submit button so the
+                  user sees it in the same place they're about to take action. */}
+              {overlapError && (
+                <Card className="p-4 border-red-300 bg-red-50 mt-6">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-red-800 mb-1">Booking dates conflict</p>
+                      <p className="text-sm text-red-700 mb-3">
+                        You already have a hotel booking that overlaps these dates. Cancel or change your existing booking before booking another stay.
+                      </p>
+                      <Button variant="outline" size="sm" asChild className="border-red-400 text-red-700 hover:bg-red-100">
+                        <Link to="/bookings">View my bookings</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
               <Button
                 type="submit"
                 form="booking-form"
-                disabled={processing || (isRealPrebook && rewardsLoading)}
+                disabled={processing || overlapError || overlapChecking || redeemQuoteLoading || !!redeemQuoteError}
                 className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white h-12 text-lg mt-6"
               >
                 {processing ? (
@@ -678,8 +790,20 @@ const guestsParam = occupancies.reduce(
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Processing...
                   </span>
+                ) : overlapChecking ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Checking availability...
+                  </span>
+                ) : overlapError ? (
+                  'Dates unavailable'
+                ) : redeemQuoteLoading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Calculating rewards discount...
+                  </span>
                 ) : (
-                  `Confirm and Pay ${priceSymbol}${displayPayAmount}`
+                  `Confirm and Pay ${priceSymbol}${discountedTotal}`
                 )}
               </Button>
             </Card>
@@ -731,6 +855,31 @@ const guestsParam = occupancies.reduce(
 
               {/* Price Breakdown */}
               <div className="space-y-3 mb-4">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-semibold text-amber-900 mb-2">Redeem Points</p>
+                  <p className="text-xs text-amber-800 mb-2">
+                    Balance: {rewardsLoading ? 'Loading...' : `${pointsBalance.toLocaleString()} pts`}
+                  </p>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="Enter points to redeem"
+                    value={pointsToRedeemInput}
+                    onChange={(e) => setPointsToRedeemInput(e.target.value)}
+                    disabled={processing || rewardsLoading}
+                  />
+                  {redeemQuoteError && (
+                    <p className="text-xs text-red-600 mt-2">{redeemQuoteError}</p>
+                  )}
+                  {!redeemQuoteError && parsedPointsToRedeem > 0 && (
+                    <p className="text-xs text-amber-800 mt-2">
+                      {redeemQuoteLoading
+                        ? 'Calculating discount...'
+                        : `${parsedPointsToRedeem.toLocaleString()} pts = ${priceSymbol}${redeemDiscount.toFixed(2)} off`}
+                    </p>
+                  )}
+                </div>
                 <div className="flex justify-between text-[#1f2937]">
                   <span className="text-sm">
                     {isRealPrebook ? 'Rate total' : `${priceSymbol}${convertPrice(mockPrice)} × ${nights} ${nights === 1 ? 'night' : 'nights'}`}
@@ -741,84 +890,20 @@ const guestsParam = occupancies.reduce(
                   <span className="text-sm">Service fee</span>
                   <span className="text-sm">{priceSymbol}{serviceFee}</span>
                 </div>
-
-                {isRealPrebook && points !== null && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-950">
-                      <Gift className="w-4 h-4 shrink-0" />
-                      Redeem reward points
-                    </div>
-                    <p className="text-xs text-amber-900 leading-snug">
-                      100 points = {priceSymbol}1 off (shown below). Points are deducted only after your reservation is confirmed.
-                    </p>
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div className="flex-1 min-w-[9rem]">
-                        <Label htmlFor="redeem-points" className="text-xs text-amber-900">
-                          Points to use (max {maxRedeemPoints.toLocaleString()})
-                        </Label>
-                        <Input
-                          id="redeem-points"
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          max={maxRedeemPoints}
-                          step={1}
-                          disabled={rewardsLoading || maxRedeemPoints === 0}
-                          value={pointsToRedeem === 0 ? '' : pointsToRedeem}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === '') {
-                              setPointsToRedeem(0);
-                              return;
-                            }
-                            const n = Math.max(0, Math.floor(Number(raw)));
-                            setPointsToRedeem(Math.min(n, maxRedeemPoints));
-                          }}
-                          className="mt-1 bg-white"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 border-amber-300 text-amber-950 hover:bg-amber-100"
-                        disabled={rewardsLoading || maxRedeemPoints === 0}
-                        onClick={() => setPointsToRedeem(maxRedeemPoints)}
-                      >
-                        Use max
-                      </Button>
-                    </div>
-                    {appliedRedeemPoints > 0 && (
-                      <p className="text-xs font-medium text-amber-950">
-                        Discount: {priceSymbol}
-                        {rewardDiscount.toFixed(2)} ({appliedRedeemPoints.toLocaleString()} pts)
-                      </p>
-                    )}
+                {redeemDiscount > 0 && (
+                  <div className="flex justify-between text-green-700">
+                    <span className="text-sm">Points discount</span>
+                    <span className="text-sm">-{priceSymbol}{redeemDiscount.toFixed(2)}</span>
                   </div>
                 )}
-
                 <Separator />
-                {isRealPrebook && rewardDiscount > 0 && (
-                  <div className="flex justify-between text-sm text-green-700">
-                    <span>Points discount</span>
-                    <span>
-                      −{priceSymbol}
-                      {rewardDiscount.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between items-baseline text-[#1f2937]">
-                  <span className="font-bold text-lg">Total</span>
-                  <span className="font-bold text-lg">
-                    {priceSymbol}
-                    {isRealPrebook ? chargedTotal : finalTotal}
-                  </span>
+                <div className="flex justify-between text-[#1f2937]">
+                  <span>Points you'll earn</span>
+                  <span>+{dollarsToPoints(discountedTotal)} pts</span>
                 </div>
-                <div className="flex justify-between text-sm text-[#6b7280] pt-1 border-t border-gray-100">
-                  <span>Points you&apos;ll earn</span>
-                  <span className="font-medium text-[#1f2937]">
-                    +{dollarsToPoints(isRealPrebook ? chargedTotal : finalTotal)} pts
-                  </span>
+                <div className="flex justify-between font-bold text-lg text-[#1f2937]">
+                  <span>Total</span>
+                  <span>{priceSymbol}{discountedTotal.toFixed(2)}</span>
                 </div>
               </div>
 
