@@ -11,6 +11,17 @@ import { useRewards } from '../contexts/RewardsContext';
 import { api } from '../../api/liteApi';
 import { toast } from 'sonner';
 
+function splitPhoneParts(rawPhone: string): { phoneCode: string; phoneNumber: string } {
+  const normalized = rawPhone.trim();
+  if (!normalized) return { phoneCode: '+1', phoneNumber: '' };
+  const match = normalized.match(/^(\+\d{1,4})(.*)$/);
+  if (!match) return { phoneCode: '+1', phoneNumber: normalized };
+  return {
+    phoneCode: match[1],
+    phoneNumber: match[2].trim(),
+  };
+}
+
 export function ProfilePage() {
   const { user } = useAuth();
   const { points, pointsToDollars, loading: rewardsLoading } = useRewards();
@@ -23,7 +34,8 @@ export function ProfilePage() {
   const [userData, setUserData] = useState({
     name: '',
     email: '',
-    phone: '',
+    phoneCode: '+1',
+    phoneNumber: '',
     location: '',
     dateOfBirth: '',
     joinedDate: '',
@@ -44,10 +56,12 @@ export function ProfilePage() {
             typeof profile.phone === 'string' && profile.phone.length > 0
               ? profile.phone
               : metadataPhone;
+          const { phoneCode, phoneNumber } = splitPhoneParts(phoneFromProfile);
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
-            phone: phoneFromProfile,
+            phoneCode,
+            phoneNumber,
             location: metadataLocation,
             dateOfBirth: metadataDateOfBirth,
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
@@ -76,7 +90,9 @@ export function ProfilePage() {
     try {
       const { supabase } = await import('../../lib/supabaseClient');
       const trimmedName = userData.name.trim();
-      const trimmedPhone = userData.phone.trim();
+      const trimmedPhoneCode = userData.phoneCode.trim() || '+1';
+      const trimmedPhoneNumber = userData.phoneNumber.trim();
+      const trimmedPhone = `${trimmedPhoneCode}${trimmedPhoneNumber}`;
       const trimmedLocation = userData.location.trim();
       const trimmedDateOfBirth = userData.dateOfBirth.trim();
       const trimmedBio = userData.bio.trim();
@@ -104,6 +120,7 @@ export function ProfilePage() {
         typeof authData.user?.user_metadata?.phone === 'string'
           ? authData.user.user_metadata.phone
           : trimmedPhone;
+      const { phoneCode: nextPhoneCode, phoneNumber: nextPhoneNumber } = splitPhoneParts(nextPhone);
       const nextLocation =
         typeof authData.user?.user_metadata?.location === 'string'
           ? authData.user.user_metadata.location
@@ -121,10 +138,11 @@ export function ProfilePage() {
           ...prev,
           name: refreshed.full_name ?? trimmedName,
           email: refreshed.email ?? user.email ?? prev.email,
-          phone:
+          ...(splitPhoneParts(
             typeof refreshed.phone === 'string' && refreshed.phone.length > 0
               ? refreshed.phone
-              : nextPhone,
+              : nextPhone
+          )),
           location: nextLocation,
           dateOfBirth: nextDateOfBirth,
           bio: nextBio,
@@ -133,7 +151,8 @@ export function ProfilePage() {
         setUserData((prev) => ({
           ...prev,
           name: trimmedName,
-          phone: nextPhone,
+          phoneCode: nextPhoneCode,
+          phoneNumber: nextPhoneNumber,
           location: nextLocation,
           dateOfBirth: nextDateOfBirth,
           bio: nextBio,
@@ -282,14 +301,24 @@ export function ProfilePage() {
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={userData.phone}
-                  onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                  disabled={!isEditing}
-                  className="bg-white"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="phoneCode"
+                    type="tel"
+                    value={userData.phoneCode}
+                    onChange={(e) => setUserData({ ...userData, phoneCode: e.target.value })}
+                    disabled={!isEditing}
+                    className="bg-white w-24"
+                  />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={userData.phoneNumber}
+                    onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
+                    disabled={!isEditing}
+                    className="bg-white flex-1"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
