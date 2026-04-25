@@ -36,20 +36,25 @@ export function ProfilePage() {
       try {
         const profile = await api.getProfile();
         if (profile) {
+          const metadataPhone = typeof user?.user_metadata?.phone === 'string' ? user.user_metadata.phone : '';
+          const metadataLocation = typeof user?.user_metadata?.location === 'string' ? user.user_metadata.location : '';
+          const metadataDateOfBirth = typeof user?.user_metadata?.date_of_birth === 'string' ? user.user_metadata.date_of_birth : '';
+          const metadataBio = typeof user?.user_metadata?.bio === 'string' ? user.user_metadata.bio : '';
+          const phoneFromProfile =
+            typeof profile.phone === 'string' && profile.phone.length > 0
+              ? profile.phone
+              : metadataPhone;
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
-            // phone/location/dob/bio aren't in profiles table yet —
-            // they fall back to user_metadata (set during signup) or empty.
-            // TODO: Add these columns to profiles in supabase and update this code to read/write from there.
-            phone: user?.user_metadata?.phone ?? '',
-            location: '',
-            dateOfBirth: '',
+            phone: phoneFromProfile,
+            location: metadataLocation,
+            dateOfBirth: metadataDateOfBirth,
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
               month: 'long',
               year: 'numeric',
             }),
-            bio: '',
+            bio: metadataBio,
           });
         }
       } catch (err) {
@@ -63,22 +68,83 @@ export function ProfilePage() {
   }, [user]);
 
   const handleSave = async () => {
+    if (!user) {
+      toast.error('You must be signed in to save your profile.');
+      return;
+    }
     setSaving(true);
     try {
-      // TODO:
-      // Currently this only saves full_name as it is the only attribute to save in the profiles table.
-      // Extend this update call to include other fields once they are added to the profiles table in Supabase.
       const { supabase } = await import('../../lib/supabaseClient');
-      const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: userData.name })
-        .eq('id', user!.id);
+      const trimmedName = userData.name.trim();
+      const trimmedPhone = userData.phone.trim();
+      const trimmedLocation = userData.location.trim();
+      const trimmedDateOfBirth = userData.dateOfBirth.trim();
+      const trimmedBio = userData.bio.trim();
 
-      if (error) throw error;
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmedName })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      const { data: authData, error: authError } = await supabase.auth.updateUser({
+        data: {
+          ...user.user_metadata,
+          phone: trimmedPhone,
+          location: trimmedLocation,
+          date_of_birth: trimmedDateOfBirth,
+          bio: trimmedBio,
+        },
+      });
+      if (authError) throw authError;
+
+      const refreshed = await api.getProfile();
+      const nextPhone =
+        typeof authData.user?.user_metadata?.phone === 'string'
+          ? authData.user.user_metadata.phone
+          : trimmedPhone;
+      const nextLocation =
+        typeof authData.user?.user_metadata?.location === 'string'
+          ? authData.user.user_metadata.location
+          : trimmedLocation;
+      const nextDateOfBirth =
+        typeof authData.user?.user_metadata?.date_of_birth === 'string'
+          ? authData.user.user_metadata.date_of_birth
+          : trimmedDateOfBirth;
+      const nextBio =
+        typeof authData.user?.user_metadata?.bio === 'string'
+          ? authData.user.user_metadata.bio
+          : trimmedBio;
+      if (refreshed) {
+        setUserData((prev) => ({
+          ...prev,
+          name: refreshed.full_name ?? trimmedName,
+          email: refreshed.email ?? user.email ?? prev.email,
+          phone:
+            typeof refreshed.phone === 'string' && refreshed.phone.length > 0
+              ? refreshed.phone
+              : nextPhone,
+          location: nextLocation,
+          dateOfBirth: nextDateOfBirth,
+          bio: nextBio,
+        }));
+      } else {
+        setUserData((prev) => ({
+          ...prev,
+          name: trimmedName,
+          phone: nextPhone,
+          location: nextLocation,
+          dateOfBirth: nextDateOfBirth,
+          bio: nextBio,
+        }));
+      }
+
       toast.success('Profile updated!');
       setIsEditing(false);
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save profile.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast.error(message);
     } finally {
       setSaving(false);
     }

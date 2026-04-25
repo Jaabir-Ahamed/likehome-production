@@ -20,6 +20,7 @@ import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
 import {Tabs, TabsContent, TabsList, TabsTrigger,} from "../components/ui/tabs";
 import {useCurrency} from "../contexts/CurrencyContext";
+import {useRewards} from "../contexts/RewardsContext";
 
 interface CancelPolicyInfo {
     cancelTime: string;
@@ -284,6 +285,7 @@ function BookingCard({
 export function MyBookingsPage() {
     const {convertPrice} = useCurrency();
     const {user, loading: authLoading} = useAuth();
+    const {dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
 
     const [activeTab, setActiveTab] = useState("scheduled");
     const [bookings, setBookings] = useState<BookingDetail[]>([]);
@@ -376,6 +378,7 @@ export function MyBookingsPage() {
         try {
             const result = await api.cancelBooking(cancelTarget.bookingId);
             const nextStatus = result?.data?.status ?? "CANCELLED";
+            const cancelledPrice = Number(result?.data?.price ?? cancelTarget.totalAmount ?? 0);
 
             setBookings((prev) =>
                 prev.map((booking) =>
@@ -384,6 +387,19 @@ export function MyBookingsPage() {
                         : booking
                 )
             );
+
+            // Roll back points previously awarded for this booking.
+            if (cancelledPrice > 0) {
+                const pointsToSubtract = dollarsToPoints(cancelledPrice);
+                if (pointsToSubtract > 0) {
+                    const newTotal = await redeemPoints(pointsToSubtract);
+                    if (newTotal === null) {
+                        toast.error("Booking cancelled, but reward points were not updated.");
+                    } else {
+                        await refreshPoints();
+                    }
+                }
+            }
 
             toast.success(
                 nextStatus === "CANCELLED_WITH_CHARGES"

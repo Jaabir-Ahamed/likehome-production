@@ -100,6 +100,8 @@ type Profile = {
     id: string;
     email: string;
     full_name: string;
+    /** Present when the Supabase `profiles` row includes a phone column. */
+    phone?: string | null;
     reward_points: number;
     role: string;
     created_at: string;
@@ -261,7 +263,6 @@ export const api = {
                 .eq("id", user.id)
                 .single();
 
-            console.log('getProfile raw data:', data);
             if (error) throw error;
             return data as Profile;
     },

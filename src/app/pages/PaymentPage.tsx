@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router';
-import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users, AlertTriangle } from 'lucide-react';
+import { CreditCard, Lock, ArrowLeft, Check, Calendar, Users, AlertTriangle, Gift } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -101,7 +101,15 @@ export function PaymentPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
-  const { addPoints, dollarsToPoints } = useRewards();
+  const {
+    points,
+    addPoints,
+    dollarsToPoints,
+    pointsToDollars,
+    redeemPoints,
+    maxRedeemableForAmount,
+    loading: rewardsLoading,
+  } = useRewards();
 
   const prebookId = searchParams.get('prebookId');
   const guestsParam = Number(searchParams.get('guests')) || 2;
@@ -120,6 +128,8 @@ export function PaymentPage() {
 
   const [processing, setProcessing] = useState(false);
   const [overlapError, setOverlapError] = useState(false);
+  /** Points the user wants to redeem toward this booking (clamped on submit). */
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
   // Load prebook data from sessionStorage when prebookId is present
   useEffect(() => {
@@ -166,6 +176,25 @@ export function PaymentPage() {
   const finalTotal = basePrice + serviceFee;
   const priceSymbol = getCurrencySymbol();
 
+  const maxRedeemPoints = maxRedeemableForAmount(finalTotal);
+  const appliedRedeemPoints = useMemo(
+    () => Math.min(maxRedeemPoints, Math.max(0, Math.floor(pointsToRedeem))),
+    [maxRedeemPoints, pointsToRedeem]
+  );
+  const rewardDiscount = useMemo(
+    () => Math.min(pointsToDollars(appliedRedeemPoints), finalTotal),
+    [appliedRedeemPoints, finalTotal, pointsToDollars]
+  );
+  const chargedTotal = useMemo(
+    () => Math.max(0, Number.parseFloat((finalTotal - rewardDiscount).toFixed(2))),
+    [finalTotal, rewardDiscount]
+  );
+
+  useEffect(() => {
+    const cap = maxRedeemableForAmount(finalTotal);
+    setPointsToRedeem((prev) => (prev > cap ? cap : prev));
+  }, [finalTotal, maxRedeemableForAmount, points]);
+
   // Validity warnings
   const warnings: string[] = [];
   if (isRealPrebook) {
@@ -198,6 +227,8 @@ export function PaymentPage() {
 
   const occupancyNumbers = getOccupancyNumbers(prebookData);
 
+  const displayPayAmount = isRealPrebook ? chargedTotal : finalTotal;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
@@ -224,6 +255,11 @@ export function PaymentPage() {
           };
         });
 
+        const redeemNow = Math.min(
+          maxRedeemableForAmount(finalTotal),
+          Math.max(0, Math.floor(pointsToRedeem))
+        );
+
         await api.getRatesBook({
           prebookId: prebookData!.prebookId,
           checkin: prebookData!.checkin,
@@ -232,13 +268,26 @@ export function PaymentPage() {
           guests,
           payment: { method: 'CREDIT' },
         });
-        // call api to convert dollors to points and add to user's profile on supabase (await to ensure points are added before showing success toast)
-        const pointsEarned = dollarsToPoints(finalTotal);
+
+        if (redeemNow > 0) {
+          const redeemedTotal = await redeemPoints(redeemNow);
+          if (redeemedTotal === null) {
+            toast.error(
+              'Your booking was confirmed, but reward points could not be redeemed. Your balance is unchanged; contact support if this persists.'
+            );
+          }
+        }
+
+        const pointsEarned = dollarsToPoints(chargedTotal);
         const newPointsTotal = await addPoints(pointsEarned);
         if (newPointsTotal === null) {
           toast.error('Failed to add reward points.');
         } else {
-          toast.success(`Booking confirmed! You've earned ${pointsEarned} points${newPointsTotal !== null ? ` (total: ${newPointsTotal})` : ''}. Check your email for details.`);
+          const redeemMsg =
+            redeemNow > 0 ? ` Used ${redeemNow.toLocaleString()} points (${priceSymbol}${pointsToDollars(redeemNow).toFixed(2)} off).` : '';
+          toast.success(
+            `Booking confirmed! You've earned ${pointsEarned} points (total: ${newPointsTotal}).${redeemMsg} Check your email for details.`
+          );
         }
 
         sessionStorage.removeItem(`prebook:${prebookData!.prebookId}`);
@@ -250,6 +299,7 @@ export function PaymentPage() {
         } else {
           toast.error('Booking failed. Please try again.');
         }
+      } finally {
         setProcessing(false);
       }
     } else {
@@ -525,7 +575,7 @@ export function PaymentPage() {
               <Button
                 type="submit"
                 form="booking-form"
-                disabled={processing}
+                disabled={processing || (isRealPrebook && rewardsLoading)}
                 className="w-full bg-[#f59e0b] hover:bg-[#d97706] text-white h-12 text-lg mt-6"
               >
                 {processing ? (
@@ -534,7 +584,7 @@ export function PaymentPage() {
                     Processing...
                   </span>
                 ) : (
-                  `Confirm and Pay ${priceSymbol}${finalTotal}`
+                  `Confirm and Pay ${priceSymbol}${displayPayAmount}`
                 )}
               </Button>
             </Card>
@@ -599,12 +649,84 @@ export function PaymentPage() {
                   <span className="text-sm">Service fee</span>
                   <span className="text-sm">{priceSymbol}{serviceFee}</span>
                 </div>
+
+                {isRealPrebook && points !== null && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-950">
+                      <Gift className="w-4 h-4 shrink-0" />
+                      Redeem reward points
+                    </div>
+                    <p className="text-xs text-amber-900 leading-snug">
+                      100 points = {priceSymbol}1 off (shown below). Points are deducted only after your reservation is confirmed.
+                    </p>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex-1 min-w-[9rem]">
+                        <Label htmlFor="redeem-points" className="text-xs text-amber-900">
+                          Points to use (max {maxRedeemPoints.toLocaleString()})
+                        </Label>
+                        <Input
+                          id="redeem-points"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={maxRedeemPoints}
+                          step={1}
+                          disabled={rewardsLoading || maxRedeemPoints === 0}
+                          value={pointsToRedeem === 0 ? '' : pointsToRedeem}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              setPointsToRedeem(0);
+                              return;
+                            }
+                            const n = Math.max(0, Math.floor(Number(raw)));
+                            setPointsToRedeem(Math.min(n, maxRedeemPoints));
+                          }}
+                          className="mt-1 bg-white"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 border-amber-300 text-amber-950 hover:bg-amber-100"
+                        disabled={rewardsLoading || maxRedeemPoints === 0}
+                        onClick={() => setPointsToRedeem(maxRedeemPoints)}
+                      >
+                        Use max
+                      </Button>
+                    </div>
+                    {appliedRedeemPoints > 0 && (
+                      <p className="text-xs font-medium text-amber-950">
+                        Discount: {priceSymbol}
+                        {rewardDiscount.toFixed(2)} ({appliedRedeemPoints.toLocaleString()} pts)
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Separator />
-                <div className="flex justify-between font-bold text-lg text-[#1f2937]">
-                  <span>Points you'll earn</span>
-                  <span>+{dollarsToPoints(finalTotal)} pts</span>
-                  <span>Total</span>
-                  <span>{priceSymbol}{finalTotal}</span>
+                {isRealPrebook && rewardDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-700">
+                    <span>Points discount</span>
+                    <span>
+                      −{priceSymbol}
+                      {rewardDiscount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-baseline text-[#1f2937]">
+                  <span className="font-bold text-lg">Total</span>
+                  <span className="font-bold text-lg">
+                    {priceSymbol}
+                    {isRealPrebook ? chargedTotal : finalTotal}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-[#6b7280] pt-1 border-t border-gray-100">
+                  <span>Points you&apos;ll earn</span>
+                  <span className="font-medium text-[#1f2937]">
+                    +{dollarsToPoints(isRealPrebook ? chargedTotal : finalTotal)} pts
+                  </span>
                 </div>
               </div>
 
