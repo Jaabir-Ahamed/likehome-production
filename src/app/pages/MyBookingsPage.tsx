@@ -172,6 +172,41 @@ interface BookingCardProps {
     convertPrice: (amount: number) => number;
 }
 
+type RewardAdjustmentRecord = {
+    earnedPoints: number;
+    redeemedPoints: number;
+};
+
+const REWARD_ADJUSTMENTS_STORAGE_KEY = "reward:bookingAdjustments";
+
+function getBookingRewardAdjustment(bookingId: string): RewardAdjustmentRecord | null {
+    try {
+        const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+        const entry = parsed[bookingId];
+        if (!entry) return null;
+        return {
+            earnedPoints: Math.max(0, Math.floor(Number(entry.earnedPoints) || 0)),
+            redeemedPoints: Math.max(0, Math.floor(Number(entry.redeemedPoints) || 0)),
+        };
+    } catch {
+        return null;
+    }
+}
+
+function removeBookingRewardAdjustment(bookingId: string) {
+    try {
+        const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+        delete parsed[bookingId];
+        localStorage.setItem(REWARD_ADJUSTMENTS_STORAGE_KEY, JSON.stringify(parsed));
+    } catch {
+        // Ignore localStorage errors; cancellation still succeeds.
+    }
+}
+
 function BookingCard({
                          booking,
                          canCancel,
@@ -285,7 +320,7 @@ function BookingCard({
 export function MyBookingsPage() {
     const {convertPrice} = useCurrency();
     const {user, loading: authLoading} = useAuth();
-    const {dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
+    const {addPoints, dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
 
     const [activeTab, setActiveTab] = useState("scheduled");
     const [bookings, setBookings] = useState<BookingDetail[]>([]);
@@ -378,7 +413,6 @@ export function MyBookingsPage() {
         try {
             const result = await api.cancelBooking(cancelTarget.bookingId);
             const nextStatus = result?.data?.status ?? "CANCELLED";
-            const cancelledPrice = Number(result?.data?.price ?? cancelTarget.totalAmount ?? 0);
 
             setBookings((prev) =>
                 prev.map((booking) =>
@@ -388,15 +422,39 @@ export function MyBookingsPage() {
                 )
             );
 
-            // Roll back points previously awarded for this booking.
-            if (cancelledPrice > 0) {
-                const pointsToSubtract = dollarsToPoints(cancelledPrice);
-                if (pointsToSubtract > 0) {
-                    const newTotal = await redeemPoints(pointsToSubtract);
-                    if (newTotal === null) {
-                        toast.error("Booking cancelled, but reward points were not updated.");
-                    } else {
-                        await refreshPoints();
+            const rewardAdjustment = getBookingRewardAdjustment(cancelTarget.bookingId);
+            if (rewardAdjustment) {
+                const {earnedPoints, redeemedPoints} = rewardAdjustment;
+                let rewardOpsOk = true;
+
+                // Reverse booking effects exactly: remove earned points, then restore redeemed points.
+                if (earnedPoints > 0) {
+                    const newTotalAfterRedeem = await redeemPoints(earnedPoints);
+                    if (newTotalAfterRedeem === null) rewardOpsOk = false;
+                }
+                if (redeemedPoints > 0) {
+                    const newTotalAfterAdd = await addPoints(redeemedPoints);
+                    if (newTotalAfterAdd === null) rewardOpsOk = false;
+                }
+
+                if (rewardOpsOk) {
+                    removeBookingRewardAdjustment(cancelTarget.bookingId);
+                    await refreshPoints();
+                } else {
+                    toast.error("Booking cancelled, but reward points were not fully reverted.");
+                }
+            } else {
+                // Fallback for older bookings without a recorded points delta.
+                const cancelledPrice = Number(result?.data?.price ?? cancelTarget.totalAmount ?? 0);
+                if (cancelledPrice > 0) {
+                    const pointsToSubtract = dollarsToPoints(cancelledPrice);
+                    if (pointsToSubtract > 0) {
+                        const newTotal = await redeemPoints(pointsToSubtract);
+                        if (newTotal === null) {
+                            toast.error("Booking cancelled, but reward points were not updated.");
+                        } else {
+                            await refreshPoints();
+                        }
                     }
                 }
             }
