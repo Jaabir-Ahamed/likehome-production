@@ -1,105 +1,32 @@
 import {useEffect, useRef, useState} from 'react';
 import {Link, useLocation, useNavigate, useParams, useSearchParams} from 'react-router';
 import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Clock,
-  Dumbbell,
-  Heart,
-  Info,
-  MapPin,
-  ParkingSquare,
-  Star,
-  ThumbsDown,
-  ThumbsUp,
-  Users,
-  Utensils,
-  Wifi
+    ArrowLeft,
+    Calendar,
+    Check,
+    Clock,
+    Dumbbell,
+    Heart,
+    Info,
+    MapPin,
+    ParkingSquare,
+    Star,
+    ThumbsDown,
+    ThumbsUp,
+    Users,
+    Utensils,
+    Wifi,
 } from 'lucide-react';
 import {Button} from '../components/ui/button';
 import {Card} from '../components/ui/card';
-import {Badge} from '../components/ui/badge';
 import {Separator} from '../components/ui/separator';
 import {MapComponent} from '../components/MapComponent';
 import {api} from '../../api/liteApi';
 import {useAuth} from '../contexts/AuthContext';
 import {toast} from 'sonner';
-
-interface HotelImage {
-    url: string;
-    urlHd: string;
-    caption: string;
-    defaultImage: boolean;
-}
-
-interface BedType {
-    quantity: number;
-    bedType: string;
-    bedSize: string;
-}
-
-interface RoomAmenity {
-    amenitiesId: number;
-    name: string;
-}
-
-interface RoomPhoto {
-    url: string;
-    mainPhoto: boolean;
-}
-
-interface Room {
-    id: number;
-    roomName: string;
-    description: string;
-    roomSizeSquare: number | null;
-    roomSizeUnit: string;
-    maxOccupancy: number;
-    bedTypes: BedType[];
-    roomAmenities: RoomAmenity[];
-    photos: RoomPhoto[];
-}
-
-interface Policy {
-    id: number;
-    name: string;
-    description: string;
-}
-
-interface SentimentCategory {
-    name: string;
-    rating: number;
-}
-
-interface HotelDetails {
-    id: string;
-    name: string;
-    hotelDescription: string;
-    hotelImportantInformation: string;
-    checkinCheckoutTimes: {
-        checkin_start: string;
-        checkin_end: string;
-        checkout: string;
-    };
-    hotelImages: HotelImage[];
-    main_photo: string;
-    country: string;
-    city: string;
-    starRating: number;
-    location: { latitude: number; longitude: number };
-    address: string;
-    hotelFacilities: string[];
-    rating: number;
-    reviewCount: number;
-    rooms: Room[];
-    policies: Policy[];
-    sentiment_analysis?: {
-        pros: string[];
-        cons: string[];
-        categories: SentimentCategory[];
-    };
-}
+import {RoomRateCard} from '../components/RoomRateCard';
+import {findBestHotelRoomMatch} from '../../lib/roomMatching';
+import type {HotelDetails, Rate} from '../../types/hotel';
 
 const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ className?: string }> }[] = [
     {keywords: ['wifi', 'internet', 'wired'], Icon: Wifi},
@@ -111,7 +38,7 @@ const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ 
 function getFacilityIcon(name: string): React.ComponentType<{ className?: string }> {
     const lower = name.toLowerCase();
     for (const {keywords, Icon} of FACILITY_ICON_KEYWORDS) {
-        if (keywords.some(k => lower.includes(k))) return Icon;
+        if (keywords.some((k) => lower.includes(k))) return Icon;
     }
     return Check;
 }
@@ -122,65 +49,42 @@ export function HotelDetailsPage() {
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const {user, loading: authLoading} = useAuth();
+
     const initialCheckIn = searchParams.get('checkIn') ?? '';
     const initialCheckOut = searchParams.get('checkOut') ?? '';
-    const [checkIn, setCheckIn] = useState(initialCheckIn);
-    const [checkOut, setCheckOut] = useState(initialCheckOut);
     const occupanciesParam = searchParams.get('occupancies');
 
-const initialOccupancies = (() : { adults: number; children: number[] }[] => {
-  try {
-    return occupanciesParam
-      ? (JSON.parse(occupanciesParam) as { adults: number; children: number[] }[])
-      : [{ adults: 2, children: [] }];
-  } catch {
-    return [{ adults: 2, children: [] }];
-  }
-})();
+    const initialOccupancies = (() => {
+        try {
+            return occupanciesParam
+                ? (JSON.parse(occupanciesParam) as { adults: number; children: number[] }[])
+                : [{adults: 2, children: []}];
+        } catch {
+            return [{adults: 2, children: []}];
+        }
+    })();
 
-const [occupancies, setOccupancies] = useState<{ adults: number; children: number[] }[]>(initialOccupancies);
-
-const totalGuests = occupancies.reduce(
-  (total: number, room: { adults: number; children: number[] }) =>
-    total + room.adults + room.children.length,
-  0
-);
-const roomCount = occupancies.length;
-const rebuildOccupancies = (newRoomCount: number, newGuestCount: number) => {
-  const safeRoomCount = Math.max(1, newRoomCount);
-  const safeGuestCount = Math.max(safeRoomCount, newGuestCount);
-
-  const base = Math.floor(safeGuestCount / safeRoomCount);
-  const remainder = safeGuestCount % safeRoomCount;
-
-  const next = Array.from({ length: safeRoomCount }, (_, i) => ({
-    adults: base + (i < remainder ? 1 : 0),
-    children: [] as number[],
-  }));
-
-  setOccupancies(next);
-};
-const handleGuestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const newGuestCount = Math.max(1, Number(e.target.value) || 1);
-  rebuildOccupancies(roomCount, newGuestCount);
-};
-
-const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const newRoomCount = Math.max(1, Number(e.target.value) || 1);
-  rebuildOccupancies(newRoomCount, totalGuests);
-};
-    const [selectedImage, setSelectedImage] = useState(0); 
+    const [checkIn, setCheckIn] = useState(initialCheckIn);
+    const [checkOut, setCheckOut] = useState(initialCheckOut);
+    const [occupancies, setOccupancies] = useState<{ adults: number; children: number[] }[]>(initialOccupancies);
+    const [selectedImage, setSelectedImage] = useState(0);
     const [manualNights, setManualNights] = useState(1);
     const [prebookLoading, setPrebookLoading] = useState(false);
-    const [ratesByOccupancy, setRatesByOccupancy] = useState<Record<number, any[]>>({});
-    const [selectedRates, setSelectedRates] = useState<Record<number, any>>({});
+    const [ratesByOccupancy, setRatesByOccupancy] = useState<Record<number, Rate[]>>({});
+    const [selectedRates, setSelectedRates] = useState<Record<number, Rate>>({});
     const [ratesLoading, setRatesLoading] = useState(false);
     const [hotel, setHotel] = useState<HotelDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Auto-complete a pending reservation if the user just logged in from this page
     const autoTriggered = useRef(false);
+
+    const totalGuests = occupancies.reduce(
+        (total: number, room: { adults: number; children: number[] }) => total + room.adults + room.children.length,
+        0
+    );
+    const roomCount = occupancies.length;
+
     useEffect(() => {
         if (authLoading || !user || autoTriggered.current) return;
 
@@ -200,8 +104,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             return;
         }
 
-        // Only auto-trigger for the hotel the user was originally booking.
-        // If the user ended up on a different hotel page, discard the stale reservation.
         if (pending.hotelId && pending.hotelId !== id) {
             sessionStorage.removeItem('pendingReservation');
             return;
@@ -212,8 +114,9 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setPrebookLoading(true);
         toast.loading('Resuming your reservation…', {id: 'auto-prebook'});
 
-        api.getRatesPrebook({offerId: pending.offerId, usePaymentSdk: false})
-            .then((prebook) => {
+        api
+            .getRatesPrebook({offerId: pending.offerId, usePaymentSdk: false})
+            .then((prebook: any) => {
                 const prebookData = prebook?.data;
                 if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
                 sessionStorage.setItem(
@@ -232,8 +135,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                 toast.error('Your selected rate has expired. Please choose a room again.');
             })
             .finally(() => setPrebookLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, authLoading]);
+    }, [user, authLoading, id, navigate, checkIn, checkOut]);
 
     const isSelectionComplete = Object.keys(selectedRates).length === occupancies.length;
 
@@ -241,18 +143,21 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
         : manualNights;
 
-    function handleSelectRate(occupancyNumber: number, rate: any) {
-        setSelectedRates(prev => ({
+    function handleSelectRate(occupancyNumber: number, rate: Rate) {
+        setSelectedRates((prev) => ({
             ...prev,
-            [occupancyNumber]: rate
+            [occupancyNumber]: rate,
         }));
     }
 
     useEffect(() => {
         if (!id) return;
         setLoading(true);
-        api.getHotelDetails(id)
-            .then(res => setHotel(res?.data ?? null))
+        setError(null);
+
+        api
+            .getHotelDetails(id)
+            .then((res: any) => setHotel(res?.data ?? null))
             .catch(() => {
                 setError('Failed to load hotel details.');
                 toast.error('Failed to load hotel details.');
@@ -266,25 +171,27 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setRatesLoading(true);
         setSelectedRates({});
 
-        api.getHotelRates({
-            hotelIds: [id],
-            checkin: checkIn,
-            checkout: checkOut,
-            occupancies
-        })
-            .then(result => {
+        api
+            .getHotelRates({
+                hotelIds: [id],
+                checkin: checkIn,
+                checkout: checkOut,
+                occupancies,
+            })
+            .then((result: any) => {
                 const hotelData = (result?.data ?? []).find((h: any) => h.hotelId === id);
 
-                const flattened =
+                const flattened: Rate[] =
                     hotelData?.roomTypes?.flatMap((roomType: any) =>
-                        roomType.rates.map((rate: any) => ({
+                        (roomType.rates ?? []).map((rate: any) => ({
                             ...rate,
                             offerId: roomType.offerId,
-                            roomTypeId: roomType.roomTypeId
+                            roomTypeId: roomType.roomTypeId,
+                            mappedRoomId: rate.mappedRoomId ?? roomType.mappedRoomId,
                         }))
                     ) ?? [];
 
-                const grouped = flattened.reduce((acc: any, rate: any) => {
+                const grouped = flattened.reduce((acc: Record<number, Rate[]>, rate: Rate) => {
                     const key = rate.occupancyNumber;
                     if (!acc[key]) acc[key] = [];
                     acc[key].push(rate);
@@ -296,6 +203,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             .catch(() => toast.error('Could not load room rates.'))
             .finally(() => setRatesLoading(false));
     }, [id, checkIn, checkOut, occupancies]);
+
     if (loading) {
         return (
             <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
@@ -318,23 +226,22 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         );
     }
 
-    const images = hotel.hotelImages?.length > 0
-        ? hotel.hotelImages.map(img => img.urlHd || img.url)
-        : hotel.main_photo ? [hotel.main_photo] : [];
+    const images =
+        hotel.hotelImages?.length > 0 ? hotel.hotelImages.map((img) => img.urlHd || img.url) : hotel.main_photo ? [hotel.main_photo] : [];
 
     const locationString = [hotel.address, hotel.city].filter(Boolean).join(', ');
 
-    // Summary for booking card: total price across all selected rates
-    const selectedTotal = Object.values(selectedRates).reduce((sum: number, rate: any) => {
+    const selectedTotal = Object.values(selectedRates).reduce((sum: number, rate: Rate) => {
         const amount = rate?.retailRate?.total?.[0]?.amount ?? 0;
         return sum + amount;
     }, 0);
+
     const selectedCurrency = Object.values(selectedRates)[0]?.retailRate?.total?.[0]?.currency ?? 'USD';
+    const fallbackRoomImage = hotel.main_photo || hotel.hotelImages?.[0]?.urlHd || hotel.hotelImages?.[0]?.url || null;
 
     return (
         <div className="w-full bg-gray-50 min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
-                {/* Back Button */}
                 <Button variant="ghost" asChild className="mb-6">
                     <Link to="/hotels">
                         <ArrowLeft className="w-4 h-4 mr-2"/>
@@ -342,7 +249,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                     </Link>
                 </Button>
 
-                {/* Hotel Header */}
                 <div className="mb-6">
                     <div className="flex items-start justify-between mb-4">
                         <div>
@@ -375,21 +281,16 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 <span className="font-bold">{hotel.rating}</span>
                             </div>
                         )}
-                        {hotel.reviewCount > 0 && (
-                            <span className="text-[#717182]">({hotel.reviewCount.toLocaleString()} reviews)</span>
-                        )}
+                        {hotel.reviewCount > 0 &&
+                            <span className="text-[#717182]">({hotel.reviewCount.toLocaleString()} reviews)</span>}
                     </div>
                 </div>
 
-                {/* Image Gallery */}
                 {images.length > 0 && (
                     <div className="grid grid-cols-4 gap-4 mb-8">
                         <div className="col-span-4 md:col-span-3">
-                            <img
-                                src={images[selectedImage]}
-                                alt={hotel.name}
-                                className="w-full h-[500px] object-cover rounded-lg"
-                            />
+                            <img src={images[selectedImage]} alt={hotel.name}
+                                 className="w-full h-[500px] object-cover rounded-lg"/>
                         </div>
                         <div className="col-span-4 md:col-span-1 flex md:flex-col gap-4">
                             {images.slice(0, 3).map((image, index) => (
@@ -408,9 +309,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content */}
                     <div className="lg:col-span-2 space-y-8">
-                        {/* Description */}
                         {hotel.hotelDescription && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
@@ -421,7 +320,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Check-in / Check-out */}
                         {hotel.checkinCheckoutTimes && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
@@ -447,7 +345,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Facilities */}
                         {hotel.hotelFacilities?.length > 0 && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Facilities</h2>
@@ -465,7 +362,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Important Information */}
                         {hotel.hotelImportantInformation && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
@@ -478,12 +374,12 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Available Room Rates */}
                         <Card className="p-6">
                             <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Available Rooms</h2>
+
                             {ratesLoading ? (
                                 <div className="space-y-3">
-                                    {[1, 2, 3].map(i => (
+                                    {[1, 2, 3].map((i) => (
                                         <div key={i} className="border border-gray-200 rounded-lg p-4 animate-pulse">
                                             <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"/>
                                             <div className="h-3 bg-gray-200 rounded w-1/4"/>
@@ -491,80 +387,40 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                     ))}
                                 </div>
                             ) : !checkIn || !checkOut ? (
-                                <p className="text-sm text-[#717182]">
-                                    Search from the hotel listing to see live rates and available rooms.
-                                </p>
+                                <p className="text-sm text-[#717182]">Search from the hotel listing to see live rates
+                                    and available rooms.</p>
                             ) : Object.keys(ratesByOccupancy).length === 0 ? (
                                 <p className="text-sm text-[#717182]">No rooms available for the selected dates.</p>
                             ) : (
                                 <div className="space-y-6">
                                     {Object.entries(ratesByOccupancy).map(([occNumber, rates]) => {
                                         const occIndex = Number(occNumber) - 1;
-                                        const occ = occupancies[occIndex] ?? {adults: 1};
+                                        const occ = occupancies[occIndex] ?? {adults: 1, children: []};
 
                                         return (
                                             <div key={occNumber} className="border border-gray-200 rounded-lg p-4">
                                                 <h3 className="font-bold text-lg text-[#1f2937] mb-3">
                                                     Room {occNumber} — {occ.adults} {occ.adults === 1 ? 'adult' : 'adults'}
-                                                    {occ.children?.length ? `, ${occ.children.length} ${occ.children.length === 1 ? 'child' : 'children'}` : ''}
+                                                    {occ.children?.length
+                                                        ? `, ${occ.children.length} ${occ.children.length === 1 ? 'child' : 'children'}`
+                                                        : ''}
                                                 </h3>
 
-                                                <div className="space-y-3">
-                                                    {(rates as any[]).map((rate: any) => {
-                                                        const price = rate.retailRate?.total?.[0]?.amount;
-                                                        const currency = rate.retailRate?.total?.[0]?.currency ?? 'USD';
-                                                        const pricePerNight = price != null ? price / actualNights : null;
-                                                        const isFreeCancellation = rate.cancellationPolicies?.[0]?.cancelPolicyInfos?.[0]?.amount === 0;
+                                                <div className="space-y-4">
+                                                    {rates.map((rate) => {
+                                                        const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
                                                         const isSelected = selectedRates[Number(occNumber)]?.rateId === rate.rateId;
 
                                                         return (
-                                                            <div
+                                                            <RoomRateCard
                                                                 key={rate.rateId}
-                                                                className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                                                                    isSelected
-                                                                        ? 'border-2 border-[#2563eb] bg-blue-50'
-                                                                        : 'border-gray-200 hover:border-gray-300'
-                                                                }`}
-                                                                onClick={() => handleSelectRate(Number(occNumber), rate)}
-                                                            >
-                                                                <div className="flex items-start justify-between gap-4">
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <h4 className="font-semibold text-[#1f2937] mb-1">{rate.name}</h4>
-                                                                        <div className="flex flex-wrap gap-1 mb-2">
-                                                                            {rate.boardName && (
-                                                                                <Badge variant="secondary" className="text-xs">{rate.boardName}</Badge>
-                                                                            )}
-                                                                            {isFreeCancellation && (
-                                                                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">Free cancellation</Badge>
-                                                                            )}
-                                                                            {rate.maxOccupancy != null && (
-                                                                                <Badge variant="secondary" className="text-xs">Up to {rate.maxOccupancy} guests</Badge>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="text-right flex-shrink-0">
-                                                                        {pricePerNight != null && (
-                                                                            <>
-                                                                                <p className="font-bold text-[#1f2937]">
-                                                                                    {currency} {pricePerNight.toFixed(0)}<span className="text-sm font-normal text-[#717182]">/night</span>
-                                                                                </p>
-                                                                                <p className="text-xs text-[#717182]">{currency} {price!.toFixed(0)} total</p>
-                                                                            </>
-                                                                        )}
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant={isSelected ? 'default' : 'outline'}
-                                                                            className={`mt-2 ${isSelected ? 'bg-[#2563eb] hover:bg-[#1d4ed8]' : ''}`}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleSelectRate(Number(occNumber), rate);
-                                                                            }}
-                                                                        >
-                                                                            {isSelected ? <><Check className="w-3 h-3 mr-1"/>Selected</> : 'Select'}
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                                rate={rate}
+                                                                room={matchedRoom}
+                                                                actualNights={actualNights}
+                                                                isSelected={isSelected}
+                                                                onSelect={() => handleSelectRate(Number(occNumber), rate)}
+                                                                fallbackImage={fallbackRoomImage}
+                                                            />
                                                         );
                                                     })}
                                                 </div>
@@ -575,7 +431,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             )}
                         </Card>
 
-                        {/* Guest Sentiment */}
                         {hotel.sentiment_analysis && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Guest Reviews</h2>
@@ -588,7 +443,8 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                             </h3>
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.pros.map((pro, i) => (
-                                                    <li key={i} className="text-sm text-[#1f2937] flex items-center gap-2">
+                                                    <li key={i}
+                                                        className="text-sm text-[#1f2937] flex items-center gap-2">
                                                         <Check className="w-3 h-3 text-green-500 flex-shrink-0"/>
                                                         {pro}
                                                     </li>
@@ -604,7 +460,8 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                             </h3>
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.cons.map((con, i) => (
-                                                    <li key={i} className="text-sm text-[#1f2937] flex items-start gap-2">
+                                                    <li key={i}
+                                                        className="text-sm text-[#1f2937] flex items-start gap-2">
                                                         <span className="text-red-400 flex-shrink-0 mt-0.5">•</span>
                                                         {con}
                                                     </li>
@@ -618,8 +475,10 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                         {hotel.sentiment_analysis.categories.map((cat) => (
                                             <div key={cat.name}>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
-                                                    <span className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
+                                                    <span
+                                                        className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
+                                                    <span
+                                                        className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
                                                 </div>
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
@@ -634,7 +493,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Policies */}
                         {hotel.policies?.length > 0 && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Policies</h2>
@@ -649,13 +507,9 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             </Card>
                         )}
 
-                        {/* Location Map */}
                         <Card className="p-6">
                             <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Location</h2>
-                            <MapComponent
-                                location={locationString}
-                                height="400px"
-                            />
+                            <MapComponent location={locationString} height="400px"/>
                             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                                 <p className="text-sm text-[#717182] flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-[#2563eb]"/>
@@ -667,18 +521,20 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                         </Card>
                     </div>
 
-                    {/* Booking Card */}
                     <div className="lg:col-span-1">
                         <Card className="p-6 sticky top-28">
                             <div className="mb-6">
                                 {isSelectionComplete ? (
                                     <>
-                                        <p className="text-sm text-[#717182] mb-1">Total for {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'}</p>
+                                        <p className="text-sm text-[#717182] mb-1">
+                                            Total for {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'}
+                                        </p>
                                         <p className="text-lg font-semibold text-[#1f2937]">
                                             {selectedCurrency} {(selectedTotal / actualNights).toFixed(0)}/night
                                         </p>
                                         <p className="text-sm text-[#717182] mt-1">
-                                            {selectedCurrency} {selectedTotal.toFixed(0)} total ({actualNights} {actualNights === 1 ? 'night' : 'nights'})
+                                            {selectedCurrency} {selectedTotal.toFixed(0)} total ({actualNights}{' '}
+                                            {actualNights === 1 ? 'night' : 'nights'})
                                         </p>
                                     </>
                                 ) : (
@@ -687,13 +543,14 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                         <p className="text-lg font-semibold text-[#1f2937]">
                                             {checkIn && checkOut
                                                 ? occupancies.length > 1
-                                                    ?`Select a room for each of ${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`
+                                                    ? `Select a room for each of ${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`
                                                     : 'Select a room below'
                                                 : 'Select dates for pricing'}
                                         </p>
                                         {occupancies.length > 1 && checkIn && checkOut && (
                                             <p className="text-xs text-[#717182] mt-1">
-                                                {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
+                                                {Object.keys(selectedRates).length} of {occupancies.length} rooms
+                                                selected
                                             </p>
                                         )}
                                     </>
@@ -702,105 +559,102 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 
                             <Separator className="my-6"/>
 
-                            {/* Booking Options */}
-                  <div className="space-y-4 mb-6">
-  <div></div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 block">
-      Rooms
-    </label>
-    <input
-  type="number"
-  min={1}
-  value={occupancies.length}
-  onChange={(e) => {
-    const roomCount = Math.max(1, Number(e.target.value) || 1);
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 block">Rooms</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={occupancies.length}
+                                        onChange={(e) => {
+                                            const newRoomCount = Math.max(1, Number(e.target.value) || 1);
 
-    setOccupancies((prev) => {
-      const totalGuests = prev.reduce(
-        (sum, room) => sum + room.adults + room.children.length,
-        0
-      );
+                                            setOccupancies((prev) => {
+                                                const currentTotalGuests = prev.reduce(
+                                                    (sum, room) => sum + room.adults + room.children.length,
+                                                    0
+                                                );
 
-      const base = Math.floor(totalGuests / roomCount);
-      let remainder = totalGuests % roomCount;
+                                                const base = Math.floor(currentTotalGuests / newRoomCount);
+                                                let remainder = currentTotalGuests % newRoomCount;
 
-      return Array.from({ length: roomCount }, () => {
-        const adults = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        return { adults: Math.max(1, adults), children: [] };
-      });
-    });
+                                                return Array.from({length: newRoomCount}, () => {
+                                                    const adults = base + (remainder > 0 ? 1 : 0);
+                                                    if (remainder > 0) remainder--;
+                                                    return {adults: Math.max(1, adults), children: []};
+                                                });
+                                            });
 
-    setSelectedRates({});
-  }}
-  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-/>
-  </div>
-  <div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-      <Users className="w-4 h-4"/>
-      Guests
-    </label>
-   <input
-  type="number"
-  min={1}
-  value={totalGuests}
-  onChange={(e) => {
-    const guestCount = Math.max(1, Number(e.target.value) || 1);
-
-    setOccupancies((prev) => {
-      const roomCount = prev.length;
-
-      const base = Math.floor(guestCount / roomCount);
-      let remainder = guestCount % roomCount;
-
-      return Array.from({ length: roomCount }, () => {
-        const adults = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        return { adults: Math.max(1, adults), children: [] };
-      });
-    });
-
-    setSelectedRates({});
-  }}
-  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-/>
-  </div>
-
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    />
+                                </div>
 
                                 <div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-        <Calendar className="w-4 h-4"/>
-        Stay
-    </label>
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                        <Users className="w-4 h-4"/>
+                                        Guests
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={totalGuests}
+                                        onChange={(e) => {
+                                            const guestCount = Math.max(1, Number(e.target.value) || 1);
 
-    <div className="grid grid-cols-1 gap-3">
-        <input
-            type="date"
-            value={checkIn}
-            onChange={(e) => {
-                setCheckIn(e.target.value);
-                setSelectedRates({});
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-        />
+                                            setOccupancies((prev) => {
+                                                const currentRoomCount = prev.length;
+                                                const base = Math.floor(guestCount / currentRoomCount);
+                                                let remainder = guestCount % currentRoomCount;
 
-        <input
-            type="date"
-            value={checkOut}
-            onChange={(e) => {
-                setCheckOut(e.target.value);
-                setSelectedRates({});
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-        />
+                                                return Array.from({length: currentRoomCount}, () => {
+                                                    const adults = base + (remainder > 0 ? 1 : 0);
+                                                    if (remainder > 0) remainder--;
+                                                    return {adults: Math.max(1, adults), children: []};
+                                                });
+                                            });
 
-        {checkIn && checkOut && (
-            <div className="text-sm text-[#717182]">
-                {actualNights} {actualNights === 1 ? 'night' : 'nights'}
-            </div>
-        )}
-    </div>
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                        <Calendar className="w-4 h-4"/>
+                                        Stay
+                                    </label>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <input
+                                            type="date"
+                                            value={checkIn}
+                                            onChange={(e) => {
+                                                setCheckIn(e.target.value);
+                                                setSelectedRates({});
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                                        />
+
+                                        <input
+                                            type="date"
+                                            value={checkOut}
+                                            onChange={(e) => {
+                                                setCheckOut(e.target.value);
+                                                setSelectedRates({});
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                                        />
+
+                                        {checkIn && checkOut && (
+                                            <div className="text-sm text-[#717182]">
+                                                {actualNights} {actualNights === 1 ? 'night' : 'nights'}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <Button
@@ -809,8 +663,6 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 onClick={async () => {
                                     if (!isSelectionComplete) return;
 
-                                    // If the user is not logged in, save the selected offer and
-                                    // send them to login, then auto-resume on return.
                                     if (!user) {
                                         const firstRate = Object.values(selectedRates)[0];
                                         sessionStorage.setItem(
@@ -824,24 +676,29 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 
                                     setPrebookLoading(true);
                                     try {
-                                        // Use the offerId from the first selected rate (single-room booking)
                                         const firstRate = Object.values(selectedRates)[0];
                                         const prebook = await api.getRatesPrebook({
                                             offerId: firstRate.offerId,
-                                            usePaymentSdk: false
+                                            usePaymentSdk: false,
                                         });
+
                                         const prebookData = prebook?.data;
                                         if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
+
                                         sessionStorage.setItem(
                                             `prebook:${prebookData.prebookId}`,
                                             JSON.stringify({
                                                 ...prebookData,
                                                 checkin: checkIn || undefined,
-                                                checkout: checkOut || undefined
+                                                checkout: checkOut || undefined,
                                             })
                                         );
-                                        navigate(`/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(occupancies))}`
-);
+
+                                        navigate(
+                                            `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
+                                                JSON.stringify(occupancies)
+                                            )}`
+                                        );
                                     } catch (err: any) {
                                         if (err?.context?.status === 409) {
                                             const body = await err.context.json().catch(() => null);
@@ -861,12 +718,14 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                     Reserving...
                   </span>
-                                ) : isSelectionComplete ? 'Reserve Now' : 'Select a Room'}
+                                ) : isSelectionComplete ? (
+                                    'Reserve Now'
+                                ) : (
+                                    'Select a Room'
+                                )}
                             </Button>
 
-                            <p className="text-xs text-center text-[#717182] mt-4">
-                                You won't be charged yet
-                            </p>
+                            <p className="text-xs text-center text-[#717182] mt-4">You won't be charged yet</p>
                         </Card>
                     </div>
                 </div>
