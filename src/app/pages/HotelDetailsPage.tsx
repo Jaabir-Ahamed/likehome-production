@@ -295,8 +295,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             })
             .catch(() => toast.error('Could not load room rates.'))
             .finally(() => setRatesLoading(false));
-    }, [id, checkIn, checkOut]);
-
+    }, [id, checkIn, checkOut, occupancies]);
     if (loading) {
         return (
             <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
