@@ -133,7 +133,7 @@ const guestsParam = occupancies.reduce(
 );
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
-  const { points, loading: rewardsLoading, addPoints, redeemPoints, dollarsToPoints } = useRewards();
+  const { points, loading: rewardsLoading, addPoints, redeemPoints, dollarsToPoints, maxRedeemableForAmount } = useRewards();
   const { user } = useAuth();
 
   const prebookId = searchParams.get('prebookId');
@@ -309,6 +309,7 @@ const guestsParam = occupancies.reduce(
   }, [pointsToRedeemInput]);
 
   const pointsBalance = points ?? 0;
+  const maxRedeemablePoints = maxRedeemableForAmount(finalTotal);
   const discountedTotal = Math.max(finalTotal - redeemDiscount, 0);
 
   useEffect(() => {
@@ -319,9 +320,16 @@ const guestsParam = occupancies.reduce(
       return;
     }
 
-    if (parsedPointsToRedeem <= 0) {
+    if (parsedPointsToRedeem < 0) {
       setRedeemDiscount(0);
-      setRedeemQuoteError('Enter a whole number of points greater than 0.');
+      setRedeemQuoteError('Enter a whole number of points.');
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    if (parsedPointsToRedeem === 0) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError(null);
       setRedeemQuoteLoading(false);
       return;
     }
@@ -336,6 +344,15 @@ const guestsParam = occupancies.reduce(
     if (parsedPointsToRedeem > pointsBalance) {
       setRedeemDiscount(0);
       setRedeemQuoteError(`You only have ${pointsBalance.toLocaleString()} points.`);
+      setRedeemQuoteLoading(false);
+      return;
+    }
+
+    if (parsedPointsToRedeem > maxRedeemablePoints) {
+      setRedeemDiscount(0);
+      setRedeemQuoteError(
+        `You can redeem up to ${maxRedeemablePoints.toLocaleString()} points for this booking total.`
+      );
       setRedeemQuoteLoading(false);
       return;
     }
@@ -365,7 +382,7 @@ const guestsParam = occupancies.reduce(
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [pointsToRedeemInput, parsedPointsToRedeem, pointsBalance, finalTotal]);
+  }, [pointsToRedeemInput, parsedPointsToRedeem, pointsBalance, finalTotal, maxRedeemablePoints]);
 
   // Validity warnings
   const warnings: string[] = [];
@@ -425,7 +442,13 @@ const guestsParam = occupancies.reduce(
           };
         });
 
-        const redeemNow = Math.max(0, Number.isInteger(parsedPointsToRedeem) ? parsedPointsToRedeem : 0);
+        const redeemNow = Math.max(
+          0,
+          Math.min(
+            Number.isInteger(parsedPointsToRedeem) ? parsedPointsToRedeem : 0,
+            maxRedeemablePoints
+          )
+        );
 
         const bookingResponse = await api.getRatesBook({
           prebookId: prebookData!.prebookId,
@@ -445,7 +468,10 @@ const guestsParam = occupancies.reduce(
 
         // Award points after a confirmed booking.
         const pointsEarned = dollarsToPoints(discountedTotal);
-        const newPointsTotal = await addPoints(pointsEarned);
+        let newPointsTotal: number | null = pointsBalance;
+        if (pointsEarned > 0) {
+          newPointsTotal = await addPoints(pointsEarned);
+        }
         const bookingId =
           (bookingResponse as { data?: { bookingId?: string }; bookingId?: string })?.data?.bookingId
           ?? (bookingResponse as { bookingId?: string })?.bookingId;
@@ -455,7 +481,7 @@ const guestsParam = occupancies.reduce(
             redeemedPoints: redeemNow,
           });
         }
-        if (newPointsTotal === null) {
+        if (pointsEarned > 0 && newPointsTotal === null) {
           toast.error('Failed to add reward points.');
         } else {
           toast.success(
@@ -863,6 +889,7 @@ const guestsParam = occupancies.reduce(
                   <Input
                     type="number"
                     min={0}
+                    max={maxRedeemablePoints}
                     step={1}
                     placeholder="Enter points to redeem"
                     value={pointsToRedeemInput}
@@ -877,6 +904,11 @@ const guestsParam = occupancies.reduce(
                       {redeemQuoteLoading
                         ? 'Calculating discount...'
                         : `${parsedPointsToRedeem.toLocaleString()} pts = ${priceSymbol}${redeemDiscount.toFixed(2)} off`}
+                    </p>
+                  )}
+                  {!redeemQuoteError && (
+                    <p className="text-xs text-amber-800 mt-2">
+                      Max redeemable for this total: {maxRedeemablePoints.toLocaleString()} pts
                     </p>
                   )}
                 </div>
