@@ -1,30 +1,30 @@
-import {useEffect, useRef, useState} from 'react';
-import {Link, useLocation, useNavigate, useParams, useSearchParams} from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Clock,
-  Dumbbell,
-  Heart,
-  Info,
-  MapPin,
-  ParkingSquare,
-  Star,
-  ThumbsDown,
-  ThumbsUp,
-  Users,
-  Utensils,
-  Wifi
+    ArrowLeft,
+    Calendar,
+    Check,
+    Clock,
+    Dumbbell,
+    Heart,
+    Info,
+    MapPin,
+    ParkingSquare,
+    Star,
+    ThumbsDown,
+    ThumbsUp,
+    Users,
+    Utensils,
+    Wifi
 } from 'lucide-react';
-import {Button} from '../components/ui/button';
-import {Card} from '../components/ui/card';
-import {Badge} from '../components/ui/badge';
-import {Separator} from '../components/ui/separator';
-import {MapComponent} from '../components/MapComponent';
-import {api} from '../../api/liteApi';
-import {useAuth} from '../contexts/AuthContext';
-import {toast} from 'sonner';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Separator } from '../components/ui/separator';
+import { MapComponent } from '../components/MapComponent';
+import { api } from '../../api/liteApi';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface HotelImage {
     url: string;
@@ -102,74 +102,74 @@ interface HotelDetails {
 }
 
 const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ className?: string }> }[] = [
-    {keywords: ['wifi', 'internet', 'wired'], Icon: Wifi},
-    {keywords: ['restaurant', 'dining', 'coffee shop', 'coffee'], Icon: Utensils},
-    {keywords: ['parking', 'garage'], Icon: ParkingSquare},
-    {keywords: ['fitness', 'gym', 'sport'], Icon: Dumbbell},
+    { keywords: ['wifi', 'internet', 'wired'], Icon: Wifi },
+    { keywords: ['restaurant', 'dining', 'coffee shop', 'coffee'], Icon: Utensils },
+    { keywords: ['parking', 'garage'], Icon: ParkingSquare },
+    { keywords: ['fitness', 'gym', 'sport'], Icon: Dumbbell },
 ];
 
 function getFacilityIcon(name: string): React.ComponentType<{ className?: string }> {
     const lower = name.toLowerCase();
-    for (const {keywords, Icon} of FACILITY_ICON_KEYWORDS) {
+    for (const { keywords, Icon } of FACILITY_ICON_KEYWORDS) {
         if (keywords.some(k => lower.includes(k))) return Icon;
     }
     return Check;
 }
 
 export function HotelDetailsPage() {
-    const {id} = useParams();
+    const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const {user, loading: authLoading} = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const initialCheckIn = searchParams.get('checkIn') ?? '';
     const initialCheckOut = searchParams.get('checkOut') ?? '';
     const [checkIn, setCheckIn] = useState(initialCheckIn);
     const [checkOut, setCheckOut] = useState(initialCheckOut);
     const occupanciesParam = searchParams.get('occupancies');
 
-const initialOccupancies = (() : { adults: number; children: number[] }[] => {
-  try {
-    return occupanciesParam
-      ? (JSON.parse(occupanciesParam) as { adults: number; children: number[] }[])
-      : [{ adults: 2, children: [] }];
-  } catch {
-    return [{ adults: 2, children: [] }];
-  }
-})();
+    const initialOccupancies = ((): { adults: number; children: number[] }[] => {
+        try {
+            return occupanciesParam
+                ? (JSON.parse(occupanciesParam) as { adults: number; children: number[] }[])
+                : [{ adults: 2, children: [] }];
+        } catch {
+            return [{ adults: 2, children: [] }];
+        }
+    })();
 
-const [occupancies, setOccupancies] = useState<{ adults: number; children: number[] }[]>(initialOccupancies);
+    const [occupancies, setOccupancies] = useState<{ adults: number; children: number[] }[]>(initialOccupancies);
 
-const totalGuests = occupancies.reduce(
-  (total: number, room: { adults: number; children: number[] }) =>
-    total + room.adults + room.children.length,
-  0
-);
-const roomCount = occupancies.length;
-const rebuildOccupancies = (newRoomCount: number, newGuestCount: number) => {
-  const safeRoomCount = Math.max(1, newRoomCount);
-  const safeGuestCount = Math.max(safeRoomCount, newGuestCount);
+    const totalGuests = occupancies.reduce(
+        (total: number, room: { adults: number; children: number[] }) =>
+            total + room.adults + room.children.length,
+        0
+    );
+    const roomCount = occupancies.length;
+    const rebuildOccupancies = (newRoomCount: number, newGuestCount: number) => {
+        const safeRoomCount = Math.max(1, newRoomCount);
+        const safeGuestCount = Math.max(safeRoomCount, newGuestCount);
 
-  const base = Math.floor(safeGuestCount / safeRoomCount);
-  const remainder = safeGuestCount % safeRoomCount;
+        const base = Math.floor(safeGuestCount / safeRoomCount);
+        const remainder = safeGuestCount % safeRoomCount;
 
-  const next = Array.from({ length: safeRoomCount }, (_, i) => ({
-    adults: base + (i < remainder ? 1 : 0),
-    children: [] as number[],
-  }));
+        const next = Array.from({ length: safeRoomCount }, (_, i) => ({
+            adults: base + (i < remainder ? 1 : 0),
+            children: [] as number[],
+        }));
 
-  setOccupancies(next);
-};
-const handleGuestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const newGuestCount = Math.max(1, Number(e.target.value) || 1);
-  rebuildOccupancies(roomCount, newGuestCount);
-};
+        setOccupancies(next);
+    };
+    const handleGuestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newGuestCount = Math.max(1, Number(e.target.value) || 1);
+        rebuildOccupancies(roomCount, newGuestCount);
+    };
 
-const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const newRoomCount = Math.max(1, Number(e.target.value) || 1);
-  rebuildOccupancies(newRoomCount, totalGuests);
-};
-    const [selectedImage, setSelectedImage] = useState(0); 
+    const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newRoomCount = Math.max(1, Number(e.target.value) || 1);
+        rebuildOccupancies(newRoomCount, totalGuests);
+    };
+    const [selectedImage, setSelectedImage] = useState(0);
     const [manualNights, setManualNights] = useState(1);
     const [prebookLoading, setPrebookLoading] = useState(false);
     const [ratesByOccupancy, setRatesByOccupancy] = useState<Record<number, any[]>>({});
@@ -178,6 +178,8 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const [hotel, setHotel] = useState<HotelDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    //console.log(selectedRates);
 
     // Auto-complete a pending reservation if the user just logged in from this page
     const autoTriggered = useRef(false);
@@ -210,9 +212,9 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         autoTriggered.current = true;
         sessionStorage.removeItem('pendingReservation');
         setPrebookLoading(true);
-        toast.loading('Resuming your reservation…', {id: 'auto-prebook'});
+        toast.loading('Resuming your reservation…', { id: 'auto-prebook' });
 
-        api.getRatesPrebook({offerId: pending.offerId, usePaymentSdk: false})
+        api.getRatesPrebook({ offerId: pending.offerId, usePaymentSdk: false })
             .then((prebook) => {
                 const prebookData = prebook?.data;
                 if (!prebookData?.prebookId) throw new Error('Invalid prebook response');
@@ -232,7 +234,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                 toast.error('Your selected rate has expired. Please choose a room again.');
             })
             .finally(() => setPrebookLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, authLoading]);
 
     const isSelectionComplete = Object.keys(selectedRates).length === occupancies.length;
@@ -300,7 +302,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (loading) {
         return (
             <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"/>
+                <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -338,7 +340,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                 {/* Back Button */}
                 <Button variant="ghost" asChild className="mb-6">
                     <Link to="/hotels">
-                        <ArrowLeft className="w-4 h-4 mr-2"/>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Hotels
                     </Link>
                 </Button>
@@ -349,7 +351,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                         <div>
                             <h1 className="text-4xl font-bold text-[#1f2937] mb-2">{hotel.name}</h1>
                             <p className="text-lg text-[#717182] flex items-center gap-2">
-                                <MapPin className="w-5 h-5"/>
+                                <MapPin className="w-5 h-5" />
                                 {hotel.city} • {hotel.address}
                             </p>
                         </div>
@@ -357,22 +359,22 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             className="w-12 h-12 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center hover:border-[#f59e0b] hover:bg-[#f59e0b]/10 transition-colors"
                             aria-label="Add to favorites"
                         >
-                            <Heart className="w-6 h-6 text-[#1f2937]"/>
+                            <Heart className="w-6 h-6 text-[#1f2937]" />
                         </button>
                     </div>
 
                     <div className="flex items-center gap-4">
                         {hotel.starRating > 0 && (
                             <div className="flex items-center gap-1">
-                                {Array.from({length: hotel.starRating}).map((_, i) => (
-                                    <Star key={i} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]"/>
+                                {Array.from({ length: hotel.starRating }).map((_, i) => (
+                                    <Star key={i} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]" />
                                 ))}
                             </div>
                         )}
-                        {hotel.starRating > 0 && <Separator orientation="vertical" className="h-6"/>}
+                        {hotel.starRating > 0 && <Separator orientation="vertical" className="h-6" />}
                         {hotel.rating > 0 && (
                             <div className="bg-[#2563eb] text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
-                                <Star className="w-4 h-4 fill-white"/>
+                                <Star className="w-4 h-4 fill-white" />
                                 <span className="font-bold">{hotel.rating}</span>
                             </div>
                         )}
@@ -398,9 +400,8 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                     key={index}
                                     src={image}
                                     alt={`${hotel.name} ${index + 1}`}
-                                    className={`w-full h-[155px] object-cover rounded-lg cursor-pointer transition-all ${
-                                        selectedImage === index ? 'ring-2 ring-[#2563eb]' : 'hover:opacity-80'
-                                    }`}
+                                    className={`w-full h-[155px] object-cover rounded-lg cursor-pointer transition-all ${selectedImage === index ? 'ring-2 ring-[#2563eb]' : 'hover:opacity-80'
+                                        }`}
                                     onClick={() => setSelectedImage(index)}
                                 />
                             ))}
@@ -417,7 +418,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
                                 <div
                                     className="text-[#1f2937] leading-relaxed prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{__html: hotel.hotelDescription}}
+                                    dangerouslySetInnerHTML={{ __html: hotel.hotelDescription }}
                                 />
                             </Card>
                         )}
@@ -428,7 +429,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex items-start gap-3">
-                                        <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
+                                        <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
                                         <div>
                                             <p className="font-semibold text-[#1f2937]">Check-in</p>
                                             <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
@@ -438,7 +439,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3">
-                                        <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
+                                        <Clock className="w-5 h-5 text-[#2563eb] mt-0.5" />
                                         <div>
                                             <p className="font-semibold text-[#1f2937]">Check-out</p>
                                             <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
@@ -457,7 +458,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                         const Icon = getFacilityIcon(facility);
                                         return (
                                             <div key={facility} className="flex items-center gap-2">
-                                                <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0"/>
+                                                <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0" />
                                                 <span className="text-sm text-[#1f2937]">{facility}</span>
                                             </div>
                                         );
@@ -470,12 +471,12 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                         {hotel.hotelImportantInformation && (
                             <Card className="p-6">
                                 <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
-                                    <Info className="w-6 h-6 text-[#f59e0b]"/>
+                                    <Info className="w-6 h-6 text-[#f59e0b]" />
                                     Important Information
                                 </h2>
                                 <pre className="text-sm text-[#1f2937] whitespace-pre-wrap font-sans leading-relaxed">
-                  {hotel.hotelImportantInformation}
-                </pre>
+                                    {hotel.hotelImportantInformation}
+                                </pre>
                             </Card>
                         )}
 
@@ -486,8 +487,8 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 <div className="space-y-3">
                                     {[1, 2, 3].map(i => (
                                         <div key={i} className="border border-gray-200 rounded-lg p-4 animate-pulse">
-                                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"/>
-                                            <div className="h-3 bg-gray-200 rounded w-1/4"/>
+                                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
+                                            <div className="h-3 bg-gray-200 rounded w-1/4" />
                                         </div>
                                     ))}
                                 </div>
@@ -501,7 +502,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 <div className="space-y-6">
                                     {Object.entries(ratesByOccupancy).map(([occNumber, rates]) => {
                                         const occIndex = Number(occNumber) - 1;
-                                        const occ = occupancies[occIndex] ?? {adults: 1};
+                                        const occ = occupancies[occIndex] ?? { adults: 1 };
 
                                         return (
                                             <div key={occNumber} className="border border-gray-200 rounded-lg p-4">
@@ -521,11 +522,10 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                                         return (
                                                             <div
                                                                 key={rate.rateId}
-                                                                className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                                                                    isSelected
-                                                                        ? 'border-2 border-[#2563eb] bg-blue-50'
-                                                                        : 'border-gray-200 hover:border-gray-300'
-                                                                }`}
+                                                                className={`border rounded-lg p-4 cursor-pointer transition-all ${isSelected
+                                                                    ? 'border-2 border-[#2563eb] bg-blue-50'
+                                                                    : 'border-gray-200 hover:border-gray-300'
+                                                                    }`}
                                                                 onClick={() => handleSelectRate(Number(occNumber), rate)}
                                                             >
                                                                 <div className="flex items-start justify-between gap-4">
@@ -561,7 +561,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                                                                 handleSelectRate(Number(occNumber), rate);
                                                                             }}
                                                                         >
-                                                                            {isSelected ? <><Check className="w-3 h-3 mr-1"/>Selected</> : 'Select'}
+                                                                            {isSelected ? <><Check className="w-3 h-3 mr-1" />Selected</> : 'Select'}
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -584,13 +584,13 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                     {hotel.sentiment_analysis.pros?.length > 0 && (
                                         <div>
                                             <h3 className="font-semibold text-green-700 flex items-center gap-2 mb-2">
-                                                <ThumbsUp className="w-4 h-4"/>
+                                                <ThumbsUp className="w-4 h-4" />
                                                 What guests love
                                             </h3>
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.pros.map((pro, i) => (
                                                     <li key={i} className="text-sm text-[#1f2937] flex items-center gap-2">
-                                                        <Check className="w-3 h-3 text-green-500 flex-shrink-0"/>
+                                                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
                                                         {pro}
                                                     </li>
                                                 ))}
@@ -600,7 +600,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                     {hotel.sentiment_analysis.cons?.length > 0 && (
                                         <div>
                                             <h3 className="font-semibold text-red-600 flex items-center gap-2 mb-2">
-                                                <ThumbsDown className="w-4 h-4"/>
+                                                <ThumbsDown className="w-4 h-4" />
                                                 Areas for improvement
                                             </h3>
                                             <ul className="space-y-1">
@@ -625,7 +625,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className="bg-[#2563eb] h-2 rounded-full"
-                                                        style={{width: `${Math.min((cat.rating / 10) * 100, 100)}%`}}
+                                                        style={{ width: `${Math.min((cat.rating / 10) * 100, 100)}%` }}
                                                     />
                                                 </div>
                                             </div>
@@ -659,7 +659,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             />
                             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                                 <p className="text-sm text-[#717182] flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-[#2563eb]"/>
+                                    <MapPin className="w-4 h-4 text-[#2563eb]" />
                                     <span className="font-medium text-[#1f2937]">{hotel.address}</span>
                                     <span>•</span>
                                     <span>{hotel.city}</span>
@@ -701,107 +701,111 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 )}
                             </div>
 
-                            <Separator className="my-6"/>
+                            <Separator className="my-6" />
 
-                            {/* Booking Options */}
-                  <div className="space-y-4 mb-6">
-  <div></div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 block">
-      Rooms
-    </label>
-    <input
-  type="number"
-  min={1}
-  value={occupancies.length}
-  onChange={(e) => {
-    const roomCount = Math.max(1, Number(e.target.value) || 1);
+                            <div className="flex gap-6 mb-6">
 
-    setOccupancies((prev) => {
-      const totalGuests = prev.reduce(
-        (sum, room) => sum + room.adults + room.children.length,
-        0
-      );
+                                {/* Rooms */}
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2">
+                                        Rooms
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={occupancies.length}
+                                        onChange={(e) => {
+                                            const roomCount = Math.max(1, Number(e.target.value) || 1);
 
-      const base = Math.floor(totalGuests / roomCount);
-      let remainder = totalGuests % roomCount;
+                                            setOccupancies((prev) => {
+                                                const totalGuests = prev.reduce(
+                                                    (sum, room) => sum + room.adults + room.children.length,
+                                                    0
+                                                );
 
-      return Array.from({ length: roomCount }, () => {
-        const adults = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        return { adults: Math.max(1, adults), children: [] };
-      });
-    });
+                                                const base = Math.floor(totalGuests / roomCount);
+                                                let remainder = totalGuests % roomCount;
 
-    setSelectedRates({});
-  }}
-  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-/>
-  </div>
-  <div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-      <Users className="w-4 h-4"/>
-      Guests
-    </label>
-   <input
-  type="number"
-  min={1}
-  value={totalGuests}
-  onChange={(e) => {
-    const guestCount = Math.max(1, Number(e.target.value) || 1);
+                                                return Array.from({ length: roomCount }, () => {
+                                                    const adults = base + (remainder > 0 ? 1 : 0);
+                                                    if (remainder > 0) remainder--;
+                                                    return { adults: Math.max(1, adults), children: [] };
+                                                });
+                                            });
 
-    setOccupancies((prev) => {
-      const roomCount = prev.length;
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    />
+                                </div>
 
-      const base = Math.floor(guestCount / roomCount);
-      let remainder = guestCount % roomCount;
+                                {/* Guests */}
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                        <Users className="w-4 h-4" />
+                                        Guests
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={totalGuests}
+                                        onChange={(e) => {
+                                            const guestCount = Math.max(1, Number(e.target.value) || 1);
 
-      return Array.from({ length: roomCount }, () => {
-        const adults = base + (remainder > 0 ? 1 : 0);
-        if (remainder > 0) remainder--;
-        return { adults: Math.max(1, adults), children: [] };
-      });
-    });
+                                            setOccupancies((prev) => {
+                                                const roomCount = prev.length;
 
-    setSelectedRates({});
-  }}
-  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-/>
-  </div>
+                                                const base = Math.floor(guestCount / roomCount);
+                                                let remainder = guestCount % roomCount;
+
+                                                return Array.from({ length: roomCount }, () => {
+                                                    const adults = base + (remainder > 0 ? 1 : 0);
+                                                    if (remainder > 0) remainder--;
+                                                    return { adults: Math.max(1, adults), children: [] };
+                                                });
+                                            });
+
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    />
+                                </div>
+
+                            </div>
 
 
-                                <div>
-    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
-        <Calendar className="w-4 h-4"/>
-        Stay
-    </label>
+                            <div>
+                                <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4" />
+                                    Stay
+                                </label>
 
-    <div className="grid grid-cols-1 gap-3">
-        <input
-            type="date"
-            value={checkIn}
-            onChange={(e) => {
-                setCheckIn(e.target.value);
-                setSelectedRates({});
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-        />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                        type="date"
+                                        value={checkIn}
+                                        onChange={(e) => {
+                                            setCheckIn(e.target.value);
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={checkOut}
+                                        onChange={(e) => {
+                                            setCheckOut(e.target.value);
+                                            setSelectedRates({});
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                                    />
 
-        <input
-            type="date"
-            value={checkOut}
-            onChange={(e) => {
-                setCheckOut(e.target.value);
-                setSelectedRates({});
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-        />
-
-        {checkIn && checkOut && (
-            <div className="text-sm text-[#717182]">
-                {actualNights} {actualNights === 1 ? 'night' : 'nights'}
-            </div>
-        )}
-    </div>
+                                    {checkIn && checkOut && (
+                                        <div className="text-sm text-[#717182]">
+                                            {actualNights} {actualNights === 1 ? 'night' : 'nights'}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <Button
@@ -816,7 +820,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                         const firstRate = Object.values(selectedRates)[0];
                                         sessionStorage.setItem(
                                             'pendingReservation',
-                                            JSON.stringify({offerId: firstRate.offerId, hotelId: id})
+                                            JSON.stringify({ offerId: firstRate.offerId, hotelId: id })
                                         );
                                         sessionStorage.setItem('loginRedirect', location.pathname + location.search);
                                         navigate('/login');
@@ -842,7 +846,7 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                                             })
                                         );
                                         navigate(`/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(occupancies))}`
-);
+                                        );
                                     } catch (err: any) {
                                         if (err?.context?.status === 409) {
                                             const body = await err.context.json().catch(() => null);
@@ -859,9 +863,9 @@ const handleRoomChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                             >
                                 {prebookLoading ? (
                                     <span className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                    Reserving...
-                  </span>
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        Reserving...
+                                    </span>
                                 ) : isSelectionComplete ? 'Reserve Now' : 'Select a Room'}
                             </Button>
 
