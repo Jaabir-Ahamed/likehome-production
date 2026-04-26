@@ -66,6 +66,12 @@ interface RewardsContextType {
      *   canAfford(500) // → true if points >= 500
      */
     canAfford: (amount: number) => boolean;
+
+    /**
+     * Max integer points that can be redeemed toward a bill without exceeding its total,
+     * capped by the current balance (100 pts = $1 off by default).
+     */
+    maxRedeemableForAmount: (billAmount: number) => number;
 }
 
 // ─── Rewards Configuration ────────────────────────────────────────────────────
@@ -180,6 +186,12 @@ export function RewardsProvider({ children }: { children: ReactNode }) {
         return points !== null && points >= amount;
     }, [points]);
 
+    const maxRedeemableForAmount = useCallback((billAmount: number): number => {
+        if (points === null || billAmount <= 0) return 0;
+        const capByBill = Math.floor(billAmount / REWARDS_CONFIG.DOLLARS_PER_POINT + 1e-9);
+        return Math.min(points, capByBill);
+    }, [points]);
+
     return (
         <RewardsContext.Provider value={{
             points,
@@ -191,6 +203,7 @@ export function RewardsProvider({ children }: { children: ReactNode }) {
             pointsToDollars,
             dollarsToPoints,
             canAfford,
+            maxRedeemableForAmount,
         }}>
             {children}
         </RewardsContext.Provider>

@@ -2,13 +2,44 @@ import { Gift, Award, Star, Trophy, Crown, Zap, TrendingUp } from 'lucide-react'
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
+import { useRewards } from '../contexts/RewardsContext';
 
 export function RewardsPage() {
-  // Mock user rewards data
-  const currentPoints = 3850;
-  const nextTierPoints = 5000;
-  const progressPercentage = (currentPoints / nextTierPoints) * 100;
-  const currentTier = 'Gold';
+  const { points, loading: rewardsLoading } = useRewards();
+  const currentPoints = points ?? 0;
+  const currentTier =
+    currentPoints >= 20000
+      ? 'Diamond'
+      : currentPoints >= 10000
+        ? 'Platinum'
+        : currentPoints >= 5000
+          ? 'Gold'
+          : 'Silver';
+
+  const nextTierPoints =
+    currentTier === 'Silver'
+      ? 5000
+      : currentTier === 'Gold'
+        ? 10000
+        : currentTier === 'Platinum'
+          ? 20000
+          : null;
+
+  const currentTierFloor =
+    currentTier === 'Silver'
+      ? 0
+      : currentTier === 'Gold'
+        ? 5000
+        : currentTier === 'Platinum'
+          ? 10000
+          : 20000;
+
+  const progressPercentage = nextTierPoints
+    ? Math.min(
+        ((currentPoints - currentTierFloor) / (nextTierPoints - currentTierFloor)) * 100,
+        100
+      )
+    : 100;
 
   const rewardHistory = [
     {
@@ -83,6 +114,7 @@ export function RewardsPage() {
     Silver: ['5% bonus points', 'Early check-in', 'Free Wi-Fi'],
     Gold: ['10% bonus points', 'Free breakfast', 'Priority support', 'Late checkout'],
     Platinum: ['15% bonus points', 'Free upgrades', 'Exclusive deals', 'Concierge service'],
+    Diamond: ['20% bonus points', 'Suite upgrades', 'VIP support', 'Exclusive partner perks'],
   };
 
   return (
@@ -108,15 +140,25 @@ export function RewardsPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white">
-                    {currentPoints.toLocaleString()} Points
+                    {rewardsLoading ? 'Loading...' : `${currentPoints.toLocaleString()} Points`}
                   </h2>
                   <p className="text-white/80">Current Tier: {currentTier}</p>
                 </div>
               </div>
               <div className="mb-3">
                 <div className="flex justify-between text-sm text-white/90 mb-2">
-                  <span>{currentPoints.toLocaleString()} / {nextTierPoints.toLocaleString()} points</span>
-                  <span>{nextTierPoints - currentPoints} points to Platinum</span>
+                  <span>
+                    {nextTierPoints
+                      ? `${currentPoints.toLocaleString()} / ${nextTierPoints.toLocaleString()} points`
+                      : `${currentPoints.toLocaleString()} points`}
+                  </span>
+                  <span>
+                    {nextTierPoints
+                      ? `${Math.max(nextTierPoints - currentPoints, 0)} points to ${
+                          nextTierPoints === 5000 ? 'Gold' : nextTierPoints === 10000 ? 'Platinum' : 'Diamond'
+                        }`
+                      : 'Top tier reached'}
+                  </span>
                 </div>
                 <Progress value={progressPercentage} className="h-3" />
               </div>

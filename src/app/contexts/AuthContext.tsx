@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import type { User } from "@supabase/supabase-js";
+import {createContext, useContext, useEffect, useState} from "react";
+import {supabase} from "../../lib/supabaseClient";
+import type {User} from "@supabase/supabase-js";
 
 type AuthContextType = {
     user: User | null;
@@ -12,29 +12,40 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({children}: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
+        let mounted = true;
+
+        supabase.auth.getSession().then(({data}) => {
+            if (!mounted) return;
             setUser(data.session?.user ?? null);
             setLoading(false);
         });
 
-        const { data: listener } = supabase.auth.onAuthStateChange(
+        const {data: listener} = supabase.auth.onAuthStateChange(
             (_event, session) => {
-                setUser(session?.user ?? null);
+                const nextUser = session?.user ?? null;
+
+                setUser((prev) => {
+                    if (prev?.id === nextUser?.id) return prev;
+                    return nextUser;
+                });
+
+                setLoading(false);
             }
         );
 
         return () => {
+            mounted = false;
             listener.subscription.unsubscribe();
         };
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading }}>
+        <AuthContext.Provider value={{user, loading}}>
             {children}
         </AuthContext.Provider>
     );

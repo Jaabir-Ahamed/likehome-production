@@ -33,6 +33,16 @@ const PHONE_CODES = [
   { code: '+31',  short: 'NLD' },
   { code: '+46',  short: 'SWE' },
 ];
+function splitPhoneParts(rawPhone: string): { phoneCode: string; phoneNumber: string } {
+  const normalized = rawPhone.trim();
+  if (!normalized) return { phoneCode: '+1', phoneNumber: '' };
+  const match = normalized.match(/^(\+\d{1,4})(.*)$/);
+  if (!match) return { phoneCode: '+1', phoneNumber: normalized };
+  return {
+    phoneCode: match[1],
+    phoneNumber: match[2].trim(),
+  };
+}
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -62,33 +72,32 @@ export function ProfilePage() {
       try {
         const profile = await api.getProfile();
         if (profile) {
-          // Parse stored phone string (e.g. "+1 5106579876") into code + number
-          let phoneCode = '+1';
-          let phoneNumber = '';
-          const storedPhone = profile.phone ?? user?.user_metadata?.phone ?? '';
-          if (storedPhone) {
-            const match = storedPhone.match(/^(\+\d{1,3})\s*(.*)$/);
-            if (match) {
-              phoneCode = match[1];
-              phoneNumber = match[2];
-            } else {
-              phoneNumber = storedPhone;
-            }
-          }
-
+          const metadataPhone = typeof user?.user_metadata?.phone === 'string' ? user.user_metadata.phone : '';
+          const metadataLocation = typeof user?.user_metadata?.location === 'string' ? user.user_metadata.location : '';
+          const metadataDateOfBirth = typeof user?.user_metadata?.date_of_birth === 'string' ? user.user_metadata.date_of_birth : '';
+          const metadataBio = typeof user?.user_metadata?.bio === 'string' ? user.user_metadata.bio : '';
+          const phoneFromProfile =
+            typeof profile.phone === 'string' && profile.phone.length > 0
+              ? profile.phone
+              : metadataPhone;
+          const { phoneCode, phoneNumber } = splitPhoneParts(phoneFromProfile);
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
             phoneCode,
             phoneNumber,
-            location: profile.location ?? '',
-            dateOfBirth: profile.date_of_birth ?? '',
+            location: metadataLocation,
+            dateOfBirth: metadataDateOfBirth,
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
               month: 'long',
               year: 'numeric',
             }),
-            bio: profile.bio ?? '',
-            avatarUrl: profile.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture ?? '',
+            bio: metadataBio,
+            avatarUrl:
+              (typeof (profile as { avatar_url?: string | null }).avatar_url === 'string' &&
+              (profile as { avatar_url?: string | null }).avatar_url) ||
+              (typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : '') ||
+              (typeof user?.user_metadata?.picture === 'string' ? user.user_metadata.picture : ''),
           });
         }
       } catch {
@@ -102,26 +111,88 @@ export function ProfilePage() {
   }, [user]);
 
   const handleSave = async () => {
+    if (!user) {
+      toast.error('You must be signed in to save your profile.');
+      return;
+    }
     setSaving(true);
     try {
       const { supabase } = await import('../../lib/supabaseClient');
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: userData.name,
-          phone: userData.phoneNumber ? `${userData.phoneCode} ${userData.phoneNumber}` : null,
-          location: userData.location || null,
-          date_of_birth: userData.dateOfBirth || null,
-          bio: userData.bio || null,
-        })
-        .eq('id', user!.id);
+      const trimmedName = userData.name.trim();
+      const trimmedPhoneCode = userData.phoneCode.trim() || '+1';
+      const trimmedPhoneNumber = userData.phoneNumber.trim();
+      const trimmedPhone = `${trimmedPhoneCode}${trimmedPhoneNumber}`;
+      const trimmedLocation = userData.location.trim();
+      const trimmedDateOfBirth = userData.dateOfBirth.trim();
+      const trimmedBio = userData.bio.trim();
 
-      if (error) throw error;
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmedName })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      const { data: authData, error: authError } = await supabase.auth.updateUser({
+        data: {
+          ...user.user_metadata,
+          phone: trimmedPhone,
+          location: trimmedLocation,
+          date_of_birth: trimmedDateOfBirth,
+          bio: trimmedBio,
+        },
+      });
+      if (authError) throw authError;
+
+      const refreshed = await api.getProfile();
+      const nextPhone =
+        typeof authData.user?.user_metadata?.phone === 'string'
+          ? authData.user.user_metadata.phone
+          : trimmedPhone;
+      const { phoneCode: nextPhoneCode, phoneNumber: nextPhoneNumber } = splitPhoneParts(nextPhone);
+      const nextLocation =
+        typeof authData.user?.user_metadata?.location === 'string'
+          ? authData.user.user_metadata.location
+          : trimmedLocation;
+      const nextDateOfBirth =
+        typeof authData.user?.user_metadata?.date_of_birth === 'string'
+          ? authData.user.user_metadata.date_of_birth
+          : trimmedDateOfBirth;
+      const nextBio =
+        typeof authData.user?.user_metadata?.bio === 'string'
+          ? authData.user.user_metadata.bio
+          : trimmedBio;
+      if (refreshed) {
+        setUserData((prev) => ({
+          ...prev,
+          name: refreshed.full_name ?? trimmedName,
+          email: refreshed.email ?? user.email ?? prev.email,
+          ...(splitPhoneParts(
+            typeof refreshed.phone === 'string' && refreshed.phone.length > 0
+              ? refreshed.phone
+              : nextPhone
+          )),
+          location: nextLocation,
+          dateOfBirth: nextDateOfBirth,
+          bio: nextBio,
+        }));
+      } else {
+        setUserData((prev) => ({
+          ...prev,
+          name: trimmedName,
+          phoneCode: nextPhoneCode,
+          phoneNumber: nextPhoneNumber,
+          location: nextLocation,
+          dateOfBirth: nextDateOfBirth,
+          bio: nextBio,
+        }));
+      }
+
       toast.success('Profile updated!');
       setIsEditing(false);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
-      toast.error(msg);
+      const message = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast.error(message);
     } finally {
       setSaving(false);
     }

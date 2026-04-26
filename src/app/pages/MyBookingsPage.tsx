@@ -23,6 +23,7 @@ import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
 import {Tabs, TabsContent, TabsList, TabsTrigger,} from "../components/ui/tabs";
 import {useCurrency} from "../contexts/CurrencyContext";
+import {useRewards} from "../contexts/RewardsContext";
 
 interface CancelPolicyInfo {
     cancelTime: string;
@@ -194,6 +195,41 @@ interface BookingCardProps {
     convertPrice: (amount: number) => number;
     hotelId?: string;
     hotelSummary?: HotelSummary;
+}
+
+type RewardAdjustmentRecord = {
+    earnedPoints: number;
+    redeemedPoints: number;
+};
+
+const REWARD_ADJUSTMENTS_STORAGE_KEY = "reward:bookingAdjustments";
+
+function getBookingRewardAdjustment(bookingId: string): RewardAdjustmentRecord | null {
+    try {
+        const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+        const entry = parsed[bookingId];
+        if (!entry) return null;
+        return {
+            earnedPoints: Math.max(0, Math.floor(Number(entry.earnedPoints) || 0)),
+            redeemedPoints: Math.max(0, Math.floor(Number(entry.redeemedPoints) || 0)),
+        };
+    } catch {
+        return null;
+    }
+}
+
+function removeBookingRewardAdjustment(bookingId: string) {
+    try {
+        const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+        delete parsed[bookingId];
+        localStorage.setItem(REWARD_ADJUSTMENTS_STORAGE_KEY, JSON.stringify(parsed));
+    } catch {
+        // Ignore localStorage errors; cancellation still succeeds.
+    }
 }
 
 function BookingCard({
@@ -396,6 +432,7 @@ export function MyBookingsPage() {
     const navigate = useNavigate();
     const {convertPrice} = useCurrency();
     const {user, loading: authLoading} = useAuth();
+    const {addPoints, dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
 
     const [activeTab, setActiveTab] = useState("scheduled");
     const [bookings, setBookings] = useState<BookingDetail[]>([]);
@@ -515,6 +552,43 @@ export function MyBookingsPage() {
                         : booking
                 )
             );
+
+            const rewardAdjustment = getBookingRewardAdjustment(cancelTarget.bookingId);
+            if (rewardAdjustment) {
+                const {earnedPoints, redeemedPoints} = rewardAdjustment;
+                let rewardOpsOk = true;
+
+                // Reverse booking effects exactly: remove earned points, then restore redeemed points.
+                if (earnedPoints > 0) {
+                    const newTotalAfterRedeem = await redeemPoints(earnedPoints);
+                    if (newTotalAfterRedeem === null) rewardOpsOk = false;
+                }
+                if (redeemedPoints > 0) {
+                    const newTotalAfterAdd = await addPoints(redeemedPoints);
+                    if (newTotalAfterAdd === null) rewardOpsOk = false;
+                }
+
+                if (rewardOpsOk) {
+                    removeBookingRewardAdjustment(cancelTarget.bookingId);
+                    await refreshPoints();
+                } else {
+                    toast.error("Booking cancelled, but reward points were not fully reverted.");
+                }
+            } else {
+                // Fallback for older bookings without a recorded points delta.
+                const cancelledPrice = Number(result?.data?.price ?? cancelTarget.totalAmount ?? 0);
+                if (cancelledPrice > 0) {
+                    const pointsToSubtract = dollarsToPoints(cancelledPrice);
+                    if (pointsToSubtract > 0) {
+                        const newTotal = await redeemPoints(pointsToSubtract);
+                        if (newTotal === null) {
+                            toast.error("Booking cancelled, but reward points were not updated.");
+                        } else {
+                            await refreshPoints();
+                        }
+                    }
+                }
+            }
 
             toast.success(
                 nextStatus === "CANCELLED_WITH_CHARGES"

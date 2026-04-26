@@ -100,6 +100,20 @@ interface HotelDetails {
         categories: SentimentCategory[];
     };
 }
+=======
+    Wifi,
+} from 'lucide-react';
+import {Button} from '../components/ui/button';
+import {Card} from '../components/ui/card';
+import {Separator} from '../components/ui/separator';
+import {MapComponent} from '../components/MapComponent';
+import {api} from '../../api/liteApi';
+import {useAuth} from '../contexts/AuthContext';
+import {toast} from 'sonner';
+import {RoomRateCard} from '../components/RoomRateCard';
+import {findBestHotelRoomMatch} from '../../lib/roomMatching';
+import type {HotelDetails, Rate} from '../../types/hotel';
+>>>>>>> 79fb6a9e5370df93054a628c00c99c9780be2262
 
 const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ className?: string }> }[] = [
     { keywords: ['wifi', 'internet', 'wired'], Icon: Wifi },
@@ -110,8 +124,13 @@ const FACILITY_ICON_KEYWORDS: { keywords: string[]; Icon: React.ComponentType<{ 
 
 function getFacilityIcon(name: string): React.ComponentType<{ className?: string }> {
     const lower = name.toLowerCase();
+<<<<<<< HEAD
     for (const { keywords, Icon } of FACILITY_ICON_KEYWORDS) {
         if (keywords.some(k => lower.includes(k))) return Icon;
+=======
+    for (const {keywords, Icon} of FACILITY_ICON_KEYWORDS) {
+        if (keywords.some((k) => lower.includes(k))) return Icon;
+>>>>>>> 79fb6a9e5370df93054a628c00c99c9780be2262
     }
     return Check;
 }
@@ -121,6 +140,7 @@ export function HotelDetailsPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
+<<<<<<< HEAD
     const { user, loading: authLoading } = useAuth();
     const initialCheckIn = searchParams.get('checkIn') ?? '';
     const initialCheckOut = searchParams.get('checkOut') ?? '';
