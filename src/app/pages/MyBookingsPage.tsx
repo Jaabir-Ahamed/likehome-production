@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useState} from "react";
-import {Calendar, CreditCard, Download, ExternalLink, PencilIcon, MapPin, X, User, Mail} from "lucide-react";
-import {Link} from "react-router";
-import {useNavigate} from "react-router";
+import {Calendar, CreditCard, Download, ExternalLink, Mail, MapPin, PencilIcon, User, X} from "lucide-react";
+import {Link, useNavigate} from "react-router";
 import {toast} from "sonner";
 
 import {api} from "../../api/liteApi";
@@ -10,14 +9,14 @@ import {Button} from "../components/ui/button";
 import {Card} from "../components/ui/card";
 import {Star} from "../components/ui/star";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
@@ -242,7 +241,7 @@ function BookingCard({
                          hotelId,
                          hotelSummary,
                      }: BookingCardProps) {
-    const holderName = booking.holder 
+    const holderName = booking.holder
         ? `${booking.holder.firstName} ${booking.holder.lastName}`.trim()
         : null;
     const holderEmail = booking.holder?.email ?? null;
@@ -258,7 +257,7 @@ function BookingCard({
                     />
                 ) : (
                     //else show default
-                    <div className="md:w-4 bg-[#1d2d44] shrink-0" />
+                    <div className="md:w-4 bg-[#1d2d44] shrink-0"/>
                 )}
 
                 <div className="flex-1 p-6">
@@ -274,19 +273,20 @@ function BookingCard({
                                 </Badge>
                                 {/* Hotel Rating if exists */}
                                 {hotelSummary?.rating != null && hotelSummary.rating > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#2563eb] px-2 py-0.5 rounded">
+                                    <span
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#2563eb] px-2 py-0.5 rounded">
                                         <Star className="h-3 w-3 fill-white"/>
                                         {hotelSummary.rating}
                                     </span>
                                 )}
                             </div>
-                            
+
                             {/* Hotel Address if exists */}
                             {hotelSummary?.address ? (
                                 <div className="mb-1 flex items-center gap-1.5 text-sm text-[#6b7280]">
                                     <MapPin className="h-3.5 w-3.5 shrink-0"/>
                                     <span> 
-                                        {hotelSummary.address} {hotelSummary.city ? `, ${hotelSummary.city}` : "" }
+                                        {hotelSummary.address} {hotelSummary.city ? `, ${hotelSummary.city}` : ""}
                                     </span>
                                 </div>
                             ) : booking.roomTypeName ? ( //room number instead if not
@@ -294,7 +294,7 @@ function BookingCard({
                                     <MapPin className="h-4 w-4"/>
                                     <span>{booking.roomTypeName}</span>
                                 </div>
-                            /* null if all else */) : null}
+                                /* null if all else */) : null}
 
                             {/* Room type shown under address instead when we have both */}
                             {hotelSummary?.address && booking.roomTypeName && (
@@ -487,7 +487,7 @@ export function MyBookingsPage() {
                             if (booking.hotelId) {
                                 api.getHotelDetails(booking.hotelId).then(detail => {
                                     const d = detail?.data;
-                                    if (!d || ignore ) return;
+                                    if (!d || ignore) return;
                                     setHotelSummaries(prev => ({
                                         ...prev, [booking.bookingId]: {
                                             photo: d.main_photo ?? d.hotelImages?.[0]?.url,
@@ -496,7 +496,8 @@ export function MyBookingsPage() {
                                             city: d.city,
                                         }
                                     }));
-                                }).catch(() => {}); //this simply catches () => {} into empty data
+                                }).catch(() => {
+                                }); //this simply catches () => {} into empty data
                             }
                         }
                     } catch {
@@ -683,7 +684,12 @@ export function MyBookingsPage() {
                                     You don&apos;t have any upcoming reservations.
                                 </p>
                                 <Button className="bg-[#1d2d44] hover:bg-[#1d4ed8]">
-                                    Browse Hotels
+
+
+                                    <Link to="/hotels">
+                                        Browse Hotels
+                                    </Link>
+
                                 </Button>
                             </Card>
                         )}
