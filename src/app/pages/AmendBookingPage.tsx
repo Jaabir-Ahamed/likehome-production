@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../../api/liteApi';
 import { Badge, Check, Calendar, Users, CreditCard, Lock } from 'lucide-react';
 import { Label } from '@radix-ui/react-label';
-
+import {useRewards} from "../contexts/RewardsContext";
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
 // match PaymentPage structure
@@ -59,6 +59,8 @@ export function AmendBookingPage() {
     const [paymentAction, setPaymentAction] = useState("");
 
     const [cancellationFee, setCancellationFee] = useState(0);
+
+    const {addPoints, dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
 
     useEffect(() => {
         const fetchBooking = async () => {
@@ -240,6 +242,8 @@ export function AmendBookingPage() {
             });
             }
 
+            handlePoints();
+
             toast.success('Booking updated');
             navigate('/bookings');
 
@@ -255,6 +259,86 @@ export function AmendBookingPage() {
         (sum: number, r: any) => sum + (r.retailRate?.total?.[0]?.amount ?? 0),
         0
     );
+
+    const handlePoints = async () => {
+        //CANCEL POINTS LOGIC
+        const rewardAdjustment = getBookingRewardAdjustment(bookingData.bookingId);
+            if (rewardAdjustment) {
+                const {earnedPoints, redeemedPoints} = rewardAdjustment;
+                let rewardOpsOk = true;
+
+                // Reverse booking effects exactly: remove earned points, then restore redeemed points.
+                if (earnedPoints > 0) {
+                    const newTotalAfterRedeem = await redeemPoints(earnedPoints);
+                    if (newTotalAfterRedeem === null) rewardOpsOk = false;
+                }
+                if (redeemedPoints > 0) {
+                    const newTotalAfterAdd = await addPoints(redeemedPoints);
+                    if (newTotalAfterAdd === null) rewardOpsOk = false;
+                }
+
+                if (rewardOpsOk) {
+                    removeBookingRewardAdjustment(bookingData.bookingId);
+                    await refreshPoints();
+                }
+            } else {
+                // Fallback for older bookings without a recorded points delta.
+                const cancelledPrice = Number(bookingData.totalAmount ?? 0);
+                if (cancelledPrice > 0) {
+                    const pointsToSubtract = dollarsToPoints(cancelledPrice);
+                    if (pointsToSubtract > 0) {
+                        const newTotal = await redeemPoints(pointsToSubtract);
+                        if (newTotal === null) {
+                            toast.error("Booking updated, but reward points were not updated.");
+                        } else {
+                            await refreshPoints();
+                        }
+                    }
+                }
+            }
+
+            //BOOKING POINTS LOGIC
+            const pointsEarned = dollarsToPoints(selectedTotal);
+            const newPointsTotal = await addPoints(pointsEarned);
+            if (newPointsTotal === null) {
+                toast.error('Failed to add reward points.');
+            }
+    };
+
+    type RewardAdjustmentRecord = {
+        earnedPoints: number;
+        redeemedPoints: number;
+    };
+
+    const REWARD_ADJUSTMENTS_STORAGE_KEY = "reward:bookingAdjustments";
+
+    function getBookingRewardAdjustment(bookingId: string): RewardAdjustmentRecord | null {
+        try {
+            const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+            const entry = parsed[bookingId];
+            if (!entry) return null;
+            return {
+                earnedPoints: Math.max(0, Math.floor(Number(entry.earnedPoints) || 0)),
+                redeemedPoints: Math.max(0, Math.floor(Number(entry.redeemedPoints) || 0)),
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    function removeBookingRewardAdjustment(bookingId: string) {
+        try {
+            const raw = localStorage.getItem(REWARD_ADJUSTMENTS_STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw) as Record<string, RewardAdjustmentRecord>;
+            delete parsed[bookingId];
+            localStorage.setItem(REWARD_ADJUSTMENTS_STORAGE_KEY, JSON.stringify(parsed));
+        } catch {
+            // Ignore localStorage errors; cancellation still succeeds.
+        }
+    }
 
     useEffect(() => {
         console.log(cancellationFee);
@@ -572,7 +656,7 @@ export function AmendBookingPage() {
                                 <p className="text-sm mb-4">
                                     Changing the dates and rooms will cancel the original booking and rebook with the
                                     new inputs. This will incur charges or refunds based on the price differences, as
-                                    well as the cancellation policy.
+                                    well as the cancellation policy. Your reward points will also be adjusted accordingly.
                                 </p>
 
                                 {(bookingData.tag === 'NRFN' || cancellationFee > 0) && (
