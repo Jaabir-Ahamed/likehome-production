@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 export function NotFoundPage() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="text-center">
+      <div className="text-center bg-background">
         <div className="mb-8">
           <h1 className="text-9xl font-bold text-[#2563eb]">404</h1>
           <h2 className="text-3xl font-bold text-[#1f2937] mt-4 mb-2">

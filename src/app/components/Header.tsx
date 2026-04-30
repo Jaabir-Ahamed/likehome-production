@@ -102,30 +102,30 @@ export function Header() {
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <Home className="w-8 h-8 text-[#2563eb]"/>
-                        <span className="text-3xl font-bold text-[#454545]">LikeHome</span>
+                        <span className="text-3xl font-bold text-[bg-bold-text]">LikeHome</span>
                     </Link>
 
                     {/* Center Navigation */}
-                    <nav className="hidden lg:flex items-center gap-10 absolute left-1/2 transform -translate-x-1/2">
-                        <Link to="/" className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
+                    <nav className="flex items-center gap-10">
+                        <Link to="/" className="text-[bg-bold-text] hover:text-[#2563eb] transition-colors font-medium">
                             Home
                         </Link>
                         <Link to="/bookings"
-                              className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
+                              className="text-[bg-bold-text] hover:text-[#2563eb] transition-colors font-medium">
                             My Bookings
                         </Link>
                         <Link to="/cities"
-                              className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium">
+                              className="text-[bg-bold-text] hover:text-[#2563eb] transition-colors font-medium">
                             Search Cities
                         </Link>
                     </nav>
 
                     {/* Right Actions */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 hidden lg:flex">
                         {/* Currency Selector */}
                         <DropdownMenu>
                             <DropdownMenuTrigger
-                                className="hidden md:flex items-center gap-1 text-[#1f2937] hover:text-[#2563eb] transition-colors outline-none cursor-pointer">
+                                className="hidden md:flex items-center gap-1 text-[bg-bold-text] hover:text-[#2563eb] transition-colors outline-none cursor-pointer">
                                 <span className="text-lg">{currencyFlags[currency]}</span>
                                 <span className="font-medium">{currency}</span>
                                 <ChevronDown className="w-4 h-4"/>
@@ -152,20 +152,20 @@ export function Header() {
                         {/* Search Icon */}
                         <Link to="/hotels"
                               className="inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground">
-                            <Search className="w-5 h-5 text-[#1f2937]"/>
+                            <Search className="w-5 h-5 text-[bg-bold-text]"/>
                         </Link>
 
                         {/* Notifications */}
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 className="relative inline-flex items-center justify-center rounded-full h-10 w-10 hover:bg-accent hover:text-accent-foreground outline-none cursor-pointer">
-                                <Bell className="w-5 h-5 text-[#1f2937]"/>
+                                <Bell className="w-5 h-5 text-[bg-bold-text]"/>
                                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#f59e0b] rounded-full"></span>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-96">
                                 <div className="px-4 py-3 border-b flex items-center justify-between">
                                     <div>
-                                        <h3 className="font-semibold text-[#1f2937]">Notifications</h3>
+                                        <h3 className="font-semibold text-bold-text">Notifications</h3>
                                         <p className="text-sm text-[#6b7280]">You
                                             have {notificationsList.filter(n => n.isNew).length} new notifications</p>
                                     </div>
@@ -207,7 +207,7 @@ export function Header() {
                                                                 <div className="flex-1 min-w-0">
                                                                     <div
                                                                         className="flex items-start justify-between gap-2">
-                                                                        <h4 className="font-medium text-sm text-[#1f2937]">
+                                                                        <h4 className="font-medium text-sm text-bold-text">
                                                                             {notification.title}
                                                                         </h4>
                                                                         {notification.isNew && (
@@ -264,38 +264,38 @@ export function Header() {
                                 <DropdownMenuContent align="end" className="w-56">
                                     <Link to="/profile">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <User className="mr-2 h-4 w-4"/>
+                                            <User className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Profile</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link to="/bookings">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Calendar className="mr-2 h-4 w-4"/>
+                                            <Calendar className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>My Bookings</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link to="/favorites">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Heart className="mr-2 h-4 w-4"/>
+                                            <Heart className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Favorites</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link to="/rewards">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Gift className="mr-2 h-4 w-4"/>
+                                            <Gift className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Rewards</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <DropdownMenuSeparator/>
                                     <Link to="/payments">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <CreditCard className="mr-2 h-4 w-4"/>
+                                            <CreditCard className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Payments</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link to="/settings">
                                         <DropdownMenuItem className="cursor-pointer">
-                                            <Settings className="mr-2 h-4 w-4"/>
+                                            <Settings className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Settings</span>
                                         </DropdownMenuItem>
                                     </Link>
@@ -304,8 +304,9 @@ export function Header() {
                                         <DropdownMenuItem className="text-red-600 cursor-pointer"
                                                           onClick={async () => {
                                                               await supabase.auth.signOut();
+                                                              localStorage.setItem("darkMode", "false");
                                                           }}>
-                                            <LogOut className="mr-2 h-4 w-4"/>
+                                            <LogOut className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Logout</span>
                                         </DropdownMenuItem>
                                     </Link>

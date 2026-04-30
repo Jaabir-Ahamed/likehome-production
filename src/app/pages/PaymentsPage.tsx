@@ -86,12 +86,12 @@ export function PaymentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4 max-w-5xl">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="font-bold text-[#1f2937] mb-2">Payment Methods</h1>
+            <h1 className="font-bold text-bold-text mb-2">Payment Methods</h1>
             <p className="text-[#6b7280]">Manage your saved payment methods securely</p>
           </div>
 
@@ -168,13 +168,13 @@ export function PaymentsPage() {
         </div>
 
         {/* Security Notice */}
-        <Card className="p-6 mb-8 bg-blue-50 border-blue-200">
+        <Card className="p-6 mb-8 bg-card border-blue-200">
           <div className="flex items-start gap-4">
             <div className="p-2 bg-[#2563eb] rounded-lg">
               <CreditCard className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1f2937] mb-1">Secure Payment Storage</h3>
+              <h3 className="font-semibold text-bold-text mb-1">Secure Payment Storage</h3>
               <p className="text-sm text-[#6b7280]">
                 Your payment information is encrypted and stored securely. We never share your card details with third parties.
               </p>
@@ -227,10 +227,10 @@ export function PaymentsPage() {
                 </div>
 
                 {/* Card Actions */}
-                <div className="flex-1 p-8 bg-white">
+                <div className="flex-1 p-8 bg-card">
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-semibold text-[#1f2937] mb-2">
+                      <h3 className="font-semibold text-bold-text mb-2">
                         {method.type.charAt(0).toUpperCase() + method.type.slice(1)} ending in {method.lastFour}
                       </h3>
                       <p className="text-sm text-[#6b7280]">

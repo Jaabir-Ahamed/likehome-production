@@ -253,7 +253,7 @@ export function HomePage() {
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                            <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Trending Destinations
                             </h2>
                             <p className="text-lg text-[#717182]">
@@ -298,11 +298,11 @@ export function HomePage() {
             </section>
 
             {/* Top Rated Hotels Section */}
-            <section className="py-16 md:py-24 bg-gray-50">
+            <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                            <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Top Rated Hotels
                             </h2>
                             <p className="text-lg text-[#717182]">
@@ -342,7 +342,7 @@ export function HomePage() {
                                             </div>
                                         </div>
                                         <div className="p-6">
-                                            <h3 className="text-xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
+                                            <h3 className="text-xl font-bold text-[bg-bold-text] mb-2">{hotel.name}</h3>
                                             <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
                                                 <MapPin className="w-4 h-4"/>
                                                 {hotel.location}
@@ -350,10 +350,10 @@ export function HomePage() {
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <span
-                                                        className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
-                                                    <span className="text-sm text-[#717182]">/night</span>
+                                                        className="text-2xl font-bold text-[bg-bold-text]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                                                    <span className="text-sm text-[bg-bold-text]">/night</span>
                                                 </div>
-                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] text-white">
+                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] dark:bg-background dark:hover:bg-[#1e40af] text-white cursor-pointer">
                                                     Quick View
                                                 </Button>
                                             </div>
@@ -371,7 +371,7 @@ export function HomePage() {
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                            <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Recommended for You
                             </h2>
                             <p className="text-lg text-[#717182]">
@@ -411,7 +411,7 @@ export function HomePage() {
                                             </div>
                                         </div>
                                         <div className="p-6">
-                                            <h3 className="text-xl font-bold text-[#1f2937] mb-2">{hotel.name}</h3>
+                                            <h3 className="text-xl font-bold text-[bg-bold-text] mb-2">{hotel.name}</h3>
                                             <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
                                                 <MapPin className="w-4 h-4"/>
                                                 {hotel.location}
@@ -419,10 +419,10 @@ export function HomePage() {
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <span
-                                                        className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
-                                                    <span className="text-sm text-[#717182]">/night</span>
+                                                        className="text-2xl font-bold text-[bg-bold-text]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                                                    <span className="text-sm text-[bold-text]">/night</span>
                                                 </div>
-                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] text-white">
+                                                <Button className="bg-[#1d2d44] hover:bg-[#1e40af] dark:bg-background dark:hover:bg-[#1e40af] text-white cursor-pointer">
                                                     Quick View
                                                 </Button>
                                             </div>

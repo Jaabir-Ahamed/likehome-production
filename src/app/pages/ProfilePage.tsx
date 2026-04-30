@@ -12,26 +12,26 @@ import { api } from '../../api/liteApi';
 import { toast } from 'sonner';
 
 const PHONE_CODES = [
-  { code: '+1',   short: 'USA' },
-  { code: '+1',   short: 'CAN' },
-  { code: '+44',  short: 'GBR' },
-  { code: '+61',  short: 'AUS' },
-  { code: '+49',  short: 'DEU' },
-  { code: '+33',  short: 'FRA' },
-  { code: '+81',  short: 'JPN' },
-  { code: '+86',  short: 'CHN' },
-  { code: '+91',  short: 'IND' },
-  { code: '+55',  short: 'BRA' },
-  { code: '+52',  short: 'MEX' },
-  { code: '+34',  short: 'ESP' },
-  { code: '+39',  short: 'ITA' },
-  { code: '+7',   short: 'RUS' },
-  { code: '+82',  short: 'KOR' },
-  { code: '+65',  short: 'SGP' },
+  { code: '+1', short: 'USA' },
+  { code: '+1', short: 'CAN' },
+  { code: '+44', short: 'GBR' },
+  { code: '+61', short: 'AUS' },
+  { code: '+49', short: 'DEU' },
+  { code: '+33', short: 'FRA' },
+  { code: '+81', short: 'JPN' },
+  { code: '+86', short: 'CHN' },
+  { code: '+91', short: 'IND' },
+  { code: '+55', short: 'BRA' },
+  { code: '+52', short: 'MEX' },
+  { code: '+34', short: 'ESP' },
+  { code: '+39', short: 'ITA' },
+  { code: '+7', short: 'RUS' },
+  { code: '+82', short: 'KOR' },
+  { code: '+65', short: 'SGP' },
   { code: '+971', short: 'UAE' },
   { code: '+966', short: 'SAU' },
-  { code: '+31',  short: 'NLD' },
-  { code: '+46',  short: 'SWE' },
+  { code: '+31', short: 'NLD' },
+  { code: '+46', short: 'SWE' },
 ];
 function splitPhoneParts(rawPhone: string): { phoneCode: string; phoneNumber: string } {
   const normalized = rawPhone.trim();
@@ -95,7 +95,7 @@ export function ProfilePage() {
             bio: metadataBio,
             avatarUrl:
               (typeof (profile as { avatar_url?: string | null }).avatar_url === 'string' &&
-              (profile as { avatar_url?: string | null }).avatar_url) ||
+                (profile as { avatar_url?: string | null }).avatar_url) ||
               (typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : '') ||
               (typeof user?.user_metadata?.picture === 'string' ? user.user_metadata.picture : ''),
           });
@@ -244,24 +244,24 @@ export function ProfilePage() {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-background to-white flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4 max-w-4xl">
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-bold text-[#1f2937] mb-2">My Profile</h1>
+          <h1 className="font-bold text-bold-text mb-2">My Profile</h1>
           <p className="text-[#6b7280]">Manage your personal information and preferences</p>
         </div>
 
         {/* Profile Card */}
-        <Card className="p-8 mb-6 border-gray-200">
+        <Card className="p-8 mb-6 border-gray-200 bg-card">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-8 mb-8">
 
             {/* Avatar with upload */}
@@ -288,7 +288,7 @@ export function ProfilePage() {
                 aria-label="Upload profile picture"
               >
                 {avatarUploading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 bg-background border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -301,7 +301,7 @@ export function ProfilePage() {
             {/* Name / bio / edit button */}
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold text-[#1f2937]">
+                <h2 className="font-bold text-bold-text">
                   {userData.name || user?.email}
                 </h2>
                 <Button
@@ -348,11 +348,11 @@ export function ProfilePage() {
 
           {/* Personal Information */}
           <div className="space-y-6">
-            <h3 className="font-semibold text-[#1f2937] mb-4">Personal Information</h3>
+            <h3 className="font-semibold text-bold-text mb-4">Personal Information</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center gap-2 text-[#1f2937]">
+                <Label htmlFor="name" className="flex items-center gap-2 text-bold-text">
                   <User className="w-4 h-4" />
                   Full Name
                 </Label>
@@ -361,12 +361,12 @@ export function ProfilePage() {
                   value={userData.name}
                   onChange={(e) => setUserData({ ...userData, name: e.target.value })}
                   disabled={!isEditing}
-                  className="bg-white"
+                  className="bg-input-background"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2 text-[#1f2937]">
+                <Label htmlFor="email" className="flex items-center gap-2 text-bold-text">
                   <Mail className="w-4 h-4" />
                   Email Address
                 </Label>
@@ -375,18 +375,18 @@ export function ProfilePage() {
                   type="email"
                   value={userData.email}
                   disabled
-                  className="bg-gray-50 text-[#6b7280]"
+                  className="bg-input-background text-[#6b7280]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-[#1f2937]">
+                <Label className="flex items-center gap-2 text-bold-text">
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </Label>
                 <div className="flex gap-2">
                   <select
-                    className="border border-input rounded-md px-3 py-2 text-sm bg-background w-28 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border border-input bg-input-background rounded-md px-3 py-1 text-sm bg-background w-28 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     value={userData.phoneCode}
                     disabled={!isEditing}
                     onChange={(e) => setUserData({ ...userData, phoneCode: e.target.value })}
@@ -404,13 +404,13 @@ export function ProfilePage() {
                     value={userData.phoneNumber}
                     onChange={(e) => setUserData({ ...userData, phoneNumber: e.target.value })}
                     disabled={!isEditing}
-                    className="bg-white flex-1"
+                    className="bg-input-background flex-1"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center gap-2 text-[#1f2937]">
+                <Label htmlFor="location" className="flex items-center gap-2 text-bold-text">
                   <MapPin className="w-4 h-4" />
                   Location
                 </Label>
@@ -419,12 +419,13 @@ export function ProfilePage() {
                   value={userData.location}
                   onChange={(e) => setUserData({ ...userData, location: e.target.value })}
                   disabled={!isEditing}
-                  className="bg-white"
+                  placeholder='Enter a Location'
+                  className="bg-input-background"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dob" className="flex items-center gap-2 text-[#1f2937]">
+                <Label htmlFor="dob" className="flex items-center gap-2 text-bold-text">
                   <Calendar className="w-4 h-4" />
                   Date of Birth
                 </Label>
@@ -434,7 +435,7 @@ export function ProfilePage() {
                   value={userData.dateOfBirth}
                   onChange={(e) => setUserData({ ...userData, dateOfBirth: e.target.value })}
                   disabled={!isEditing}
-                  className="bg-white"
+                  className="bg-input-background"
                 />
               </div>
             </div>
@@ -445,30 +446,36 @@ export function ProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#2563eb] mb-2">12</div>
-            <p className="text-[#6b7280]">Total Bookings</p>
+            <p className="text-bold-text">Total Bookings</p>
           </Card>
 
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#f59e0b] mb-2">8</div>
-            <p className="text-[#6b7280]">Favorite Hotels</p>
+            <p className="text-bold-text">Favorite Hotels</p>
           </Card>
 
           <Card className="p-6 border-gray-200 text-center">
             <div className="text-4xl font-bold text-[#10b981] mb-2">15</div>
-            <p className="text-[#6b7280]">Cities Visited</p>
+            <p className="text-bold-text">Cities Visited</p>
           </Card>
 
           {/* Rewards points card — pulls from RewardsContext */}
-          <Card className="p-6 border-gray-200 text-center bg-gradient-to-br from-amber-50 to-yellow-50">
+          <Card className="p-6 border border-gray-200 text-center bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-[#1a2838] dark:to-[#0a0e16]">
+
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Trophy className="w-6 h-6 text-[#f59e0b]" />
-              <div className="text-4xl font-bold text-[#f59e0b]">
+              <Trophy className="w-6 h-6 text-[#f59e0b] dark:text-amber-400" />
+
+              <div className="text-4xl font-bold text-[#f59e0b] dark:text-amber-400">
                 {rewardsLoading ? '...' : (points ?? 0).toLocaleString()}
               </div>
             </div>
-            <p className="text-[#6b7280]">Reward Points</p>
+
+            <p className="text-bold-text">
+              Reward Points
+            </p>
+
             {!rewardsLoading && points !== null && points > 0 && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 ≈ ${pointsToDollars(points).toFixed(2)} value
               </p>
             )}

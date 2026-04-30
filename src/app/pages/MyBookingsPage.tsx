@@ -265,7 +265,7 @@ function BookingCard({
                     <div className="mb-4 flex flex-col justify-between md:flex-row">
                         <div>
                             <div className="mb-1 flex items-center gap-2">
-                                <h3 className="font-bold text-[#1f2937]">
+                                <h3 className="font-bold text-bold-text">
                                     {booking.hotelName ?? "Hotel Booking"}
                                 </h3>
 
@@ -307,7 +307,7 @@ function BookingCard({
                         <div className="text-right shrink-0">
                             {booking.totalAmount != null && (
                                 <>
-                                    <div className="mb-1 font-bold text-[#1d2d44]">
+                                    <div className="mb-1 font-bold text-bold-text">
                                         ${convertPrice(booking.totalAmount)}
                                     </div>
                                     <div className="text-sm text-[#6b7280]">Total</div>
@@ -323,7 +323,7 @@ function BookingCard({
                             <Calendar className="h-5 w-5 text-[#6b7280]"/>
                             <div>
                                 <div className="text-sm text-[#6b7280]">Check-In</div>
-                                <div className="font-medium text-[#1f2937]">
+                                <div className="font-medium text-bold-text">
                                     {formatBookingDate(booking.checkin)}
                                 </div>
                             </div>
@@ -333,7 +333,7 @@ function BookingCard({
                             <Calendar className="h-5 w-5 text-[#6b7280]"/>
                             <div>
                                 <div className="text-sm text-[#6b7280]">Check-Out</div>
-                                <div className="font-medium text-[#1f2937]">
+                                <div className="font-medium text-bold-text">
                                     {formatBookingDate(booking.checkout)}
                                 </div>
                             </div>
@@ -348,7 +348,7 @@ function BookingCard({
                                 <CreditCard className="h-4 w-4"/>
                                 <span>
                                     Booking ID:{" "}
-                                    <span className="font-medium text-[#1f2937]">
+                                    <span className="font-medium text-bold-text">
                                         {booking.bookingId}
                                     </span>
                                 </span>
@@ -359,7 +359,7 @@ function BookingCard({
                                     <User className="h-4 w-4 shrink-0"/>
                                     <span>
                                         Registered Name:{" "}
-                                        <span className="font-medium text-[#1f2937]">
+                                        <span className="font-medium text-bold-text">
                                             {holderName}
                                         </span>
                                     </span>
@@ -371,7 +371,7 @@ function BookingCard({
                                     <Mail className="h-4 w-4 shrink-0"/>
                                     <span>
                                         Registered Email:{" "}
-                                        <span className="font-medium text-[#1f2937]">
+                                        <span className="font-medium text-bold-text">
                                             {holderEmail}
                                         </span>
                                     </span>
@@ -384,7 +384,7 @@ function BookingCard({
                             {booking.hotelId && (
                                 <Button variant="outline" size="sm" asChild>
                                     <Link to={`/hotel/${booking.hotelId}`}>
-                                        <ExternalLink className="mr-2 h-4 w-4"/>
+                                        <ExternalLink className="mr-2 h-4 w-4 cursor-pointer"/>
                                         View Hotel
                                     </Link>
                                 </Button>
@@ -394,6 +394,7 @@ function BookingCard({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => onDownloadReceipt(booking.bookingId)}
+                                className="cursor-pointer"
                             >
                                 <Download className="mr-2 h-4 w-4"/>
                                 Download Receipt
@@ -404,6 +405,7 @@ function BookingCard({
                                     variant="outline"
                                     size="sm"
                                     onClick={() => onAmend(booking)}
+                                    className="cursor-pointer"
                                 >
                                     <PencilIcon className="mr-2 h-4 w-4"/>
                                     Edit Booking
@@ -415,6 +417,7 @@ function BookingCard({
                                     variant="destructive"
                                     size="sm"
                                     onClick={() => onCancel(booking)}
+                                    className="cursor-pointer hover:bg-red-50"
                                 >
                                     <X className="mr-2 h-4 w-4"/>
                                     Cancel Booking
@@ -609,7 +612,7 @@ export function MyBookingsPage() {
 
     if (loadingBookings) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-white py-12">
+            <div className="flex min-h-screen items-center justify-center bg-background py-12">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#2563eb] border-t-transparent"/>
             </div>
         );
@@ -627,10 +630,10 @@ export function MyBookingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+        <div className="min-h-screen ">
             <div className="container mx-auto max-w-6xl px-4">
                 <div className="mb-8">
-                    <h1 className="mb-2 font-bold text-[#1f2937]">My Bookings</h1>
+                    <h1 className="mb-2 font-bold text-bold-text">My Bookings</h1>
                     <p className="text-[#6b7280]">
                         Manage your hotel reservations and view booking history
                     </p>
@@ -641,17 +644,17 @@ export function MyBookingsPage() {
                     onValueChange={setActiveTab}
                     className="w-full"
                 >
-                    <TabsList className="mb-8 grid w-full max-w-md grid-cols-2 border border-gray-200 bg-white">
+                    <TabsList className="mb-8 grid w-full max-w-md grid-cols-2 border border-gray-200 bg-card">
                         <TabsTrigger
                             value="scheduled"
-                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white"
+                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white cursor-pointer"
                         >
                             Scheduled Bookings ({scheduledBookings.length})
                         </TabsTrigger>
 
                         <TabsTrigger
                             value="previous"
-                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white"
+                            className="data-[state=active]:bg-[#1d2d44] data-[state=active]:text-white cursor-pointer"
                         >
                             Previous Bookings ({previousBookings.length})
                         </TabsTrigger>
@@ -676,7 +679,7 @@ export function MyBookingsPage() {
                         {scheduledBookings.length === 0 && pendingCount === 0 && (
                             <Card className="border-gray-200 p-12 text-center">
                                 <Calendar className="mx-auto mb-4 h-16 w-16 text-[#6b7280]"/>
-                                <h3 className="mb-2 font-semibold text-[#1f2937]">
+                                <h3 className="mb-2 font-semibold text-bold-text">
                                     No Scheduled Bookings
                                 </h3>
                                 <p className="mb-6 text-[#6b7280]">
@@ -704,7 +707,7 @@ export function MyBookingsPage() {
                         {previousBookings.length === 0 && pendingCount === 0 && (
                             <Card className="border-gray-200 p-12 text-center">
                                 <Calendar className="mx-auto mb-4 h-16 w-16 text-[#6b7280]"/>
-                                <h3 className="mb-2 font-semibold text-[#1f2937]">
+                                <h3 className="mb-2 font-semibold text-bold-text">
                                     No Previous Bookings
                                 </h3>
                                 <p className="text-[#6b7280]">

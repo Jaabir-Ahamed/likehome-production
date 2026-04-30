@@ -48,13 +48,13 @@ export function ListPropertyDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-[#1f2937] hover:text-[#2563eb] transition-colors font-medium cursor-pointer">
+        <button className="text-bold-text hover:text-[#2563eb] transition-colors font-medium cursor-pointer">
           List Your Property
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-[#1f2937]">
+          <DialogTitle className="text-2xl font-bold text-bold-text">
             List Your Property
           </DialogTitle>
           <DialogDescription>
@@ -141,11 +141,11 @@ export function ListPropertyDialog() {
           </div>
 
           {/* Photo Upload Note */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-background border border-gray-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <ImageIcon className="w-5 h-5 text-[#2563eb] mt-0.5" />
+              <ImageIcon className="w-7 h-7 text-[#2563eb] mt-0.5" />
               <div>
-                <p className="font-medium text-[#1f2937] mb-1">Photo Upload</p>
+                <p className="font-medium text-bold-text mb-1">Photo Upload</p>
                 <p className="text-sm text-[#717182]">
                   After submitting this form, our team will contact you to arrange professional photography or guide you through uploading your property photos.
                 </p>

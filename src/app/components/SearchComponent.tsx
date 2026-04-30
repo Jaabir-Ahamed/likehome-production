@@ -191,12 +191,12 @@ export function SearchComponent() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+    <div className="w-full max-w-6xl mx-auto bg-card rounded-2xl shadow-2xl p-6 md:p-8">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
 
         {/* Location */}
         <div className="md:col-span-4">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Location</label>
+          <label className="block text-sm font-medium text-bold-text mb-2">Location</label>
           <div className="relative" ref={placesRef}>
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182] z-10" />
             {isLoadingPlaces && (
@@ -211,7 +211,7 @@ export function SearchComponent() {
                 setSelectedPlaceId('');
               }}
               onFocus={() => places.length > 0 && setShowPlaces(true)}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="pl-10 h-12 bg-input-background border-0 focus:ring-2 focus:ring-[#2563eb]"
             />
             {showPlaces && places.length > 0 && (
               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-64 overflow-y-auto">
@@ -220,11 +220,11 @@ export function SearchComponent() {
                     key={place.placeId}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handlePlaceSelect(place)}
-                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[#f3f3f5] text-left transition-colors"
+                    className="w-full flex items-start gap-3 px-4 py-3 bg-background hover:bg-background/70 dark:hover:bg-background/90 text-left transition-color cursor-pointer"
                   >
                     <MapPin className="w-4 h-4 text-[#717182] mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-[#1f2937]">{place.displayName}</p>
+                      <p className="text-sm font-medium text-bold-text">{place.displayName}</p>
                       <p className="text-xs text-[#717182]">{place.formattedAddress}</p>
                     </div>
                   </button>
@@ -236,7 +236,7 @@ export function SearchComponent() {
 
         {/* Check-in */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-in</label>
+          <label className="block text-sm font-medium text-bold-text mb-2">Check-in</label>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
             <Input
@@ -253,14 +253,14 @@ export function SearchComponent() {
                   setCheckOut(dateToString(minOut));
                 }
               }}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="pl-10 h-12 bg-input-background border-0 focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
             />
           </div>
         </div>
 
         {/* Check-out */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Check-out</label>
+          <label className="block text-sm font-medium text-bold-text mb-2">Check-out</label>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
             <Input
@@ -268,31 +268,31 @@ export function SearchComponent() {
               value={checkOut}
               min={(() => { const d = new Date(checkIn + 'T00:00:00'); d.setDate(d.getDate() + 1); return dateToString(d); })()}
               onChange={(e) => setCheckOut(e.target.value)}
-              className="pl-10 h-12 bg-[#f3f3f5] border-0 focus:ring-2 focus:ring-[#2563eb]"
+              className="pl-10 h-12 bg-input-background border-0 focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
             />
           </div>
         </div>
 
         {/* Occupancies */}
         <div className="md:col-span-3">
-          <label className="block text-sm font-medium text-[#1f2937] mb-2">Rooms & Guests</label>
+          <label className="block text-sm font-medium text-bold-text mb-2">Rooms & Guests</label>
           <div className="relative" ref={roomsRef}>
             <button
               type="button"
               onClick={() => setShowRooms((v) => !v)}
-              className="w-full h-12 bg-[#f3f3f5] rounded-lg flex items-center gap-2 px-3 text-sm text-[#1f2937] hover:bg-[#e9ebef] transition-colors"
+              className="w-full h-12 bg-input-background rounded-lg flex items-center gap-2 px-3 text-sm text-[#1f2937] transition-colors cursor-pointer"
             >
               <Users className="w-5 h-5 text-[#717182] shrink-0" />
-              <span className="truncate">{summarizeOccupancies(occupancies)}</span>
+              <span className="truncate text-medium text-foreground">{summarizeOccupancies(occupancies)}</span>
             </button>
 
             {showRooms && (
-              <div className="absolute z-50 top-full right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 w-80 p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="absolute z-50 top-full right-0 mt-1 bg-[var(--room-input)] rounded-xl shadow-xl border border-gray-100 w-80 p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                 {occupancies.map((room, ri) => (
                   <div key={ri} className="border border-gray-100 rounded-lg p-3 space-y-3">
                     {/* Room header */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-sm font-semibold text-[#1f2937]">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-bold-text">
                         <BedDouble className="w-4 h-4" />
                         Room {ri + 1}
                       </div>
@@ -309,11 +309,11 @@ export function SearchComponent() {
 
                     {/* Adults */}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#1f2937]">Adults</span>
+                      <span className="text-sm text-bold-text">Adults</span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => updateAdults(ri, -1)}
-                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40"
+                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
                           disabled={room.adults <= 1}
                         >
                           <Minus className="w-3 h-3" />
@@ -321,7 +321,7 @@ export function SearchComponent() {
                         <span className="w-5 text-center text-sm font-medium">{room.adults}</span>
                         <button
                           onClick={() => updateAdults(ri, 1)}
-                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50"
+                          className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -331,10 +331,10 @@ export function SearchComponent() {
                     {/* Children */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#1f2937]">Children</span>
+                        <span className="text-sm text-bold-text">Children</span>
                         <button
                           onClick={() => addChild(ri)}
-                          className="text-xs text-[#2563eb] hover:underline flex items-center gap-1"
+                          className="text-xs text-[#2563eb] hover:underline flex items-center gap-1 cursor-pointer "
                         >
                           <Plus className="w-3 h-3" /> Add child
                         </button>
@@ -365,7 +365,7 @@ export function SearchComponent() {
                 {/* Add room */}
                 <button
                   onClick={addRoom}
-                  className="w-full h-9 border border-dashed border-gray-300 rounded-lg text-sm text-[#2563eb] hover:border-[#2563eb] hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+                  className="w-full h-9 border border-dashed border-gray-300 rounded-lg text-sm text-[#2563eb] hover:border-[#2563eb] hover:bg-blue-50 transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Add room
                 </button>
@@ -373,7 +373,7 @@ export function SearchComponent() {
                 <Button
                   size="sm"
                   onClick={() => setShowRooms(false)}
-                  className="w-full bg-[#2563eb] hover:bg-[#1e40af] text-white"
+                  className="w-full bg-[#2563eb] hover:bg-[#1e40af] text-white cursor-pointer"
                 >
                   Done
                 </Button>
@@ -386,7 +386,7 @@ export function SearchComponent() {
         <div className="md:col-span-1">
           <Button
             onClick={handleSearch}
-            className="w-20 h-12 bg-secondary hover:bg-secondary/90 text-white font-medium rounded-lg transition-colors px-3"
+            className="w-20 h-12 cursor-pointer bg-secondary hover:bg-secondary/70 text-white font-medium rounded-lg transition-colors px-3"
           >
             <Search className="w-5 h-5" />
           </Button>

@@ -168,12 +168,12 @@ export function FavoritesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="font-bold text-[#1f2937] mb-2">
+            <h1 className="font-bold text-bold-text mb-2">
               My Favorites
             </h1>
             <p className="text-[#6b7280]">
@@ -194,7 +194,7 @@ export function FavoritesPage() {
               id="sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#1d2d44]"
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-input-background text-bold-text focus:outline-none focus:ring-2 focus:ring-[#1d2d44]"
             >
               <option value="recent">Recently Added</option>
               <option value="price-low">
@@ -250,9 +250,9 @@ export function FavoritesPage() {
                 <div className="p-6 relative">
                   <Link
                     to={`/hotel/${hotel.id}`}
-                    className="block group-hover:text-[#1d2d44] transition-colors"
+                    className="block transition-colors"
                   >
-                    <h3 className="font-bold text-[#1f2937] mb-2 line-clamp-1">
+                    <h3 className="font-bold text-bold-text mb-2 line-clamp-1">
                       {hotel.name}
                     </h3>
                   </Link>
@@ -275,7 +275,7 @@ export function FavoritesPage() {
                         {hotel.rating}
                       </span>
                     </div>
-                    <span className="text-sm text-[#1d2d44]">
+                    <span className="text-sm text-bold-text">
                       ({hotel.reviews} reviews)
                     </span>
                   </div>
@@ -292,10 +292,10 @@ export function FavoritesPage() {
                         return (
                           <div
                             key={amenity}
-                            className="p-2 bg-gray-100 rounded-lg"
+                            className="p-2 bg-input-background rounded-lg"
                             title={amenity}
                           >
-                            <Icon className="w-4 h-4 text-[#6b7280]" />
+                            <Icon className="w-4 h-4 text-bold-text" />
                           </div>
                         );
                       })}
@@ -306,7 +306,7 @@ export function FavoritesPage() {
                     <div>
                       <div>
                           <span
-                              className="text-2xl font-bold text-[#1f2937]">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
+                              className="text-2xl font-bold text-bold-text">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
                           <span className="text-sm text-[#717182]">/night</span>
                       </div>
                     </div>

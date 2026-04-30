@@ -53,7 +53,7 @@ export function RoomRateCard({
                 isSelected ? 'border-2 border-[#2563eb] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
         >
-            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr]">
+            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] bg-card">
                 <div className="border-b md:border-b-0 md:border-r border-gray-200 bg-gray-100">
                     {displayedPhoto ? (
                         <div className="h-full">
@@ -95,7 +95,7 @@ export function RoomRateCard({
                 <div className="p-5">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                            <h4 className="text-lg font-semibold text-[#1f2937] mb-2">{room?.roomName || rate.name}</h4>
+                            <h4 className="text-lg font-semibold text-bold-text mb-2">{room?.roomName || rate.name}</h4>
 
                             <div className="flex flex-wrap gap-2 mb-3">
                                 {rate.boardName && (
@@ -120,21 +120,21 @@ export function RoomRateCard({
                                 ) : null}
                             </div>
 
-                            <div className="space-y-2 text-sm text-[#4b5563] mb-4">
+                            <div className="space-y-2 text-sm mb-4">
                                 {beds && (
                                     <div className="flex items-center gap-2">
                                         <Bed className="w-4 h-4 text-[#2563eb] flex-shrink-0"/>
-                                        <span className="font-medium text-[#1f2937]">Beds:</span>
-                                        <span>{beds}</span>
+                                        <span className="font-medium text-bold-text">Beds:</span>
+                                        <span className="text-[#717182]">{beds}</span>
                                     </div>
                                 )}
 
-                                {roomDescription && <p className="line-clamp-3">{roomDescription}</p>}
+                                {roomDescription && <p className="line-clamp-3 text-[#717182]">{roomDescription}</p>}
                             </div>
 
                             {amenities.length > 0 && (
                                 <div className="mb-4">
-                                    <p className="text-sm font-medium text-[#1f2937] mb-2">Room amenities</p>
+                                    <p className="text-sm font-medium text-bold-text mb-2">Room amenities</p>
                                     <div className="flex flex-wrap gap-2">
                                         {amenities.map((amenity) => (
                                             <Badge key={amenity} variant="outline" className="text-xs">
@@ -149,9 +149,9 @@ export function RoomRateCard({
                         <div className="lg:w-[190px] lg:text-right shrink-0">
                             {pricePerNight != null && (
                                 <>
-                                    <p className="text-xl font-bold text-[#1f2937]">
+                                    <p className="text-xl font-bold text-bold-text">
                                         {currency} {pricePerNight.toFixed(0)}
-                                        <span className="text-sm font-normal text-[#717182]">/night</span>
+                                        <span className="text-sm font-normal text-bold-text">/night</span>
                                     </p>
                                     <p className="text-sm text-[#717182]">
                                         {currency} {price!.toFixed(0)} total
@@ -167,7 +167,7 @@ export function RoomRateCard({
                             <Button
                                 size="sm"
                                 variant={isSelected ? 'default' : 'outline'}
-                                className={`mt-4 w-full ${isSelected ? 'bg-[#2563eb] hover:bg-[#1d4ed8]' : ''}`}
+                                className={`mt-4 w-full cursor-pointer ${isSelected ? 'bg-[#2563eb] hover:bg-[#1d4ed8]' : ''}`}
                                 onClick={onSelect}
                             >
                                 {isSelected ? (

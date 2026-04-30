@@ -166,7 +166,7 @@ export function CitiesPage() {
   }, [topCities]);
   */}
   return (
-    <div className="w-full bg-gray-50 min-h-screen">
+    <div className="w-full bg-background min-h-screen">
       {/* Hero Header with Background Image */}
       <div className="relative bg-gradient-to-r from-secondary to-secondary text-white py-16 md:py-24 overflow-hidden">
         {/* Background Image */}
@@ -191,7 +191,7 @@ export function CitiesPage() {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="container mx-auto px-4 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex items-center gap-4">
@@ -199,7 +199,7 @@ export function CitiesPage() {
                 <MapPin className="w-7 h-7 text-[#2563eb]" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#1f2937]">12</div>
+                <div className="text-3xl font-bold text-bold-text">12</div>
                 <div className="text-[#717182]">Top Cities</div>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function CitiesPage() {
                 <Building2 className="w-7 h-7 text-[#f59e0b]" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#1f2937]">16,500+</div>
+                <div className="text-3xl font-bold text-bold-text">16,500+</div>
                 <div className="text-[#717182]">Hotels Available</div>
               </div>
             </div>
@@ -217,7 +217,7 @@ export function CitiesPage() {
                 <Users className="w-7 h-7 text-[#10b981]" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-[#1f2937]">2M+</div>
+                <div className="text-3xl font-bold text-bold-text">2M+</div>
                 <div className="text-[#717182]">Happy Travelers</div>
               </div>
             </div>
@@ -228,7 +228,7 @@ export function CitiesPage() {
       {/* Cities Grid */}
       <div className="container mx-auto px-4 lg:px-8 py-16">
         <div className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+          <h2 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
             Most Popular Cities
           </h2>
           <p className="text-lg text-[#717182]">
@@ -280,22 +280,22 @@ export function CitiesPage() {
                 <div className="flex items-center gap-6 mb-4 pb-4 border-b">
                   <div>
                     <div className="text-sm text-[#717182]">Hotels</div>
-                    <div className="text-lg font-bold text-[#1f2937]">{city.hotels.toLocaleString()}</div>
+                    <div className="text-lg font-bold text-bold-text">{city.hotels.toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-sm text-[#717182]">Avg. Price</div>
-                    <div className="text-lg font-bold text-[#1f2937]">${city.avgPrice}</div>
+                    <div className="text-lg font-bold text-bold-text">${city.avgPrice}</div>
                   </div>
                 </div>
 
                 {/* Attractions */}
                 <div className="mb-4">
-                  <div className="text-sm font-medium text-[#1f2937] mb-2">Top Attractions</div>
+                  <div className="text-sm font-medium text-bold-text mb-2">Top Attractions</div>
                   <div className="flex flex-wrap gap-2">
                     {city.attractions.map((attraction, index) => (
                       <span 
                         key={index}
-                        className="text-xs bg-[#f3f3f5] text-[#717182] px-2 py-1 rounded-md"
+                        className="text-xs bg-input-background text-[#717182] px-2 py-1 rounded-md"
                       >
                         {attraction}
                       </span>
@@ -306,7 +306,7 @@ export function CitiesPage() {
                 {/* CTA Button */}
                 <Button 
                   asChild
-                  className="w-full bg-[#1d2d44] hover:bg-[#1e40af] text-white"
+                  className="w-full bg-background hover:bg-[#1e40af] text-white"
                 >
                   {/* This takes the user to the city they pressed on but it is a bit buggy*/}
                   {/*<Link to={`/hotels?placeId=${placeId || ''}`} className="flex items-center justify-center gap-2">*/}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Shield, 
   Moon, 
@@ -25,7 +25,6 @@ import {
 } from '../components/ui/select';
 
 export function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -36,13 +35,26 @@ export function SettingsPage() {
   const [cookies, setCookies] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [language, setLanguage] = useState('en');
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  useEffect(() => {
+  localStorage.setItem("darkMode", darkMode);
+
+  if (darkMode) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}, [darkMode]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
             Settings
           </h1>
           <p className="text-lg text-[#717182]">
@@ -57,7 +69,7 @@ export function SettingsPage() {
               <Moon className="w-5 h-5 text-[#2563eb]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Appearance</h2>
+              <h2 className="text-xl font-bold text-bold-text">Appearance</h2>
               <p className="text-sm text-[#717182]">Customize how LikeHome looks</p>
             </div>
           </div>
@@ -65,7 +77,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="dark-mode" className="text-base font-medium text-[#1f2937]">
+                <Label htmlFor="dark-mode" className="text-base font-medium text-bold-text">
                   Dark Mode
                 </Label>
                 <p className="text-sm text-[#717182]">
@@ -82,7 +94,7 @@ export function SettingsPage() {
             <Separator />
 
             <div className="space-y-2">
-              <Label htmlFor="language" className="text-base font-medium text-[#1f2937]">
+              <Label htmlFor="language" className="text-base font-medium text-bold-text">
                 Language
               </Label>
               <Select value={language} onValueChange={setLanguage}>
@@ -109,7 +121,7 @@ export function SettingsPage() {
               <Shield className="w-5 h-5 text-[#10b981]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Privacy</h2>
+              <h2 className="text-xl font-bold text-bold-text">Privacy</h2>
               <p className="text-sm text-[#717182]">Control your privacy and data</p>
             </div>
           </div>
@@ -117,7 +129,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="profile-visibility" className="text-base font-medium text-[#1f2937] flex items-center gap-2">
+                <Label htmlFor="profile-visibility" className="text-base font-medium text-bold-text flex items-center gap-2">
                   <Eye className="w-4 h-4" />
                   Profile Visibility
                 </Label>
@@ -141,7 +153,7 @@ export function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="booking-history" className="text-base font-medium text-[#1f2937]">
+                <Label htmlFor="booking-history" className="text-base font-medium text-bold-text">
                   Show Booking History
                 </Label>
                 <p className="text-sm text-[#717182]">
@@ -159,7 +171,7 @@ export function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="data-sharing" className="text-base font-medium text-[#1f2937] flex items-center gap-2">
+                <Label htmlFor="data-sharing" className="text-base font-medium text-bold-text flex items-center gap-2">
                   <Database className="w-4 h-4" />
                   Data Sharing
                 </Label>
@@ -178,7 +190,7 @@ export function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="cookies" className="text-base font-medium text-[#1f2937] flex items-center gap-2">
+                <Label htmlFor="cookies" className="text-base font-medium text-bold-text flex items-center gap-2">
                   <Cookie className="w-4 h-4" />
                   Cookie Preferences
                 </Label>
@@ -202,7 +214,7 @@ export function SettingsPage() {
               <MapPin className="w-5 h-5 text-[#f59e0b]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Location</h2>
+              <h2 className="text-xl font-bold text-bold-text">Location</h2>
               <p className="text-sm text-[#717182]">Manage location permissions</p>
             </div>
           </div>
@@ -210,7 +222,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="location" className="text-base font-medium text-[#1f2937]">
+                <Label htmlFor="location" className="text-base font-medium text-bold-text">
                   Location Services
                 </Label>
                 <p className="text-sm text-[#717182]">
@@ -225,7 +237,7 @@ export function SettingsPage() {
             </div>
 
             {locationEnabled && (
-              <div className="ml-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <div className="ml-6 p-4 bg-blue-50 dark:bg-background rounded-lg border border-blue-100">
                 <p className="text-sm text-[#2563eb]">
                   <Globe className="w-4 h-4 inline mr-2" />
                   Location services are enabled. We'll show you hotels near you.
@@ -242,7 +254,7 @@ export function SettingsPage() {
               <Bell className="w-5 h-5 text-[#8b5cf6]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Notifications</h2>
+              <h2 className="text-xl font-bold text-bold-text">Notifications</h2>
               <p className="text-sm text-[#717182]">Choose what notifications you receive</p>
             </div>
           </div>
@@ -250,7 +262,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="push-notif" className="text-base font-medium text-[#1f2937] flex items-center gap-2">
+                <Label htmlFor="push-notif" className="text-base font-medium text-bold-text flex items-center gap-2">
                   <Smartphone className="w-4 h-4" />
                   Push Notifications
                 </Label>
@@ -269,7 +281,7 @@ export function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="email-notif" className="text-base font-medium text-[#1f2937]">
+                <Label htmlFor="email-notif" className="text-base font-medium text-bold-text">
                   Email Notifications
                 </Label>
                 <p className="text-sm text-[#717182]">
@@ -287,7 +299,7 @@ export function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="marketing" className="text-base font-medium text-[#1f2937]">
+                <Label htmlFor="marketing" className="text-base font-medium text-bold-text">
                   Marketing Emails
                 </Label>
                 <p className="text-sm text-[#717182]">
@@ -310,7 +322,7 @@ export function SettingsPage() {
               <Lock className="w-5 h-5 text-[#ef4444]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Security</h2>
+              <h2 className="text-xl font-bold text-bold-text">Security</h2>
               <p className="text-sm text-[#717182]">Protect your account</p>
             </div>
           </div>
@@ -318,7 +330,7 @@ export function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="2fa" className="text-base font-medium text-[#1f2937] flex items-center gap-2">
+                <Label htmlFor="2fa" className="text-base font-medium text-bold-text flex items-center gap-2">
                   <UserCheck className="w-4 h-4" />
                   Two-Factor Authentication
                 </Label>

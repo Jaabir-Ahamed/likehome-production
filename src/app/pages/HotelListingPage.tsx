@@ -247,7 +247,7 @@ export function HotelListingPage() {
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 {/* Page Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                    <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
                         Find Your Perfect Stay
                     </h1>
                     <p className="text-lg text-[#717182]">
@@ -265,12 +265,12 @@ export function HotelListingPage() {
                     <aside className="w-full lg:w-1/4">
                         <Card className="p-6 sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-[#1f2937]">Filters</h2>
+                                <h2 className="text-xl font-bold text-bold-text">Filters</h2>
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setShowMap(!showMap)}
-                                    className="text-[#2563eb]"
+                                    className="text-[#2563eb] cursor-pointer"
                                 >
                                     <MapIcon className="w-4 h-4 mr-2"/>
                                     {showMap ? 'Hide Map' : 'Show Map'}
@@ -281,7 +281,7 @@ export function HotelListingPage() {
                                        className="w-full">
                                 {/* Price Range Filter */}
                                 <AccordionItem value="price">
-                                    <AccordionTrigger className="text-base font-medium">
+                                    <AccordionTrigger className="text-base font-medium cursor-pointer">
                                         Price Range
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -292,7 +292,7 @@ export function HotelListingPage() {
                                                 step={10}
                                                 value={priceRange}
                                                 onValueChange={setPriceRange}
-                                                className="w-full"
+                                                className="w-full cursor-pointer"
                                             />
                                             <div className="flex items-center justify-between text-sm text-[#717182]">
                                                 <span>${priceRange[0]}</span>
@@ -304,7 +304,7 @@ export function HotelListingPage() {
 
                                 {/* Star Rating Filter */}
                                 <AccordionItem value="stars">
-                                    <AccordionTrigger className="text-base font-medium">
+                                    <AccordionTrigger className="text-base font-medium cursor-pointer">
                                         Star Rating
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -315,6 +315,7 @@ export function HotelListingPage() {
                                                         id={`star-${star}`}
                                                         checked={selectedStars.includes(star)}
                                                         onCheckedChange={() => handleStarToggle(star)}
+                                                        className="cursor-pointer"
                                                     />
                                                     <Label htmlFor={`star-${star}`}
                                                            className="flex items-center cursor-pointer">
@@ -333,7 +334,7 @@ export function HotelListingPage() {
 
                                 {/* Guest Rating Filter */}
                                 <AccordionItem value="guestRating">
-                                    <AccordionTrigger className="text-base font-medium">
+                                    <AccordionTrigger className="text-base font-medium cursor-pointer">
                                         Guest Rating
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -349,6 +350,7 @@ export function HotelListingPage() {
                                                         id={`rating-${rating.value}`}
                                                         checked={guestRating === rating.value}
                                                         onCheckedChange={() => setGuestRating(rating.value)}
+                                                        className="cursor-pointer"
                                                     />
                                                     <Label htmlFor={`rating-${rating.value}`}
                                                            className="cursor-pointer">
@@ -362,7 +364,7 @@ export function HotelListingPage() {
 
                                 {/* Amenities Filter */}
                                 <AccordionItem value="amenities">
-                                    <AccordionTrigger className="text-base font-medium">
+                                    <AccordionTrigger className="text-base font-medium cursor-pointer">
                                         Amenities
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -378,6 +380,7 @@ export function HotelListingPage() {
                                                         id={amenity.id}
                                                         checked={selectedAmenities.includes(amenity.id)}
                                                         onCheckedChange={() => handleAmenityToggle(amenity.id)}
+                                                        className="cursor-pointer"
                                                     />
                                                     <Label htmlFor={amenity.id} className="cursor-pointer">
                                                         {amenity.label}
@@ -390,7 +393,7 @@ export function HotelListingPage() {
 
                                 {/* Property Type Filter */}
                                 <AccordionItem value="propertyType">
-                                    <AccordionTrigger className="text-base font-medium">
+                                    <AccordionTrigger className="text-base font-medium cursor-pointer">
                                         Property Type
                                     </AccordionTrigger>
                                     <AccordionContent>
@@ -407,6 +410,7 @@ export function HotelListingPage() {
                                                         id={type.id}
                                                         checked={propertyTypes.includes(type.id)}
                                                         onCheckedChange={() => handlePropertyTypeToggle(type.id)}
+                                                        className="cursor-pointer"
                                                     />
                                                     <Label htmlFor={type.id} className="cursor-pointer">
                                                         {type.label}
@@ -420,7 +424,7 @@ export function HotelListingPage() {
 
                             <Button
                                 variant="outline"
-                                className="w-full mt-6"
+                                className="w-full mt-6 cursor-pointer"
                                 onClick={() => {
                                     setLocationFilter('');
                                     setPriceRange([0, 500]);
@@ -450,21 +454,21 @@ export function HotelListingPage() {
 
                         {/* Sorting Bar */}
                         <div
-                            className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            className="bg-card rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <p className="text-sm text-[#717182]">
                                 Showing {filteredHotels.length} properties
                             </p>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-[#1f2937]">Sort by:</span>
+                                <span className="text-sm font-medium text-bold-text">Sort by:</span>
                                 <Select value={sortBy} onValueChange={setSortBy}>
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className="w-[180px] cursor-pointer">
                                         <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="recommended">Recommended</SelectItem>
-                                        <SelectItem value="price-low">Lowest Price</SelectItem>
-                                        <SelectItem value="price-high">Highest Price</SelectItem>
-                                        <SelectItem value="rating">Highest Rating</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="recommended">Recommended</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="price-low">Lowest Price</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="price-high">Highest Price</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="rating">Highest Rating</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -519,7 +523,7 @@ export function HotelListingPage() {
                                                         {/* Info */}
                                                         <div className="flex-1 p-5 flex flex-col justify-between">
                                                             <div>
-                                                                <h3 className="text-xl font-bold text-[#1f2937] mb-1">{hotel.name}</h3>
+                                                                <h3 className="text-xl font-bold text-bold-text mb-1">{hotel.name}</h3>
 
                                                                 {hotel.address != null && (
                                                                     <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
@@ -546,7 +550,7 @@ export function HotelListingPage() {
                                                                             {hotel.rating.toFixed(1)}
                                                                         </span>
                                                                         <span
-                                                                            className="text-sm font-medium text-[#1f2937]">
+                                                                            className="text-sm font-medium text-bold-text">
                                                                             {getRatingLabel(hotel.rating)}
                                                                         </span>
                                                                     </div>
@@ -572,7 +576,7 @@ export function HotelListingPage() {
                                                                         </div>
                                                                     ) : rateInfo ? (
                                                                         <>
-                                                                            <p className="text-2xl font-bold text-[#1f2937]">
+                                                                            <p className="text-2xl font-bold text-bold-text">
                                                                                 {getCurrencySymbol()}{convertPrice(rateInfo.pricePerNight).toFixed(0)}
                                                                                 <span
                                                                                     className="text-sm font-normal text-[#717182] ml-1">/ night</span>
@@ -588,7 +592,7 @@ export function HotelListingPage() {
                                                                     )}
                                                                 </div>
                                                                 <Button asChild
-                                                                        className="bg-[#1d2d44] hover:bg-[#1e40af] text-white px-6 flex-shrink-0">
+                                                                        className="bg-[#1d2d44] dark:bg-background hover:bg-[#1e40af] dark:hover:bg-[#1e40af] text-white px-6 flex-shrink-0">
                                                                     <Link to={detailLink}>View Details</Link>
                                                                 </Button>
                                                             </div>

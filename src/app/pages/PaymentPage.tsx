@@ -26,26 +26,26 @@ const mockHotels = [
 ];
 
 const PHONE_CODES = [
-  { code: '+1',   short: 'USA',  name: 'United States' },
-  { code: '+1',   short: 'CAN',  name: 'Canada' },
-  { code: '+44',  short: 'GBR',  name: 'United Kingdom' },
-  { code: '+61',  short: 'AUS',  name: 'Australia' },
-  { code: '+49',  short: 'DEU',  name: 'Germany' },
-  { code: '+33',  short: 'FRA',  name: 'France' },
-  { code: '+81',  short: 'JPN',  name: 'Japan' },
-  { code: '+86',  short: 'CHN',  name: 'China' },
-  { code: '+91',  short: 'IND',  name: 'India' },
-  { code: '+55',  short: 'BRA',  name: 'Brazil' },
-  { code: '+52',  short: 'MEX',  name: 'Mexico' },
-  { code: '+34',  short: 'ESP',  name: 'Spain' },
-  { code: '+39',  short: 'ITA',  name: 'Italy' },
-  { code: '+7',   short: 'RUS',  name: 'Russia' },
-  { code: '+82',  short: 'KOR',  name: 'South Korea' },
-  { code: '+65',  short: 'SGP',  name: 'Singapore' },
-  { code: '+971', short: 'UAE',  name: 'United Arab Emirates' },
-  { code: '+966', short: 'SAU',  name: 'Saudi Arabia' },
-  { code: '+31',  short: 'NLD',  name: 'Netherlands' },
-  { code: '+46',  short: 'SWE',  name: 'Sweden' },
+  { code: '+1', short: 'USA', name: 'United States' },
+  { code: '+1', short: 'CAN', name: 'Canada' },
+  { code: '+44', short: 'GBR', name: 'United Kingdom' },
+  { code: '+61', short: 'AUS', name: 'Australia' },
+  { code: '+49', short: 'DEU', name: 'Germany' },
+  { code: '+33', short: 'FRA', name: 'France' },
+  { code: '+81', short: 'JPN', name: 'Japan' },
+  { code: '+86', short: 'CHN', name: 'China' },
+  { code: '+91', short: 'IND', name: 'India' },
+  { code: '+55', short: 'BRA', name: 'Brazil' },
+  { code: '+52', short: 'MEX', name: 'Mexico' },
+  { code: '+34', short: 'ESP', name: 'Spain' },
+  { code: '+39', short: 'ITA', name: 'Italy' },
+  { code: '+7', short: 'RUS', name: 'Russia' },
+  { code: '+82', short: 'KOR', name: 'South Korea' },
+  { code: '+65', short: 'SGP', name: 'Singapore' },
+  { code: '+971', short: 'UAE', name: 'United Arab Emirates' },
+  { code: '+966', short: 'SAU', name: 'Saudi Arabia' },
+  { code: '+31', short: 'NLD', name: 'Netherlands' },
+  { code: '+46', short: 'SWE', name: 'Sweden' },
 ];
 
 type PrebookRate = {
@@ -122,15 +122,15 @@ export function PaymentPage() {
   const checkOut = searchParams.get('checkOut') || '';
   const occupanciesParam = searchParams.get('occupancies');
 
-const occupancies: { adults: number; children: number[] }[] =
-  occupanciesParam
-    ? JSON.parse(occupanciesParam)
-    : [{ adults: 2, children: [] }];
+  const occupancies: { adults: number; children: number[] }[] =
+    occupanciesParam
+      ? JSON.parse(occupanciesParam)
+      : [{ adults: 2, children: [] }];
 
-const guestsParam = occupancies.reduce(
-  (total, room) => total + room.adults + room.children.length,
-  0
-);
+  const guestsParam = occupancies.reduce(
+    (total, room) => total + room.adults + room.children.length,
+    0
+  );
   const navigate = useNavigate();
   const { convertPrice, getCurrencySymbol } = useCurrency();
   const { points, loading: rewardsLoading, addPoints, redeemPoints, dollarsToPoints, maxRedeemableForAmount } = useRewards();
@@ -138,14 +138,14 @@ const guestsParam = occupancies.reduce(
 
   const prebookId = searchParams.get('prebookId');
   const nights =
-  checkIn && checkOut
-    ? Math.max(
+    checkIn && checkOut
+      ? Math.max(
         1,
         Math.round(
           (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000
         )
       )
-    : 1;
+      : 1;
 
   const [prebookData, setPrebookData] = useState<PrebookData | null>(null);
 
@@ -180,14 +180,14 @@ const guestsParam = occupancies.reduce(
         prev.map((room, ri) =>
           ri === 0
             ? room.map((g, gi) =>
-                gi === 0
-                  ? {
-                      firstName: g.firstName || firstName,
-                      lastName: g.lastName || lastName,
-                      email: g.email || profile.email || user.email || '',
-                    }
-                  : g
-              )
+              gi === 0
+                ? {
+                  firstName: g.firstName || firstName,
+                  lastName: g.lastName || lastName,
+                  email: g.email || profile.email || user.email || '',
+                }
+                : g
+            )
             : room
         )
       );
@@ -205,8 +205,8 @@ const guestsParam = occupancies.reduce(
     }).catch(() => {
       // Profile load failure is non-critical — fields stay empty
     });
-  // Run once after user is available
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Run once after user is available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
   // Load prebook data from sessionStorage when prebookId is present
   useEffect(() => {
@@ -556,7 +556,7 @@ const guestsParam = occupancies.reduce(
   const backHref = id ? `/hotel/${id}` : '/hotels';
 
   return (
-    <div className="w-full bg-gray-50 min-h-screen">
+    <div className="w-full bg-background min-h-screen">
       <div className="container mx-auto px-4 lg:px-8 py-8">
         <Button variant="ghost" asChild className="mb-6">
           <Link to={backHref}>
@@ -569,7 +569,7 @@ const guestsParam = occupancies.reduce(
           {/* Left column: guest info + payment */}
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
                 Complete Your Booking
               </h1>
               <p className="text-lg text-[#717182]">
@@ -595,7 +595,7 @@ const guestsParam = occupancies.reduce(
             {/* Who's checking in */}
             <Card className="p-6">
               <div className="flex items-baseline justify-between mb-1">
-                <h2 className="text-xl font-bold text-[#1f2937]">Who's checking in?</h2>
+                <h2 className="text-xl font-bold text-bold-text">Who's checking in?</h2>
                 <span className="text-sm text-[#717182]">* Required</span>
               </div>
               <p className="text-sm text-[#717182] mb-6">
@@ -611,7 +611,7 @@ const guestsParam = occupancies.reduce(
                     <div key={occNum}>
                       <div className="flex items-center gap-3 mb-5">
                         {roomIdx > 0 && <Separator className="flex-1" />}
-                        <span className="text-sm font-semibold text-[#1f2937] whitespace-nowrap">
+                        <span className="text-sm font-semibold text-bold-text whitespace-nowrap">
                           Room {roomIdx + 1}
                         </span>
                         <Separator className="flex-1" />
@@ -670,7 +670,7 @@ const guestsParam = occupancies.reduce(
                             </Label>
                             <div className="flex gap-2">
                               <select
-                                className="border border-input rounded-md px-3 py-2 text-sm bg-background w-36 shrink-0"
+                                className="border border-input rounded-md px-3 py-2 text-sm w-36 shrink-0 bg-input-background"
                                 value={holderPhone.countryCode}
                                 onChange={(e) => setHolderPhone({ ...holderPhone, countryCode: e.target.value })}
                                 required
@@ -702,7 +702,7 @@ const guestsParam = occupancies.reduce(
                   <Label htmlFor="remarks">Special Requests (optional)</Label>
                   <textarea
                     id="remarks"
-                    className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none bg-background mt-1"
+                    className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none mt-1 bg-input-background"
                     rows={2}
                     placeholder="e.g. early check-in, ground floor room, extra pillows"
                     value={remarks}
@@ -716,7 +716,7 @@ const guestsParam = occupancies.reduce(
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <CreditCard className="w-5 h-5 text-[#2563eb]" />
-                <h2 className="text-xl font-bold text-[#1f2937]">Payment Details</h2>
+                <h2 className="text-xl font-bold text-bold-text">Payment Details</h2>
                 <Lock className="w-4 h-4 text-green-600 ml-auto" />
                 <span className="text-sm text-green-600">Secure Payment</span>
               </div>
@@ -777,8 +777,8 @@ const guestsParam = occupancies.reduce(
               </div>
 
               {/* Terms */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                <p className="text-sm text-[#1f2937]">
+              <div className="bg-blue-50 dark:bg-background border border-blue-200 rounded-lg p-4 mt-6">
+                <p className="text-sm text-bold-text">
                   By completing this booking, you agree to the{' '}
                   <a href="#" className="text-[#2563eb] hover:underline">Terms & Conditions</a>
                   {' '}and{' '}
@@ -789,15 +789,26 @@ const guestsParam = occupancies.reduce(
               {/* Overlap conflict error — shown right above the submit button so the
                   user sees it in the same place they're about to take action. */}
               {overlapError && (
-                <Card className="p-4 border-red-300 bg-red-50 mt-6">
+                <Card className="p-4 mt-6 border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40">
+
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                    <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+
                     <div>
-                      <p className="font-semibold text-red-800 mb-1">Booking dates conflict</p>
-                      <p className="text-sm text-red-700 mb-3">
+                      <p className="font-semibold mb-1 text-red-800 dark:text-red-300">
+                        Booking dates conflict
+                      </p>
+
+                      <p className="text-sm mb-3 text-red-700 dark:text-red-400">
                         You already have a hotel booking that overlaps these dates. Cancel or change your existing booking before booking another stay.
                       </p>
-                      <Button variant="outline" size="sm" asChild className="border-red-400 text-red-700 hover:bg-red-100">
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-red-400 bg-red-50 dark:bg-red-950/40 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+                      >
                         <Link to="/bookings">View my bookings</Link>
                       </Button>
                     </div>
@@ -838,7 +849,7 @@ const guestsParam = occupancies.reduce(
           {/* Booking Summary */}
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-28">
-              <h2 className="text-xl font-bold text-[#1f2937] mb-4">Booking Summary</h2>
+              <h2 className="text-xl font-bold text-bold-text mb-4">Booking Summary</h2>
 
               {/* Hotel Info */}
               <div className="mb-6">
@@ -849,7 +860,7 @@ const guestsParam = occupancies.reduce(
                     className="w-full h-48 object-cover rounded-lg mb-4"
                   />
                 )}
-                <h3 className="font-bold text-[#1f2937] mb-1">{hotelName}</h3>
+                <h3 className="font-bold text-bold-text mb-1">{hotelName}</h3>
                 {hotelLocation && <p className="text-sm text-[#717182]">{hotelLocation}</p>}
                 {isRealPrebook && prebookData!.roomTypes?.[0]?.rates?.[0]?.boardName && (
                   <p className="text-sm text-[#717182] mt-1">{prebookData!.roomTypes[0].rates![0].boardName}</p>
@@ -859,31 +870,33 @@ const guestsParam = occupancies.reduce(
               <Separator className="my-4" />
 
               {/* Booking Details */}
-  
-<div className="space-y-3 mb-6">
-  <div className="flex items-center gap-2 text-[#1f2937]">
-    <Calendar className="w-4 h-4 text-[#2563eb]" />
-    <span className="text-sm">
-      {checkIn && checkOut
-        ? `${checkIn} → ${checkOut}`
-        : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
-    </span>
-  </div>
 
-  <div className="flex items-center gap-2 text-[#1f2937]">
-    <Users className="w-4 h-4 text-[#2563eb]" />
-    <span className="text-sm">
-      {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} • {guestsParam} {guestsParam === 1 ? 'Guest' : 'Guests'}
-    </span>
-  </div>
-</div>
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-2 text-bold-text">
+                  <Calendar className="w-4 h-4 text-[#2563eb]" />
+                  <span className="text-sm">
+                    {checkIn && checkOut
+                      ? `${checkIn} → ${checkOut}`
+                      : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-bold-text">
+                  <Users className="w-4 h-4 text-[#2563eb]" />
+                  <span className="text-sm">
+                    {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} • {guestsParam} {guestsParam === 1 ? 'Guest' : 'Guests'}
+                  </span>
+                </div>
+              </div>
               <Separator className="my-4" />
 
               {/* Price Breakdown */}
               <div className="space-y-3 mb-4">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-sm font-semibold text-amber-900 mb-2">Redeem Points</p>
-                  <p className="text-xs text-amber-800 mb-2">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-background dark:border-gray-700 p-3">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-300 mb-2">
+                    Redeem Points
+                  </p>
+                  <p className="text-xs text-amber-800 dark:text-amber-400 mb-2">
                     Balance: {rewardsLoading ? 'Loading...' : `${pointsBalance.toLocaleString()} pts`}
                   </p>
                   <Input
@@ -895,6 +908,7 @@ const guestsParam = occupancies.reduce(
                     value={pointsToRedeemInput}
                     onChange={(e) => setPointsToRedeemInput(e.target.value)}
                     disabled={processing || rewardsLoading}
+                    className="placeholder:text-bold-text text-bold-text"
                   />
                   {redeemQuoteError && (
                     <p className="text-xs text-red-600 mt-2">{redeemQuoteError}</p>
@@ -912,13 +926,13 @@ const guestsParam = occupancies.reduce(
                     </p>
                   )}
                 </div>
-                <div className="flex justify-between text-[#1f2937]">
+                <div className="flex justify-between text-bold-text">
                   <span className="text-sm">
                     {isRealPrebook ? 'Rate total' : `${priceSymbol}${convertPrice(mockPrice)} × ${nights} ${nights === 1 ? 'night' : 'nights'}`}
                   </span>
                   <span className="text-sm">{priceSymbol}{basePrice}</span>
                 </div>
-                <div className="flex justify-between text-[#1f2937]">
+                <div className="flex justify-between text-bold-text">
                   <span className="text-sm">Service fee</span>
                   <span className="text-sm">{priceSymbol}{serviceFee}</span>
                 </div>
@@ -929,11 +943,11 @@ const guestsParam = occupancies.reduce(
                   </div>
                 )}
                 <Separator />
-                <div className="flex justify-between text-[#1f2937]">
+                <div className="flex justify-between text-bold-text">
                   <span>Points you'll earn</span>
                   <span>+{dollarsToPoints(discountedTotal)} pts</span>
                 </div>
-                <div className="flex justify-between font-bold text-lg text-[#1f2937]">
+                <div className="flex justify-between font-bold text-lg text-bold-text">
                   <span>Total</span>
                   <span>{priceSymbol}{discountedTotal.toFixed(2)}</span>
                 </div>
@@ -946,8 +960,8 @@ const guestsParam = occupancies.reduce(
                 </Badge>
               )}
 
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-xs text-[#717182] leading-relaxed">{cancellationText}</p>
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-background rounded-lg">
+                <p className="text-xs text-bold-text leading-relaxed">{cancellationText}</p>
               </div>
             </Card>
           </div>
