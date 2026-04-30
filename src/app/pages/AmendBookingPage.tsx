@@ -1,16 +1,17 @@
 // AmendBookingPage with PaymentPage UI + EXACT guest section behavior
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Separator } from '../components/ui/separator';
-import { toast } from 'sonner';
-import { api } from '../../api/liteApi';
-import { Loader2, Badge, Check, Calendar, Users, CreditCard, Lock } from 'lucide-react';
-import { Label } from '@radix-ui/react-label';
+import {useEffect, useState} from 'react';
+import {Link, useNavigate, useSearchParams} from 'react-router';
+import {Button} from '../components/ui/button';
+import {Card} from '../components/ui/card';
+import {Input} from '../components/ui/input';
+import {Separator} from '../components/ui/separator';
+import {toast} from 'sonner';
+import {api} from '../../api/liteApi';
+import {Badge, Calendar, Check, CreditCard, Loader2, Lock, Users} from 'lucide-react';
+import {Label} from '@radix-ui/react-label';
 import {useRewards} from "../contexts/RewardsContext";
-import { FunctionsHttpError } from '@supabase/supabase-js';
+import {errorCodes} from "../../lib/errorCodes";
+import {FunctionsHttpError} from "@supabase/supabase-js";
 
 // match PaymentPage structure
 const PHONE_CODES = [
@@ -100,7 +101,7 @@ export function AmendBookingPage() {
     }, [bookingId]);
 
     const handleDateBlur = (() => {
-    if (!bookingData) return;
+        if (!bookingData) return;
         setIsDateChanged(
             editCheckin !== bookingData.checkin ||
             editCheckout !== bookingData.checkout
@@ -127,13 +128,13 @@ export function AmendBookingPage() {
             setSelectedRates({});
 
             const occupancies = (bookingData.bookedRooms ?? []).map((room: any) => ({
-            adults: room.adults,
-            childrenAges: []
+                adults: room.adults,
+                childrenAges: []
             }));
 
             const result = await api.getAlternativePrebooks(
-            bookingId || "",
-            { checkin: editCheckin, checkout: editCheckout, occupancies }
+                bookingId || "",
+                {checkin: editCheckin, checkout: editCheckout, occupancies}
             );
 
             setPrebookResult(result);
@@ -141,33 +142,33 @@ export function AmendBookingPage() {
 
             // ✅ ONLY use the SAME hotel as original booking
             const hotelResults = result?.data?.filter(
-            (h: any) => h.hotelId === bookingData.hotel.hotelId
+                (h: any) => h.hotelId === bookingData.hotel.hotelId
             );
 
             if (!hotelResults) {
-            toast.error("No available rates for this hotel");
-            return;
+                toast.error("No available rates for this hotel");
+                return;
             }
 
             // ✅ flatten ONLY this hotel's rates
             const flattened = (hotelResults ?? []).flatMap((hotel: any) =>
-            (hotel.roomTypes ?? []).flatMap((rt: any) =>
-                (rt.rates ?? []).map((r: any) => ({
-                ...r,
-                roomTypeName: rt.name,
-                offerId: rt.offerId,
-                roomTypeId: rt.roomTypeId,
-                prebookId: hotel.prebookId // 🔥 IMPORTANT: each prebook keeps its own ID
-                }))
-            )
+                (hotel.roomTypes ?? []).flatMap((rt: any) =>
+                    (rt.rates ?? []).map((r: any) => ({
+                        ...r,
+                        roomTypeName: rt.name,
+                        offerId: rt.offerId,
+                        roomTypeId: rt.roomTypeId,
+                        prebookId: hotel.prebookId // 🔥 IMPORTANT: each prebook keeps its own ID
+                    }))
+                )
             );
 
             // ✅ group by occupancy (same as PaymentPage logic)
             const grouped = flattened.reduce((acc: any, rate: any) => {
-            const key = rate.occupancyNumber;
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(rate);
-            return acc;
+                const key = rate.occupancyNumber;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(rate);
+                return acc;
             }, {});
 
             setRatesByOccupancy(grouped);
@@ -190,56 +191,56 @@ export function AmendBookingPage() {
             setProcessing(true);
 
             if (showMore) {
-            const rates = Object.values(selectedRates);
+                const rates = Object.values(selectedRates);
 
-            if (rates.length === 0) {
-                throw new Error("No rates selected");
-            }
+                if (rates.length === 0) {
+                    throw new Error("No rates selected");
+                }
 
-            // ✅ ALL rooms share SAME prebookId
-            const prebookId = rates[0].prebookId;
+                // ✅ ALL rooms share SAME prebookId
+                const prebookId = rates[0].prebookId;
 
-            const guests = Object.entries(selectedRates).map(([occ, rate]: any, index) => {
-            const roomIdx = index; // safer than occ-based indexing
+                const guests = Object.entries(selectedRates).map(([occ, rate]: any, index) => {
+                    const roomIdx = index; // safer than occ-based indexing
 
-            const guest = roomGuestsList[roomIdx]?.[0] || {
-                    firstName: holderFirstName,
-                    lastName: holderLastName,
-                    email: holderEmail,
-                    remarks: remarks
-                };
+                    const guest = roomGuestsList[roomIdx]?.[0] || {
+                        firstName: holderFirstName,
+                        lastName: holderLastName,
+                        email: holderEmail,
+                        remarks: remarks
+                    };
 
-                return {
-                    occupancyNumber: Number(occ),
-                    firstName: holderFirstName,
-                    lastName: holderLastName,
-                    email: holderEmail,
-                    remarks: remarks
-                };
-            });
+                    return {
+                        occupancyNumber: Number(occ),
+                        firstName: holderFirstName,
+                        lastName: holderLastName,
+                        email: holderEmail,
+                        remarks: remarks
+                    };
+                });
 
-            await api.getRatesBook({
-                prebookId,
-                checkin: editCheckin,
-                checkout: editCheckout,
-                holder: {
-                firstName: holderFirstName,
-                lastName: holderLastName,
-                email: holderEmail,
-                phone: `${holderPhone.countryCode}${holderPhone.number}`,
-                },
-                guests,
-                payment: { method: "CREDIT" },
-                existingBookingId: bookingId || undefined,
-            });
+                await api.getRatesBook({
+                    prebookId,
+                    checkin: editCheckin,
+                    checkout: editCheckout,
+                    holder: {
+                        firstName: holderFirstName,
+                        lastName: holderLastName,
+                        email: holderEmail,
+                        phone: `${holderPhone.countryCode}${holderPhone.number}`,
+                    },
+                    guests,
+                    payment: {method: "CREDIT"},
+                    existingBookingId: bookingId || undefined,
+                });
 
             } else {
-            await api.amendBooking(bookingId || '', {
-                firstName: holderFirstName,
-                lastName: holderLastName,
-                email: holderEmail,
-                remarks: remarks
-            });
+                await api.amendBooking(bookingId || '', {
+                    firstName: holderFirstName,
+                    lastName: holderLastName,
+                    email: holderEmail,
+                    remarks: remarks
+                });
             }
 
             handlePoints();
@@ -249,7 +250,37 @@ export function AmendBookingPage() {
 
         } catch (err) {
             console.error(err);
-            toast.error('Failed to update booking');
+
+            if (err instanceof FunctionsHttpError) {
+                const data = await err.context.json();
+
+                if (data?.error === errorCodes.USER_OVERLAPPING_BOOKING) {
+                    const conflictingBookingId = data?.conflictingBookingId;
+
+                    if (conflictingBookingId) {
+                        toast(
+                            <div>
+                                <div>{data.message || 'You already have an overlapping booking.'}</div>
+                                <Link
+                                    className="text-blue-800 flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    to={`/bookings?highlightBookingId=${conflictingBookingId}`}>
+                                    View conflicting booking
+                                </Link>
+                            </div>
+                        );
+                    } else {
+                        toast.error(
+                            data?.message || 'You already have an overlapping booking on these days.'
+                        );
+                    }
+                } else {
+                    toast.error(data?.message || 'Failed to update booking');
+                }
+            } else if (err instanceof Error) {
+                toast.error(err.message);
+            } else {
+                toast.error('Failed to update booking, contact admin');
+            }
         } finally {
             setProcessing(false);
         }
@@ -263,46 +294,46 @@ export function AmendBookingPage() {
     const handlePoints = async () => {
         //CANCEL POINTS LOGIC
         const rewardAdjustment = getBookingRewardAdjustment(bookingData.bookingId);
-            if (rewardAdjustment) {
-                const {earnedPoints, redeemedPoints} = rewardAdjustment;
-                let rewardOpsOk = true;
+        if (rewardAdjustment) {
+            const {earnedPoints, redeemedPoints} = rewardAdjustment;
+            let rewardOpsOk = true;
 
-                // Reverse booking effects exactly: remove earned points, then restore redeemed points.
-                if (earnedPoints > 0) {
-                    const newTotalAfterRedeem = await redeemPoints(earnedPoints);
-                    if (newTotalAfterRedeem === null) rewardOpsOk = false;
-                }
-                if (redeemedPoints > 0) {
-                    const newTotalAfterAdd = await addPoints(redeemedPoints);
-                    if (newTotalAfterAdd === null) rewardOpsOk = false;
-                }
+            // Reverse booking effects exactly: remove earned points, then restore redeemed points.
+            if (earnedPoints > 0) {
+                const newTotalAfterRedeem = await redeemPoints(earnedPoints);
+                if (newTotalAfterRedeem === null) rewardOpsOk = false;
+            }
+            if (redeemedPoints > 0) {
+                const newTotalAfterAdd = await addPoints(redeemedPoints);
+                if (newTotalAfterAdd === null) rewardOpsOk = false;
+            }
 
-                if (rewardOpsOk) {
-                    removeBookingRewardAdjustment(bookingData.bookingId);
-                    await refreshPoints();
-                }
-            } else {
-                // Fallback for older bookings without a recorded points delta.
-                const cancelledPrice = Number(bookingData.totalAmount ?? 0);
-                if (cancelledPrice > 0) {
-                    const pointsToSubtract = dollarsToPoints(cancelledPrice);
-                    if (pointsToSubtract > 0) {
-                        const newTotal = await redeemPoints(pointsToSubtract);
-                        if (newTotal === null) {
-                            toast.error("Booking updated, but reward points were not updated.");
-                        } else {
-                            await refreshPoints();
-                        }
+            if (rewardOpsOk) {
+                removeBookingRewardAdjustment(bookingData.bookingId);
+                await refreshPoints();
+            }
+        } else {
+            // Fallback for older bookings without a recorded points delta.
+            const cancelledPrice = Number(bookingData.totalAmount ?? 0);
+            if (cancelledPrice > 0) {
+                const pointsToSubtract = dollarsToPoints(cancelledPrice);
+                if (pointsToSubtract > 0) {
+                    const newTotal = await redeemPoints(pointsToSubtract);
+                    if (newTotal === null) {
+                        toast.error("Booking updated, but reward points were not updated.");
+                    } else {
+                        await refreshPoints();
                     }
                 }
             }
+        }
 
-            //BOOKING POINTS LOGIC
-            const pointsEarned = dollarsToPoints(selectedTotal);
-            const newPointsTotal = await addPoints(pointsEarned);
-            if (newPointsTotal === null) {
-                toast.error('Failed to add reward points.');
-            }
+        //BOOKING POINTS LOGIC
+        const pointsEarned = dollarsToPoints(selectedTotal);
+        const newPointsTotal = await addPoints(pointsEarned);
+        if (newPointsTotal === null) {
+            toast.error('Failed to add reward points.');
+        }
     };
 
     type RewardAdjustmentRecord = {
@@ -377,52 +408,52 @@ export function AmendBookingPage() {
         let latestDeadline: Date | null = null;
 
         bookingData.bookedRooms.forEach((room: any) => {
-            const policies = room?.rate?.cancellationPolicies;
-            const retailAmount =
-            room?.rate?.retailRate?.total?.amount ||
-            room?.rate?.retailRate?.total?.[0]?.amount ||
-            0;
+                const policies = room?.rate?.cancellationPolicies;
+                const retailAmount =
+                    room?.rate?.retailRate?.total?.amount ||
+                    room?.rate?.retailRate?.total?.[0]?.amount ||
+                    0;
 
-            const policyInfo = policies?.cancelPolicyInfos?.[0];
+                const policyInfo = policies?.cancelPolicyInfos?.[0];
 
-            if (policies?.refundableTag === "NRFN") {
-                hasNonRefundable = true;
-                totalFee += retailAmount;
-                return;
-            }
-
-            // ⏰ Check deadline-based cancellation fee
-            if (policyInfo?.cancelTime) {
-                const now = new Date();
-                const deadline = new Date(policyInfo.cancelTime);
-
-                // track latest deadline (optional useful for UI messaging)
-                if (!latestDeadline || deadline < latestDeadline) {
-                    latestDeadline = deadline;
+                if (policies?.refundableTag === "NRFN") {
+                    hasNonRefundable = true;
+                    totalFee += retailAmount;
+                    return;
                 }
 
-                if (now > deadline) {
-                    totalFee += policyInfo.amount || retailAmount;
+                // ⏰ Check deadline-based cancellation fee
+                if (policyInfo?.cancelTime) {
+                    const now = new Date();
+                    const deadline = new Date(policyInfo.cancelTime);
+
+                    // track latest deadline (optional useful for UI messaging)
+                    if (!latestDeadline || deadline < latestDeadline) {
+                        latestDeadline = deadline;
+                    }
+
+                    if (now > deadline) {
+                        totalFee += policyInfo.amount || retailAmount;
+                    }
                 }
             }
-        }
-    );
+        );
 
-    // Final state
-    setCancellationFee(totalFee);
+        // Final state
+        setCancellationFee(totalFee);
 
-    // Optional: you can also expose this if needed in UI later
-    console.log({
-        totalFee,
-        hasNonRefundable,
-        latestDeadline
-    });
+        // Optional: you can also expose this if needed in UI later
+        console.log({
+            totalFee,
+            hasNonRefundable,
+            latestDeadline
+        });
     };
 
     if (!bookingData) return <div className="flex items-center justify-center py-20">
-                                        <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]"/>
-                                        <span className="ml-3 text-[#717182]">Searching for your Booking…</span>
-                                    </div>;
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]"/>
+        <span className="ml-3 text-[#717182]">Searching for your Booking…</span>
+    </div>;
 
     return (
         <div className="w-full bg-background min-h-screen">
@@ -440,81 +471,88 @@ export function AmendBookingPage() {
 
                             {roomGuestsList.map((room, roomIdx) => {
                                 if (roomIdx == 0) {
-                                return (
-                                    <div key={roomIdx} className="mb-6">
+                                    return (
+                                        <div key={roomIdx} className="mb-6">
 
-                                    {/* 🔥 Keep layout, just loop guests */}
-                                    {room.map((guest, guestIdx) => (
-                                        <div key={guestIdx} className="mb-4">
+                                            {/* 🔥 Keep layout, just loop guests */}
+                                            {room.map((guest, guestIdx) => (
+                                                <div key={guestIdx} className="mb-4">
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                          <div>
-                                            <label className="block text-sm font-medium text-bold-text mb-2">First Name</label>
-                                            <Input value={holderFirstName} onChange={(e) =>
-                                                setHolderFirstName(e.target.value)}
-                                                placeholder="First name"
-                                            /> 
-                                          </div>
-                                          <div>
-                                            <label className="block text-sm font-medium text-bold-text mb-2">Last Name</label>
-                                            <Input value={holderLastName} onChange={(e) =>
-                                                setHolderLastName(e.target.value)}
-                                                placeholder="Last name"
-                                            />
-                                          </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                        <div>
+                                                            <label
+                                                                className="block text-sm font-medium text-bold-text mb-2">First
+                                                                Name</label>
+                                                            <Input value={holderFirstName} onChange={(e) =>
+                                                                setHolderFirstName(e.target.value)}
+                                                                   placeholder="First name"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label
+                                                                className="block text-sm font-medium text-bold-text mb-2">Last
+                                                                Name</label>
+                                                            <Input value={holderLastName} onChange={(e) =>
+                                                                setHolderLastName(e.target.value)}
+                                                                   placeholder="Last name"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <label className="block text-sm font-medium text-bold-text mb-2">Email
+                                                        Address</label>
+                                                    <Input
+                                                        value={guest.email}
+                                                        onChange={(e) =>
+                                                            updateRoomGuest(roomIdx, guestIdx, 'email', e.target.value)
+                                                        }
+                                                        placeholder="Email"
+                                                    />
+
+                                                </div>
+                                            ))}
+
+                                            {/* 🔒 KEEP EVERYTHING BELOW EXACTLY THE SAME */}
+                                            <label className="block text-sm font-medium text-bold-text mb-2">Phone
+                                                Number</label>
+                                            <div className="flex gap-2 mt-3">
+                                                <select
+                                                    className="border rounded px-2 bg-input-background cursor-pointer"
+                                                    value={holderPhone.countryCode}
+                                                    onChange={(e) => setHolderPhone({
+                                                        ...holderPhone,
+                                                        countryCode: e.target.value
+                                                    })}
+                                                >
+                                                    {PHONE_CODES.map((c, i) => (
+                                                        <option key={i} value={c.code}>{c.short} {c.code}</option>
+                                                    ))}
+                                                </select>
+                                                <Input
+                                                    placeholder="Phone number"
+                                                    value={holderPhone.number}
+                                                    onChange={(e) => setHolderPhone({
+                                                        ...holderPhone,
+                                                        number: e.target.value
+                                                    })}
+                                                />
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <Label>Special Requests (optional)</Label>
+                                                <textarea
+                                                    className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                                                    placeholder="e.g. early check-in, ground floor room, extra pillows"
+                                                    rows={2}
+                                                    value={remarks}
+                                                    onChange={(e) => setRemarks(e.target.value)}
+                                                />
+                                            </div>
+
                                         </div>
-                                        
-                                        <label className="block text-sm font-medium text-bold-text mb-2">Email Address</label>
-                                        <Input
-                                            value={guest.email}
-                                            onChange={(e) =>
-                                            updateRoomGuest(roomIdx, guestIdx, 'email', e.target.value)
-                                            }
-                                            placeholder="Email"
-                                        />
-
-                                        </div>
-                                    ))}
-
-                                    {/* 🔒 KEEP EVERYTHING BELOW EXACTLY THE SAME */}
-                                    <label className="block text-sm font-medium text-bold-text mb-2">Phone Number</label>
-                                    <div className="flex gap-2 mt-3">
-                                        <select
-                                        className="border rounded px-2 bg-input-background cursor-pointer"
-                                        value={holderPhone.countryCode}
-                                        onChange={(e) => setHolderPhone({
-                                            ...holderPhone,
-                                            countryCode: e.target.value
-                                        })}
-                                        >
-                                        {PHONE_CODES.map((c, i) => (
-                                            <option key={i} value={c.code}>{c.short} {c.code}</option>
-                                        ))}
-                                        </select>
-                                        <Input
-                                        placeholder="Phone number"
-                                        value={holderPhone.number}
-                                        onChange={(e) => setHolderPhone({
-                                            ...holderPhone,
-                                            number: e.target.value
-                                        })}
-                                        />
-                                    </div>
-
-                                    <div className="pt-2">
-                                        <Label>Special Requests (optional)</Label>
-                                        <textarea
-                                        className="w-full border rounded-md px-3 py-2 text-sm mt-1"
-                                        placeholder="e.g. early check-in, ground floor room, extra pillows"
-                                        rows={2}
-                                        value={remarks}
-                                        onChange={(e) => setRemarks(e.target.value)}
-                                        />
-                                    </div>
-
-                                    </div>
-                                );
-                                }})}
+                                    );
+                                }
+                            })}
 
                             {/* Checkbox to reveal rest */}
                             <div className="flex items-center gap-2 mt-4">
@@ -536,16 +574,20 @@ export function AmendBookingPage() {
                                 <Card className="p-6">
                                     <h2 className="text-xl font-bold mb-4">Change Dates</h2>
                                     <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-bold-text mb-2">Check-in</label>
-                                        <Input type="date" value={editCheckin}
-                                               onChange={e => setEditCheckin(e.target.value)} onBlur={handleDateBlur}/>
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-bold-text mb-2">Check-out</label>
-                                        <Input type="date" value={editCheckout}
-                                               onChange={e => setEditCheckout(e.target.value)} onBlur={handleDateBlur}/>
-                                      </div>
+                                        <div>
+                                            <label
+                                                className="block text-sm font-medium text-bold-text mb-2">Check-in</label>
+                                            <Input type="date" value={editCheckin}
+                                                   onChange={e => setEditCheckin(e.target.value)}
+                                                   onBlur={handleDateBlur}/>
+                                        </div>
+                                        <div>
+                                            <label
+                                                className="block text-sm font-medium text-bold-text mb-2">Check-out</label>
+                                            <Input type="date" value={editCheckout}
+                                                   onChange={e => setEditCheckout(e.target.value)}
+                                                   onBlur={handleDateBlur}/>
+                                        </div>
                                     </div>
                                     <Button className="mt-4 dark:bg-background" onClick={handlePrebook}
                                             disabled={loadingRates || !isDateChanged}>
@@ -604,29 +646,39 @@ export function AmendBookingPage() {
 
                                     <div className="space-y-4">
                                         <div>
-                                          <label className="block text-sm font-medium text-bold-text mb-2">Card Number</label>
-                                          <Input placeholder="1234 5678 9012 3456" value={cardData.cardNumber}
-                                               onChange={e => setCardData({...cardData, cardNumber: e.target.value})}/>
-                                        </div>
-                                        <div>
-                                          <label className="block text-sm font-medium text-bold-text mb-2">Cardholder Name</label>
-                                          <Input placeholder="Name on card" value={cardData.cardName}
-                                               onChange={e => setCardData({...cardData, cardName: e.target.value})}/>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <label className="block text-sm font-medium text-bold-text mb-2">Expiry Date</label>
-                                            <Input placeholder="MM/YY" value={cardData.expiryDate}
+                                            <label className="block text-sm font-medium text-bold-text mb-2">Card
+                                                Number</label>
+                                            <Input placeholder="1234 5678 9012 3456" value={cardData.cardNumber}
                                                    onChange={e => setCardData({
                                                        ...cardData,
-                                                       expiryDate: e.target.value
+                                                       cardNumber: e.target.value
                                                    })}/>
-                                          </div>
-                                          <div>
-                                            <label className="block text-sm font-medium text-bold-text mb-2">CVV</label>
-                                            <Input placeholder="123" value={cardData.cvv}
-                                                   onChange={e => setCardData({...cardData, cvv: e.target.value})}/>
-                                          </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-bold-text mb-2">Cardholder
+                                                Name</label>
+                                            <Input placeholder="Name on card" value={cardData.cardName}
+                                                   onChange={e => setCardData({
+                                                       ...cardData,
+                                                       cardName: e.target.value
+                                                   })}/>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-bold-text mb-2">Expiry
+                                                    Date</label>
+                                                <Input placeholder="MM/YY" value={cardData.expiryDate}
+                                                       onChange={e => setCardData({
+                                                           ...cardData,
+                                                           expiryDate: e.target.value
+                                                       })}/>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    className="block text-sm font-medium text-bold-text mb-2">CVV</label>
+                                                <Input placeholder="123" value={cardData.cvv}
+                                                       onChange={e => setCardData({...cardData, cvv: e.target.value})}/>
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
@@ -641,40 +693,42 @@ export function AmendBookingPage() {
                             <Card className="p-6 sticky top-28">
                                 <h2 className="text-xl font-bold mb-4">Summary</h2>
 
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{editCheckin} → {editCheckout}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>{bookingData.bookedRooms?.length ?? 1} rooms</span>
-                  </div>
-                </div>
+                                <div className="space-y-3 mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4"/>
+                                        <span>{editCheckin} → {editCheckout}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4"/>
+                                        <span>{bookingData.bookedRooms?.length ?? 1} rooms</span>
+                                    </div>
+                                </div>
 
                                 <Separator/>
 
-                {showMore && (
-                <div className="space-y-2 mt-4">
-                  <div className="flex justify-between">
-                    <span>Current</span>
-                    <span>-${bookingData.sellingPriceToUser ?? bookingData.price}</span>
-                  </div>
-                  { (cancellationFee > 0) && (
-                    <div className="flex justify-between text-red-600">
-                      <span>Cancellation Fee</span>
-                      <span>${cancellationFee}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span>New</span>
-                    <span>${selectedTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-                )}
+                                {showMore && (
+                                    <div className="space-y-2 mt-4">
+                                        <div className="flex justify-between">
+                                            <span>Current</span>
+                                            <span>-${bookingData.sellingPriceToUser ?? bookingData.price}</span>
+                                        </div>
+                                        {(cancellationFee > 0) && (
+                                            <div className="flex justify-between text-red-600">
+                                                <span>Cancellation Fee</span>
+                                                <span>${cancellationFee}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                            <span>New</span>
+                                            <span>${selectedTotal.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                )}
 
-                                <Button className="w-full mt-6 dark:bg-background hover:bg-[#1e40af] dark:hover:bg-[#1e40af] cursor-pointer" onClick={handleRebook}
-                                        disabled={processing || (showMore && Object.keys(selectedRates).length === 0)}>
+                                <Button
+                                    className="w-full mt-6 dark:bg-background hover:bg-[#1e40af] dark:hover:bg-[#1e40af] cursor-pointer"
+                                    onClick={handleRebook}
+                                    disabled={processing || (showMore && Object.keys(selectedRates).length === 0)}>
                                     {processing ? 'Updating...' : showMore ? `${paymentAction} $${diffamount == 'NaN' ? '0.00' : diffamount}` : 'Confirm Changes'}
                                 </Button>
                             </Card>
@@ -687,42 +741,46 @@ export function AmendBookingPage() {
                                 <p className="text-sm mb-4">
                                     Changing the dates and rooms will cancel the original booking and rebook with the
                                     new inputs. This will incur charges or refunds based on the price differences, as
-                                    well as the cancellation policy. Your reward points will also be adjusted accordingly.
+                                    well as the cancellation policy. Your reward points will also be adjusted
+                                    accordingly.
                                 </p>
 
                                 {(bookingData.tag === 'NRFN' || cancellationFee > 0) && (
-                                  <div className="mt-4 p-4 rounded-lg border 
+                                    <div className="mt-4 p-4 rounded-lg border
                                     bg-red-50 border-red-200
                                     dark:bg-red-950/40 dark:border-red-800">
 
-                                    <h3 className="font-semibold text-sm mb-2 
+                                        <h3 className="font-semibold text-sm mb-2
                                       text-red-600 dark:text-red-300">
-                                      Cancellation Policy Alerts:
-                                    </h3>
+                                            Cancellation Policy Alerts:
+                                        </h3>
 
-                                    {bookingData.tag === 'NRFN' ? (
-                                      <p className="text-sm 
+                                        {bookingData.tag === 'NRFN' ? (
+                                            <p className="text-sm
                                         text-red-600 dark:text-red-400">
-                                        This booking is non-refundable. You will have to pay the full price to make changes to the booking.
-                                      </p>
-                                    ) : (
-                                      <p className="text-xs mt-2 
+                                                This booking is non-refundable. You will have to pay the full price to
+                                                make changes to the booking.
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs mt-2
                                         text-red-600 dark:text-red-400">
-                                        The booking has passed the free cancellation deadline of{" "}
-                                        {bookingData.bookedRooms?.[0]?.rate?.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime ?? 'N/A'}{" "}
-                                        and a fee of ${cancellationFee} will be applied.
-                                      </p>
-                                    )}
+                                                The booking has passed the free cancellation deadline of{" "}
+                                                {bookingData.bookedRooms?.[0]?.rate?.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime ?? 'N/A'}{" "}
+                                                and a fee of ${cancellationFee} will be applied.
+                                            </p>
+                                        )}
 
-                                  </div>
+                                    </div>
                                 )}
-              
+
 
                                 <div className="flex justify-end gap-2">
-                                    <Button variant="outline" onClick={cancelContinue} className="cursor-pointer dark:bg-grey">
+                                    <Button variant="outline" onClick={cancelContinue}
+                                            className="cursor-pointer dark:bg-grey">
                                         Cancel
                                     </Button>
-                                    <Button onClick={confirmContinue} className="cursor-pointer bg-[#2563eb] hover:bg-[#1e40af]">
+                                    <Button onClick={confirmContinue}
+                                            className="cursor-pointer bg-[#2563eb] hover:bg-[#1e40af]">
                                         I understand
                                     </Button>
                                 </div>

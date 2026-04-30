@@ -1,0 +1,4 @@
+export const errorCodes = {
+    USER_OVERLAPPING_BOOKING: "USER_OVERLAPPING_BOOKING"
+}
+

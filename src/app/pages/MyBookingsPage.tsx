@@ -1,6 +1,6 @@
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {Calendar, CreditCard, Download, ExternalLink, Mail, MapPin, PencilIcon, User, X} from "lucide-react";
-import {Link, useNavigate} from "react-router";
+import {Link, useNavigate, useSearchParams} from "react-router";
 import {toast} from "sonner";
 
 import {api} from "../../api/liteApi";
@@ -54,7 +54,7 @@ interface BookingDetail {
     };
 }
 
-interface HotelSummary { //used to preview hotel details in each booking
+interface HotelSummary {
     photo?: string;
     rating?: number;
     address?: string;
@@ -194,6 +194,7 @@ interface BookingCardProps {
     convertPrice: (amount: number) => number;
     hotelId?: string;
     hotelSummary?: HotelSummary;
+    isHighlighted?: boolean;
 }
 
 type RewardAdjustmentRecord = {
@@ -240,15 +241,20 @@ function BookingCard({
                          convertPrice,
                          hotelId,
                          hotelSummary,
+                         isHighlighted,
                      }: BookingCardProps) {
     const holderName = booking.holder
         ? `${booking.holder.firstName} ${booking.holder.lastName}`.trim()
         : null;
     const holderEmail = booking.holder?.email ?? null;
+
     return (
-        <Card className="overflow-hidden border-gray-200 transition-shadow hover:shadow-lg">
+        <Card
+            className={`overflow-hidden border-gray-200 transition-all hover:shadow-lg ${
+                isHighlighted ? "ring-2 ring-blue-500 ring-offset-2" : ""
+            }`}
+        >
             <div className="flex flex-col md:flex-row">
-                {/* Hotel Thumbnail if exists */}
                 {hotelSummary?.photo ? (
                     <img
                         src={hotelSummary.photo}
@@ -256,7 +262,6 @@ function BookingCard({
                         className="md:w-48 h-48 md:h-auto object-cover shrink-0"
                     />
                 ) : (
-                    //else show default
                     <div className="md:w-4 bg-[#1d2d44] shrink-0"/>
                 )}
 
@@ -271,7 +276,7 @@ function BookingCard({
                                 <Badge className={getStatusBadgeClass(booking.status)}>
                                     {booking.status}
                                 </Badge>
-                                {/* Hotel Rating if exists */}
+
                                 {hotelSummary?.rating != null && hotelSummary.rating > 0 && (
                                     <span
                                         className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#2563eb] px-2 py-0.5 rounded">
@@ -281,22 +286,20 @@ function BookingCard({
                                 )}
                             </div>
 
-                            {/* Hotel Address if exists */}
                             {hotelSummary?.address ? (
                                 <div className="mb-1 flex items-center gap-1.5 text-sm text-[#6b7280]">
                                     <MapPin className="h-3.5 w-3.5 shrink-0"/>
-                                    <span> 
+                                    <span>
                                         {hotelSummary.address} {hotelSummary.city ? `, ${hotelSummary.city}` : ""}
                                     </span>
                                 </div>
-                            ) : booking.roomTypeName ? ( //room number instead if not
+                            ) : booking.roomTypeName ? (
                                 <div className="mb-1 flex items-center gap-2 text-[#6b7280]">
                                     <MapPin className="h-4 w-4"/>
                                     <span>{booking.roomTypeName}</span>
                                 </div>
-                                /* null if all else */) : null}
+                            ) : null}
 
-                            {/* Room type shown under address instead when we have both */}
                             {hotelSummary?.address && booking.roomTypeName && (
                                 <p className="text-xs text-[#6b7280] ml-5">
                                     {booking.roomTypeName}
@@ -380,7 +383,6 @@ function BookingCard({
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            {/* Generate Link to the hotel listing page */}
                             {booking.hotelId && (
                                 <Button variant="outline" size="sm" asChild>
                                     <Link to={`/hotel/${booking.hotelId}`}>
@@ -433,6 +435,7 @@ function BookingCard({
 
 export function MyBookingsPage() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const {convertPrice} = useCurrency();
     const {user, loading: authLoading} = useAuth();
     const {addPoints, dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
@@ -446,6 +449,16 @@ export function MyBookingsPage() {
     const [cancelTarget, setCancelTarget] = useState<BookingDetail | null>(null);
     const [cancelling, setCancelling] = useState(false);
     const [hotelSummaries, setHotelSummaries] = useState<Record<string, HotelSummary>>({});
+    const [highlightedBookingId, setHighlightedBookingId] = useState<string | null>(null);
+
+    const bookingRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const hasScrolledRef = useRef(false);
+
+    const highlightBookingId = searchParams.get("highlightBookingId");
+    const today = new Date().toISOString().split("T")[0];
+
+    const highlightedCardRef = useRef<HTMLDivElement | null>(null);
+
 
     useEffect(() => {
         if (authLoading || !user) return;
@@ -458,12 +471,12 @@ export function MyBookingsPage() {
             setBookings([]);
             setPendingCount(0);
             setHotelSummaries({});
+            hasScrolledRef.current = false;
 
             try {
                 const listRes = await api.getListBookings();
 
-
-                console.log(listRes)
+                console.log(listRes);
                 const rows = Array.isArray(listRes?.data)
                     ? listRes.data
                     : Array.isArray(listRes?.data?.data)
@@ -500,7 +513,7 @@ export function MyBookingsPage() {
                                         }
                                     }));
                                 }).catch(() => {
-                                }); //this simply catches () => {} into empty data
+                                });
                             }
                         }
                     } catch {
@@ -522,8 +535,6 @@ export function MyBookingsPage() {
         };
     }, [authLoading, user]);
 
-    const today = new Date().toISOString().split("T")[0];
-
     const scheduledBookings = useMemo(
         () =>
             bookings.filter(
@@ -539,6 +550,83 @@ export function MyBookingsPage() {
             ),
         [bookings, today]
     );
+
+    useEffect(() => {
+        if (!highlightBookingId) return;
+        if (loadingBookings) return;
+        if (pendingCount > 0) return;
+        if (hasScrolledRef.current) return;
+
+        const booking = bookings.find((b) => b.bookingId === highlightBookingId);
+        if (!booking) return;
+
+        const targetTab =
+            booking.checkin >= today && !isCancelledBooking(booking)
+                ? "scheduled"
+                : "previous";
+
+        if (activeTab !== targetTab) {
+            setActiveTab(targetTab);
+            return;
+        }
+
+        const el = bookingRefs.current[highlightBookingId];
+        if (!el) return;
+
+        el.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+        });
+
+        setHighlightedBookingId(highlightBookingId);
+        hasScrolledRef.current = true;
+
+        const clearHighlightTimer = window.setTimeout(() => {
+            setHighlightedBookingId(null);
+        }, 3000);
+
+        const clearQueryTimer = window.setTimeout(() => {
+            setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete("highlightBookingId");
+                return next;
+            }, {replace: true});
+        }, 1000);
+
+        return () => {
+            window.clearTimeout(clearHighlightTimer);
+            window.clearTimeout(clearQueryTimer);
+        };
+    }, [
+        highlightBookingId,
+        loadingBookings,
+        pendingCount,
+        bookings,
+        activeTab,
+        today,
+        setSearchParams,
+    ]);
+
+
+    // clear highlighted booking
+    useEffect(() => {
+        if (!highlightedBookingId) return;
+
+        function handlePointerDown(event: MouseEvent) {
+            const target = event.target as Node;
+            const cardEl = highlightedCardRef.current;
+
+            if (cardEl && !cardEl.contains(target)) {
+                setHighlightedBookingId(null);
+            }
+        }
+
+        document.addEventListener("mousedown", handlePointerDown);
+
+        return () => {
+            document.removeEventListener("mousedown", handlePointerDown);
+        };
+    }, [highlightedBookingId]);
 
     async function handleCancelBooking() {
         if (!cancelTarget) return;
@@ -562,7 +650,6 @@ export function MyBookingsPage() {
                 const {earnedPoints, redeemedPoints} = rewardAdjustment;
                 let rewardOpsOk = true;
 
-                // Reverse booking effects exactly: remove earned points, then restore redeemed points.
                 if (earnedPoints > 0) {
                     const newTotalAfterRedeem = await redeemPoints(earnedPoints);
                     if (newTotalAfterRedeem === null) rewardOpsOk = false;
@@ -579,7 +666,6 @@ export function MyBookingsPage() {
                     toast.error("Booking cancelled, but reward points were not fully reverted.");
                 }
             } else {
-                // Fallback for older bookings without a recorded points delta.
                 const cancelledPrice = Number(result?.data?.price ?? cancelTarget.totalAmount ?? 0);
                 if (cancelledPrice > 0) {
                     const pointsToSubtract = dollarsToPoints(cancelledPrice);
@@ -663,16 +749,26 @@ export function MyBookingsPage() {
 
                     <TabsContent value="scheduled" className="space-y-6">
                         {scheduledBookings.map((booking) => (
-                            <BookingCard
+                            <div
                                 key={booking.bookingId}
-                                booking={booking}
-                                canCancel
-                                onCancel={setCancelTarget}
-                                onAmend={(booking) => navigate(`/editDetails?bookingId=${booking.bookingId}`)}
-                                onDownloadReceipt={handleDownloadReceipt}
-                                convertPrice={convertPrice}
-                                hotelSummary={hotelSummaries[booking.bookingId]}
-                            />
+                                ref={(el) => {
+                                    bookingRefs.current[booking.bookingId] = el;
+                                    if (booking.bookingId === highlightedBookingId) {
+                                        highlightedCardRef.current = el;
+                                    }
+                                }}
+                            >
+                                <BookingCard
+                                    booking={booking}
+                                    canCancel
+                                    onCancel={setCancelTarget}
+                                    onAmend={(booking) => navigate(`/editDetails?bookingId=${booking.bookingId}`)}
+                                    onDownloadReceipt={handleDownloadReceipt}
+                                    convertPrice={convertPrice}
+                                    hotelSummary={hotelSummaries[booking.bookingId]}
+                                    isHighlighted={booking.bookingId === highlightedBookingId}
+                                />
+                            </div>
                         ))}
                         {pendingCount > 0 && Array.from({length: pendingCount}).map((_, i) => (
                             <BookingCardSkeleton key={`skeleton-${i}`}/>
@@ -687,12 +783,9 @@ export function MyBookingsPage() {
                                     You don&apos;t have any upcoming reservations.
                                 </p>
                                 <Button className="bg-[#1d2d44] hover:bg-[#1d4ed8]">
-
-
                                     <Link to="/hotels">
                                         Browse Hotels
                                     </Link>
-
                                 </Button>
                             </Card>
                         )}
@@ -700,15 +793,24 @@ export function MyBookingsPage() {
 
                     <TabsContent value="previous" className="space-y-6">
                         {previousBookings.map((booking) => (
-                            <BookingCard
+                            <div
                                 key={booking.bookingId}
-                                booking={booking}
-                                canCancel={false}
-                                onCancel={setCancelTarget}
-                                onDownloadReceipt={handleDownloadReceipt}
-                                convertPrice={convertPrice}
-                                hotelSummary={hotelSummaries[booking.bookingId]}
-                            />
+                                ref={(el) => {
+                                    bookingRefs.current[booking.bookingId] = el;
+                                }}
+                            >
+                                <BookingCard
+                                    booking={booking}
+                                    canCancel={false}
+                                    onAmend={() => {
+                                    }}
+                                    onCancel={setCancelTarget}
+                                    onDownloadReceipt={handleDownloadReceipt}
+                                    convertPrice={convertPrice}
+                                    hotelSummary={hotelSummaries[booking.bookingId]}
+                                    isHighlighted={booking.bookingId === highlightedBookingId}
+                                />
+                            </div>
                         ))}
                         {previousBookings.length === 0 && pendingCount === 0 && (
                             <Card className="border-gray-200 p-12 text-center">
@@ -763,24 +865,24 @@ export function MyBookingsPage() {
 
                                             {policy.amount === 0 ? (
                                                 <span>
-                          Cancel before{" "}
+                                                    Cancel before{" "}
                                                     <span className="font-medium">
-                            {formatPolicyDate(policy.cancelTime)}
-                          </span>{" "}
+                                                        {formatPolicyDate(policy.cancelTime)}
+                                                    </span>{" "}
                                                     — no charge
-                        </span>
+                                                </span>
                                             ) : (
                                                 <span>
-                          Cancel after{" "}
+                                                    Cancel after{" "}
                                                     <span className="font-medium">
-                            {formatPolicyDate(policy.cancelTime)}
-                          </span>{" "}
+                                                        {formatPolicyDate(policy.cancelTime)}
+                                                    </span>{" "}
                                                     —{" "}
                                                     <span className="font-medium text-[#ef4444]">
-                            {policy.currency} {policy.amount}
-                          </span>{" "}
+                                                        {policy.currency} {policy.amount}
+                                                    </span>{" "}
                                                     charge
-                        </span>
+                                                </span>
                                             )}
                                         </li>
                                     )
