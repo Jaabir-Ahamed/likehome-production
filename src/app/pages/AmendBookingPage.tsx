@@ -175,7 +175,19 @@ export function AmendBookingPage() {
 
         } catch (err) {
             console.error(err);
-            toast.error('Could not load rates');
+
+            if (err instanceof FunctionsHttpError) {
+                const data = await err.context.json();
+                // handle NO_AVAILABILITY_FOUND
+                if (data?.error === errorCodes.NO_AVAILABILITY_FOUND) {
+                    toast.error(
+                        data?.message || 'No availability found.'
+                    );
+                }
+            } else {
+                toast.error('Could not load rates');
+            }
+
         } finally {
             setLoadingRates(false);
         }
