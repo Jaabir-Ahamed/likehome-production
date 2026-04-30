@@ -98,7 +98,7 @@ export function Header() {
     return (
         <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-background border-b border-gray-200">
             <div className="container mx-auto px-4 lg:px-8">
-                <div className="flex items-center justify-between h-24">
+                <div className="grid grid-cols-3 items-center w-full h-24">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <Home className="w-8 h-8 text-[#2563eb]"/>
@@ -106,7 +106,7 @@ export function Header() {
                     </Link>
 
                     {/* Center Navigation */}
-                    <nav className="flex items-center gap-10">
+                    <nav className="flex justify-center items-center gap-10">
                         <Link to="/" className="text-[bg-bold-text] hover:text-[#2563eb] transition-colors font-medium">
                             Home
                         </Link>
