@@ -68,7 +68,6 @@ type PrebookRoomType = {
 
 type PrebookData = {
   prebookId: string;
-  name?: string;
   hotelId?: string;
   checkin?: string;
   checkout?: string;
@@ -216,7 +215,6 @@ export function PaymentPage() {
     if (raw) {
       try {
         const data: PrebookData = JSON.parse(raw);
-        console.log(data,"SFLJDSLKF")
         setPrebookData(data);
         // Init room guest slots: one required guest per room
         const nums = getOccupancyNumbers(data);
@@ -581,13 +579,19 @@ export function PaymentPage() {
 
             {/* Validity warnings */}
             {warnings.length > 0 && (
-              <Card className="p-4 border-amber-300 bg-amber-50">
+              <Card className="p-4 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-300 mt-0.5 shrink-0" />
+
                   <div>
-                    <p className="font-semibold text-amber-800 mb-1">Rate details have changed</p>
-                    <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
-                      {warnings.map((w, i) => <li key={i}>{w}</li>)}
+                    <p className="font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                      Rate details have changed
+                    </p>
+
+                    <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
+                      {warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
                     </ul>
                   </div>
                 </div>
