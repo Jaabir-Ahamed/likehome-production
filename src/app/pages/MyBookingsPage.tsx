@@ -308,7 +308,7 @@ function BookingCard({
                             {booking.totalAmount != null && (
                                 <>
                                     <div className="mb-1 font-bold text-bold-text">
-                                        ${convertPrice(booking.totalAmount)}
+                                        ${convertPrice(booking.totalAmount).toFixed(2)}
                                     </div>
                                     <div className="text-sm text-[#6b7280]">Total</div>
                                 </>
@@ -417,7 +417,7 @@ function BookingCard({
                                     variant="destructive"
                                     size="sm"
                                     onClick={() => onCancel(booking)}
-                                    className="cursor-pointer hover:bg-red-50"
+                                    className="cursor-pointer :hover:-bg-red-80 :dark:hover:bg-red-50"
                                 >
                                     <X className="mr-2 h-4 w-4"/>
                                     Cancel Booking

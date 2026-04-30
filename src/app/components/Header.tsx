@@ -303,8 +303,9 @@ export function Header() {
                                     <Link to="/login">
                                         <DropdownMenuItem className="text-red-600 cursor-pointer"
                                                           onClick={async () => {
-                                                              await supabase.auth.signOut();
+                                                              document.documentElement.classList.remove("dark");
                                                               localStorage.setItem("darkMode", "false");
+                                                              await supabase.auth.signOut();
                                                           }}>
                                             <LogOut className="mr-2 h-4 w-4 text-bold-text"/>
                                             <span>Logout</span>

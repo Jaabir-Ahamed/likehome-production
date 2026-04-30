@@ -138,7 +138,7 @@ export function RewardsPage() {
                     </p>
                 </div>
 
-                <Card className="mb-8 bg-gradient-to-br from-secondary to-secondary/80 p-6">
+                <Card className="mb-8 bg-card p-6">
                     <div className="grid gap-6 md:grid-cols-3">
                         <div className="md:col-span-2">
                             <div className="mb-4 flex items-center gap-3">
@@ -232,7 +232,7 @@ export function RewardsPage() {
                                                         className={
                                                             isSlotMachine
                                                                 ? 'h-11 w-11 text-yellow-100 drop-shadow-[0_0_18px_rgba(255,240,150,0.95)]'
-                                                                : 'h-6 w-6 text-secondary'
+                                                                : 'h-6 w-6 text-bold-text'
                                                         }
                                                     />
                                                 </div>
@@ -280,7 +280,7 @@ export function RewardsPage() {
                                                             className={
                                                                 isSlotMachine
                                                                     ? 'text-lg font-bold text-yellow-50'
-                                                                    : 'font-bold text-secondary'
+                                                                    : 'font-bold text-bold-text'
                                                             }
                                                         >
                                                             {reward.points} points

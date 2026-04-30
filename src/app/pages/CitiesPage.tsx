@@ -353,7 +353,7 @@ export function CitiesPage() {
                                 <Button
                                     type="button"
                                     onClick={() => handleCitySearch(city)}
-                                    className="w-full bg-background hover:bg-[#1e40af] text-white"
+                                    className="w-full bg-[#1d2d44] dark:bg-background hover:bg-[#1e40af] dark:hover:bg-[#1e40af] text-white cursor-pointer"
                                 >
                   <span className="flex items-center justify-center gap-2">
                     Explore Hotels

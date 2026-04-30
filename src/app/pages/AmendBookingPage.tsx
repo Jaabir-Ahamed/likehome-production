@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
 import { api } from '../../api/liteApi';
-import { Badge, Check, Calendar, Users, CreditCard, Lock } from 'lucide-react';
+import { Loader2, Badge, Check, Calendar, Users, CreditCard, Lock } from 'lucide-react';
 import { Label } from '@radix-ui/react-label';
 import {useRewards} from "../contexts/RewardsContext";
 import { FunctionsHttpError } from '@supabase/supabase-js';
@@ -419,13 +419,16 @@ export function AmendBookingPage() {
     });
     };
 
-    if (!bookingData) return <div className="p-6">Loading...</div>;
+    if (!bookingData) return <div className="flex items-center justify-center py-20">
+                                        <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]"/>
+                                        <span className="ml-3 text-[#717182]">Searching for your Booking…</span>
+                                    </div>;
 
     return (
-        <div className="w-full bg-gray-50 min-h-screen">
+        <div className="w-full bg-background min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
 
-                <h1 className="text-3xl font-bold mb-6">Edit Booking</h1>
+                <h1 className="text-3xl font-bold mb-6 text-bold-text">Edit Booking</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -445,17 +448,23 @@ export function AmendBookingPage() {
                                         <div key={guestIdx} className="mb-4">
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                          <div>
+                                            <label className="block text-sm font-medium text-bold-text mb-2">First Name</label>
                                             <Input value={holderFirstName} onChange={(e) =>
                                                 setHolderFirstName(e.target.value)}
                                                 placeholder="First name"
                                             /> 
-
+                                          </div>
+                                          <div>
+                                            <label className="block text-sm font-medium text-bold-text mb-2">Last Name</label>
                                             <Input value={holderLastName} onChange={(e) =>
                                                 setHolderLastName(e.target.value)}
                                                 placeholder="Last name"
                                             />
+                                          </div>
                                         </div>
-
+                                        
+                                        <label className="block text-sm font-medium text-bold-text mb-2">Email Address</label>
                                         <Input
                                             value={guest.email}
                                             onChange={(e) =>
@@ -468,9 +477,10 @@ export function AmendBookingPage() {
                                     ))}
 
                                     {/* 🔒 KEEP EVERYTHING BELOW EXACTLY THE SAME */}
+                                    <label className="block text-sm font-medium text-bold-text mb-2">Phone Number</label>
                                     <div className="flex gap-2 mt-3">
                                         <select
-                                        className="border rounded px-2"
+                                        className="border rounded px-2 bg-input-background cursor-pointer"
                                         value={holderPhone.countryCode}
                                         onChange={(e) => setHolderPhone({
                                             ...holderPhone,
@@ -495,6 +505,7 @@ export function AmendBookingPage() {
                                         <Label>Special Requests (optional)</Label>
                                         <textarea
                                         className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                                        placeholder="e.g. early check-in, ground floor room, extra pillows"
                                         rows={2}
                                         value={remarks}
                                         onChange={(e) => setRemarks(e.target.value)}
@@ -511,6 +522,7 @@ export function AmendBookingPage() {
                                     type="checkbox"
                                     checked={showMore}
                                     onChange={(e) => handleCheckboxChange(e.target.checked)}
+                                    className="cursor-pointer"
                                 />
                                 <label htmlFor="showMore" className="text-sm">
                                     Change dates and room selection
@@ -524,12 +536,18 @@ export function AmendBookingPage() {
                                 <Card className="p-6">
                                     <h2 className="text-xl font-bold mb-4">Change Dates</h2>
                                     <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-bold-text mb-2">Check-in</label>
                                         <Input type="date" value={editCheckin}
                                                onChange={e => setEditCheckin(e.target.value)} onBlur={handleDateBlur}/>
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-bold-text mb-2">Check-out</label>
                                         <Input type="date" value={editCheckout}
                                                onChange={e => setEditCheckout(e.target.value)} onBlur={handleDateBlur}/>
+                                      </div>
                                     </div>
-                                    <Button className="mt-4" onClick={handlePrebook}
+                                    <Button className="mt-4 dark:bg-background" onClick={handlePrebook}
                                             disabled={loadingRates || !isDateChanged}>
                                         {loadingRates ? 'Checking...' : 'Rooms updated'}
                                     </Button>
@@ -552,7 +570,7 @@ export function AmendBookingPage() {
                                                     <div
                                                         key={rate.rateId}
                                                         onClick={() => handleSelectRate(Number(occ), rate)}
-                                                        className={`p-4 border rounded-lg cursor-pointer mb-2 ${isSelected ? 'border-blue-500 bg-blue-50' : ''}`}
+                                                        className={`p-4 border rounded-lg cursor-pointer mb-2 ${isSelected ? 'border-blue-500' : ''}`}
                                                     >
                                                         <div className="flex justify-between items-center">
                                                             <div>
@@ -578,24 +596,37 @@ export function AmendBookingPage() {
                                 {/* Payment */}
                                 <Card className="p-6">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <CreditCard className="w-5 h-5"/>
+                                        <CreditCard className="w-5 h-5 text-[#2563eb]"/>
                                         <h2 className="text-xl font-bold">Payment Details</h2>
                                         <Lock className="w-4 h-4 ml-auto text-green-600"/>
+                                        <span className="text-sm text-green-600">Secure Payment</span>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <Input placeholder="Card Number" value={cardData.cardNumber}
+                                        <div>
+                                          <label className="block text-sm font-medium text-bold-text mb-2">Card Number</label>
+                                          <Input placeholder="1234 5678 9012 3456" value={cardData.cardNumber}
                                                onChange={e => setCardData({...cardData, cardNumber: e.target.value})}/>
-                                        <Input placeholder="Cardholder Name" value={cardData.cardName}
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-bold-text mb-2">Cardholder Name</label>
+                                          <Input placeholder="Name on card" value={cardData.cardName}
                                                onChange={e => setCardData({...cardData, cardName: e.target.value})}/>
+                                        </div>
                                         <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <label className="block text-sm font-medium text-bold-text mb-2">Expiry Date</label>
                                             <Input placeholder="MM/YY" value={cardData.expiryDate}
                                                    onChange={e => setCardData({
                                                        ...cardData,
                                                        expiryDate: e.target.value
                                                    })}/>
-                                            <Input placeholder="CVV" value={cardData.cvv}
+                                          </div>
+                                          <div>
+                                            <label className="block text-sm font-medium text-bold-text mb-2">CVV</label>
+                                            <Input placeholder="123" value={cardData.cvv}
                                                    onChange={e => setCardData({...cardData, cvv: e.target.value})}/>
+                                          </div>
                                         </div>
                                     </div>
                                 </Card>
@@ -642,9 +673,9 @@ export function AmendBookingPage() {
                 </div>
                 )}
 
-                                <Button className="w-full mt-6" onClick={handleRebook}
+                                <Button className="w-full mt-6 dark:bg-background hover:bg-[#1e40af] dark:hover:bg-[#1e40af] cursor-pointer" onClick={handleRebook}
                                         disabled={processing || (showMore && Object.keys(selectedRates).length === 0)}>
-                                    {processing ? 'Updating...' : showMore ? `${paymentAction} $${diffamount}` : 'Confirm Changes'}
+                                    {processing ? 'Updating...' : showMore ? `${paymentAction} $${diffamount == 'NaN' ? '0.00' : diffamount}` : 'Confirm Changes'}
                                 </Button>
                             </Card>
                         </div>
@@ -660,31 +691,38 @@ export function AmendBookingPage() {
                                 </p>
 
                                 {(bookingData.tag === 'NRFN' || cancellationFee > 0) && (
-                                    <div className="mt-4 p-4 rounded-lg border bg-gray-50">
-                                        <>
-                                            <h3 className="font-semibold text-sm mb-2 text-red-600">
-                                                Cancellation Policy Alerts:
-                                            </h3>
+                                  <div className="mt-4 p-4 rounded-lg border 
+                                    bg-red-50 border-red-200
+                                    dark:bg-red-950/40 dark:border-red-800">
 
-                    {bookingData.tag === 'NRFN' ? (
-                      <p className="text-sm text-red-600">
-                        This booking is non-refundable. You will have to pay the full price to make changes to the booking.
-                      </p>
-                    ) : (
-                      <p className="text-xs text-red-600 mt-2">
-                        The booking has passed the free cancellation deadline of {bookingData.bookedRooms?.[0]?.rate?.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime ?? 'N/A'} and a fee of ${cancellationFee} will be applied.
-                      </p>
-                    )}
-                  </>
-                </div>
-                )}
+                                    <h3 className="font-semibold text-sm mb-2 
+                                      text-red-600 dark:text-red-300">
+                                      Cancellation Policy Alerts:
+                                    </h3>
+
+                                    {bookingData.tag === 'NRFN' ? (
+                                      <p className="text-sm 
+                                        text-red-600 dark:text-red-400">
+                                        This booking is non-refundable. You will have to pay the full price to make changes to the booking.
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs mt-2 
+                                        text-red-600 dark:text-red-400">
+                                        The booking has passed the free cancellation deadline of{" "}
+                                        {bookingData.bookedRooms?.[0]?.rate?.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime ?? 'N/A'}{" "}
+                                        and a fee of ${cancellationFee} will be applied.
+                                      </p>
+                                    )}
+
+                                  </div>
+                                )}
               
 
                                 <div className="flex justify-end gap-2">
-                                    <Button variant="outline" onClick={cancelContinue}>
+                                    <Button variant="outline" onClick={cancelContinue} className="cursor-pointer dark:bg-grey">
                                         Cancel
                                     </Button>
-                                    <Button onClick={confirmContinue}>
+                                    <Button onClick={confirmContinue} className="cursor-pointer bg-[#2563eb] hover:bg-[#1e40af]">
                                         I understand
                                     </Button>
                                 </div>

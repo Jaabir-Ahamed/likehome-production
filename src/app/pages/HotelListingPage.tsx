@@ -630,6 +630,7 @@ export function HotelListingPage() {
                                                         size="sm"
                                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                                         disabled={currentPage === 1 || isFetchingMore}
+                                                        className="cursor-pointer"
                                                     >
                                                         Previous
                                                     </Button>
@@ -644,7 +645,7 @@ export function HotelListingPage() {
                                                                 size="sm"
                                                                 onClick={() => setCurrentPage(page)}
                                                                 disabled={isFetchingMore}
-                                                                className={page === currentPage ? 'bg-[#1d2d44] hover:bg-[#1e40af] text-white' : ''}
+                                                                className={page === currentPage ? 'bg-[#1d2d44] hover:bg-[#1e40af] text-white' : ' cursor-pointer'}
                                                             >
                                                                 {page}
                                                             </Button>
@@ -655,6 +656,7 @@ export function HotelListingPage() {
                                                         size="sm"
                                                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                                         disabled={(currentPage === totalPages && !hasMore) || isFetchingMore}
+                                                        className="cursor-pointer"
                                                     >
                                                         {isFetchingMore && currentPage === totalPages
                                                             ? <><Loader2

@@ -68,6 +68,7 @@ type PrebookRoomType = {
 
 type PrebookData = {
   prebookId: string;
+  name?: string;
   hotelId?: string;
   checkin?: string;
   checkout?: string;
@@ -215,6 +216,7 @@ export function PaymentPage() {
     if (raw) {
       try {
         const data: PrebookData = JSON.parse(raw);
+        console.log(data,"SFLJDSLKF")
         setPrebookData(data);
         // Init room guest slots: one required guest per room
         const nums = getOccupancyNumbers(data);
@@ -930,11 +932,11 @@ export function PaymentPage() {
                   <span className="text-sm">
                     {isRealPrebook ? 'Rate total' : `${priceSymbol}${convertPrice(mockPrice)} × ${nights} ${nights === 1 ? 'night' : 'nights'}`}
                   </span>
-                  <span className="text-sm">{priceSymbol}{basePrice}</span>
+                  <span className="text-sm">{priceSymbol}{basePrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-bold-text">
                   <span className="text-sm">Service fee</span>
-                  <span className="text-sm">{priceSymbol}{serviceFee}</span>
+                  <span className="text-sm">{priceSymbol}{serviceFee.toFixed(2)}</span>
                 </div>
                 {redeemDiscount > 0 && (
                   <div className="flex justify-between text-green-700">
