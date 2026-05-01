@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router';
-import {AlertTriangle, ArrowLeft, Calendar, CreditCard, Lock, Users} from 'lucide-react';
+import {AlertTriangle, ArrowLeft, Calendar, CreditCard, Lock, Users, X,} from 'lucide-react';
 import {Button} from '../components/ui/button';
 import {Card} from '../components/ui/card';
 import {Input} from '../components/ui/input';
@@ -35,6 +35,14 @@ const PHONE_CODES = [
     {code: '+46', short: 'SWE', name: 'Sweden'},
 ];
 
+type CancelPolicyInfo = {
+    cancelTime?: string;
+    amount?: number;
+    currency?: string;
+    type?: string;
+    timezone?: string;
+};
+
 type PrebookRate = {
     rateId?: string;
     occupancyNumber: number;
@@ -43,7 +51,7 @@ type PrebookRate = {
     childCount?: number;
     retailRate?: { total?: { amount?: number; currency?: string }[] };
     cancellationPolicies?: {
-        cancelPolicyInfos?: { cancelTime?: string; amount?: number }[];
+        cancelPolicyInfos?: CancelPolicyInfo[];
         refundableTag?: string;
     };
 };
@@ -77,6 +85,17 @@ type RewardAdjustmentRecord = {
     redeemedPoints: number;
 };
 
+type CancellationSummary = {
+    refundableTag: 'RFN' | 'NRFN' | 'UNKNOWN';
+    totalAmount: number;
+    currency: string;
+    displayPolicies: CancelPolicyInfo[];
+    effectiveNowAmount: number;
+    nextDeadline: CancelPolicyInfo | null;
+    isFullyRefundableNow: boolean;
+    summaryText: string;
+};
+
 const REWARD_ADJUSTMENTS_STORAGE_KEY = 'reward:bookingAdjustments';
 
 function persistBookingRewardAdjustment(bookingId: string, adjustment: RewardAdjustmentRecord) {
@@ -101,6 +120,118 @@ function getOccupancyNumbers(prebookData: PrebookData | null): number[] {
     }
 
     return nums.length > 0 ? nums.sort((a, b) => a - b) : [1];
+}
+
+function parseLiteApiDate(value?: string) {
+    if (!value) return null;
+    const normalized = value.replace(' ', 'T') + 'Z';
+    const date = new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatLiteApiDate(value?: string) {
+    const parsed = parseLiteApiDate(value);
+    if (!parsed) return value || 'N/A';
+
+    return parsed.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+    });
+}
+
+function getPrimaryPrebookRate(prebookData: PrebookData | null): PrebookRate | null {
+    return prebookData?.roomTypes?.[0]?.rates?.[0] ?? null;
+}
+
+function buildCancellationSummary(prebookData: PrebookData | null): CancellationSummary | null {
+    const rate = getPrimaryPrebookRate(prebookData);
+    if (!rate) return null;
+
+    const totalAmount = rate.retailRate?.total?.[0]?.amount ?? prebookData?.price ?? 0;
+    const currency = rate.retailRate?.total?.[0]?.currency ?? prebookData?.currency ?? 'USD';
+
+    const refundableTag =
+        rate.cancellationPolicies?.refundableTag === 'RFN'
+            ? 'RFN'
+            : rate.cancellationPolicies?.refundableTag === 'NRFN'
+                ? 'NRFN'
+                : 'UNKNOWN';
+
+    const allPolicies = [...(rate.cancellationPolicies?.cancelPolicyInfos ?? [])]
+        .filter(Boolean)
+        .sort((a, b) => {
+            const ta = parseLiteApiDate(a.cancelTime)?.getTime() ?? 0;
+            const tb = parseLiteApiDate(b.cancelTime)?.getTime() ?? 0;
+            return ta - tb;
+        });
+
+    const displayPolicies = allPolicies.filter((p) => Number(p.amount ?? 0) > 0);
+
+    const now = new Date();
+    const passedPolicies = allPolicies.filter((p) => {
+        const dt = parseLiteApiDate(p.cancelTime);
+        return dt ? dt.getTime() <= now.getTime() : false;
+    });
+
+    const applicablePolicy =
+        passedPolicies.length > 0 ? passedPolicies[passedPolicies.length - 1] : null;
+
+    const effectiveNowAmount = Number(applicablePolicy?.amount ?? 0);
+    const nextDeadline =
+        allPolicies.find((p) => {
+            const dt = parseLiteApiDate(p.cancelTime);
+            return dt ? dt.getTime() > now.getTime() : false;
+        }) ?? null;
+
+    const isFullyRefundableNow =
+        refundableTag === 'RFN' && (applicablePolicy ? effectiveNowAmount === 0 : true);
+
+    let summaryText = 'Cancellation details are unavailable.';
+    if (refundableTag === 'RFN') {
+        if (isFullyRefundableNow) {
+            if (nextDeadline && Number(nextDeadline.amount ?? 0) > 0) {
+                summaryText = `Free cancellation until ${formatLiteApiDate(
+                    nextDeadline.cancelTime
+                )}. After that, the cancellation charge will be ${currency} ${Number(
+                    nextDeadline.amount ?? 0
+                ).toFixed(2)}.`;
+            } else {
+                summaryText = 'This booking is currently fully refundable.';
+            }
+        } else {
+            summaryText = `If you cancel now, the charge is ${currency} ${effectiveNowAmount.toFixed(
+                2
+            )}.`;
+        }
+    } else if (refundableTag === 'NRFN') {
+        if (displayPolicies.length > 0) {
+            const minCharge = Math.min(...displayPolicies.map((p) => Number(p.amount ?? 0)));
+            if (minCharge >= totalAmount) {
+                summaryText = 'This booking is non-refundable.';
+            } else {
+                summaryText = `This booking is marked non-refundable, but cancellation may still refund part of the total. Current policy charges start from ${currency} ${minCharge.toFixed(
+                    2
+                )}.`;
+            }
+        } else {
+            summaryText = 'This booking is non-refundable.';
+        }
+    }
+
+    return {
+        refundableTag,
+        totalAmount,
+        currency,
+        displayPolicies,
+        effectiveNowAmount,
+        nextDeadline,
+        isFullyRefundableNow,
+        summaryText,
+    };
 }
 
 export function PaymentPage() {
@@ -174,6 +305,7 @@ export function PaymentPage() {
     const [redeemDiscount, setRedeemDiscount] = useState(0);
     const [redeemQuoteLoading, setRedeemQuoteLoading] = useState(false);
     const [redeemQuoteError, setRedeemQuoteError] = useState<string | null>(null);
+    const [showCancellationPolicy, setShowCancellationPolicy] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -311,6 +443,11 @@ export function PaymentPage() {
     const maxRedeemablePoints = maxRedeemableForAmount(finalTotal);
     const discountedTotal = Math.max(finalTotal - redeemDiscount, 0);
 
+    const cancellationSummary = useMemo(
+        () => buildCancellationSummary(prebookData),
+        [prebookData]
+    );
+
     useEffect(() => {
         if (!pointsToRedeemInput.trim()) {
             setRedeemDiscount(0);
@@ -424,9 +561,11 @@ export function PaymentPage() {
         prebookData.roomTypes?.[0]?.name ?? `Hotel ${prebookData.hotelId ?? ''}`;
     const hotelLocation = '';
     const hotelImage = null;
-    const cancellationText = prebookData.cancellationChanged
-        ? 'Cancellation policy has changed — review before booking.'
-        : 'See cancellation policy details below.';
+
+    const cancellationText = cancellationSummary?.summaryText ??
+        (prebookData.cancellationChanged
+            ? 'Cancellation policy has changed — review before booking.'
+            : 'See cancellation policy details below.');
 
     const backSearchParams = new URLSearchParams();
     if (checkIn) backSearchParams.set('checkIn', checkIn);
@@ -607,6 +746,15 @@ export function PaymentPage() {
         }
     };
 
+    // ── Cancellation modal derived values ──────────────────────────────────────
+    // Use the user-facing discounted total (after service fee and points discount)
+    // as the "booking total" in the cancellation modal, since that's what was charged.
+    const modalBookingTotal = discountedTotal;
+    const modalCancelCharge = cancellationSummary?.effectiveNowAmount ?? 0;
+    const modalCancelRefund = Math.max(modalBookingTotal - modalCancelCharge, 0);
+    // Cash refund only — redeemed points are excluded since they're non-refundable.
+    const modalPointsDiscount = redeemDiscount;
+
     return (
         <div className="w-full bg-gray-50 min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
@@ -669,8 +817,8 @@ export function PaymentPage() {
                                                 {roomIdx > 0 && <Separator className="flex-1"/>}
                                                 <span
                                                     className="text-sm font-semibold text-[#1f2937] whitespace-nowrap">
-                          Room {roomIdx + 1}
-                        </span>
+                                                    Room {roomIdx + 1}
+                                                </span>
                                                 <Separator className="flex-1"/>
                                             </div>
 
@@ -897,9 +1045,13 @@ export function PaymentPage() {
                                         Terms & Conditions
                                     </a>{' '}
                                     and{' '}
-                                    <a href="#" className="text-[#2563eb] hover:underline">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCancellationPolicy(true)}
+                                        className="text-[#2563eb] hover:underline"
+                                    >
                                         Cancellation Policy
-                                    </a>
+                                    </button>
                                     .
                                 </p>
                             </div>
@@ -941,21 +1093,24 @@ export function PaymentPage() {
                             >
                                 {processing ? (
                                     <span className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                    Processing...
-                  </span>
+                                        <div
+                                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                                        Processing...
+                                    </span>
                                 ) : overlapChecking ? (
                                     <span className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                    Checking availability...
-                  </span>
+                                        <div
+                                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                                        Checking availability...
+                                    </span>
                                 ) : overlapError ? (
                                     'Dates unavailable'
                                 ) : redeemQuoteLoading ? (
                                     <span className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                    Calculating rewards discount...
-                  </span>
+                                        <div
+                                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                                        Calculating rewards discount...
+                                    </span>
                                 ) : (
                                     `Confirm and Pay ${priceSymbol}${discountedTotal.toFixed(2)}`
                                 )}
@@ -963,6 +1118,7 @@ export function PaymentPage() {
                         </Card>
                     </div>
 
+                    {/* ── Right sidebar: Booking Summary ── */}
                     <div className="lg:col-span-1">
                         <Card className="p-6 sticky top-28">
                             <h2 className="text-xl font-bold text-[#1f2937] mb-4">Booking Summary</h2>
@@ -990,18 +1146,18 @@ export function PaymentPage() {
                                 <div className="flex items-center gap-2 text-[#1f2937]">
                                     <Calendar className="w-4 h-4 text-[#2563eb]"/>
                                     <span className="text-sm">
-                    {checkIn && checkOut
-                        ? `${checkIn} → ${checkOut}`
-                        : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
-                  </span>
+                                        {checkIn && checkOut
+                                            ? `${checkIn} → ${checkOut}`
+                                            : `${nights} ${nights === 1 ? 'Night' : 'Nights'}`}
+                                    </span>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-[#1f2937]">
                                     <Users className="w-4 h-4 text-[#2563eb]"/>
                                     <span className="text-sm">
-                    {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} •{' '}
+                                        {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} •{' '}
                                         {guestsParam} {guestsParam === 1 ? 'Guest' : 'Guests'}
-                  </span>
+                                    </span>
                                 </div>
                             </div>
 
@@ -1044,26 +1200,23 @@ export function PaymentPage() {
                                 <div className="flex justify-between text-[#1f2937]">
                                     <span className="text-sm">Rate total</span>
                                     <span className="text-sm">
-                    {priceSymbol}
-                                        {basePrice}
-                  </span>
+                                        {priceSymbol}{basePrice}
+                                    </span>
                                 </div>
 
                                 <div className="flex justify-between text-[#1f2937]">
                                     <span className="text-sm">Service fee</span>
                                     <span className="text-sm">
-                    {priceSymbol}
-                                        {serviceFee}
-                  </span>
+                                        {priceSymbol}{serviceFee}
+                                    </span>
                                 </div>
 
                                 {redeemDiscount > 0 && (
                                     <div className="flex justify-between text-green-700">
                                         <span className="text-sm">Points discount</span>
                                         <span className="text-sm">
-                      -{priceSymbol}
-                                            {redeemDiscount.toFixed(2)}
-                    </span>
+                                            -{priceSymbol}{redeemDiscount.toFixed(2)}
+                                        </span>
                                     </div>
                                 )}
 
@@ -1077,9 +1230,8 @@ export function PaymentPage() {
                                 <div className="flex justify-between font-bold text-lg text-[#1f2937]">
                                     <span>Total</span>
                                     <span>
-                    {priceSymbol}
-                                        {discountedTotal.toFixed(2)}
-                  </span>
+                                        {priceSymbol}{discountedTotal.toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
 
@@ -1090,6 +1242,169 @@ export function PaymentPage() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Cancellation Policy Modal ── */}
+            {showCancellationPolicy && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl p-0 overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h2 className="text-lg font-bold text-[#1f2937]">Cancellation Policy</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowCancellationPolicy(false)}
+                                className="p-1 rounded hover:bg-gray-100"
+                                aria-label="Close cancellation policy"
+                            >
+                                <X className="w-5 h-5"/>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                            {!cancellationSummary ? (
+                                <p className="text-sm text-[#717182]">
+                                    Cancellation policy details are not available for this rate.
+                                </p>
+                            ) : (
+                                <>
+                                    <div
+                                        className={`rounded-lg border p-4 ${
+                                            cancellationSummary.refundableTag === 'RFN'
+                                                ? 'bg-green-50 border-green-200'
+                                                : cancellationSummary.refundableTag === 'NRFN'
+                                                    ? 'bg-red-50 border-red-200'
+                                                    : 'bg-gray-50 border-gray-200'
+                                        }`}
+                                    >
+                                        <p className="font-semibold text-[#1f2937] mb-1">
+                                            {cancellationSummary.refundableTag === 'RFN'
+                                                ? 'Refundable booking'
+                                                : cancellationSummary.refundableTag === 'NRFN'
+                                                    ? 'Non-refundable booking'
+                                                    : 'Refundability unknown'}
+                                        </p>
+                                        <p className="text-sm text-[#4b5563]">
+                                            {cancellationSummary.summaryText}
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <h3 className="font-semibold text-[#1f2937]">How this works</h3>
+                                        <p className="text-sm text-[#4b5563]">
+                                            The charge amount shown for each policy is what you pay if you cancel
+                                            after that deadline. If no policy has taken effect yet and the booking
+                                            is marked refundable, cancellation is fully refundable.
+                                        </p>
+                                        {cancellationSummary.refundableTag === 'NRFN' && (
+                                            <p className="text-sm text-[#4b5563]">
+                                                A booking marked <strong>NRFN</strong> may still refund part of the
+                                                total. It is considered non-refundable if any portion of the booking
+                                                is not returned.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* ── Payment breakdown ── */}
+                                    <div className="rounded-lg bg-gray-50 p-4 space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[#717182]">Rate total</span>
+                                            <span className="font-medium text-[#1f2937]">
+                                                {priceSymbol}{basePrice.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[#717182]">Service fee</span>
+                                            <span className="font-medium text-[#1f2937]">
+                                                {priceSymbol}{serviceFee.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        {modalPointsDiscount > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-[#717182]">Points discount applied</span>
+                                                <span className="font-medium text-green-700">
+                                                    -{priceSymbol}{modalPointsDiscount.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <Separator/>
+                                        <div className="flex justify-between text-sm font-semibold">
+                                            <span className="text-[#1f2937]">Booking total (charged)</span>
+                                            <span className="text-[#1f2937]">
+                                                {priceSymbol}{modalBookingTotal.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1">
+                                            <span className="text-[#717182]">Cancel now charge</span>
+                                            <span className="font-medium text-[#ef4444]">
+                                                {cancellationSummary.currency}{' '}
+                                                {modalCancelCharge.toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-[#717182]">Cancel now refund</span>
+                                            <span className="font-medium text-green-700">
+                                                {cancellationSummary.currency}{' '}
+                                                {modalCancelRefund.toFixed(2)}
+                                            </span>
+                                        </div>
+
+                                        {/* Points non-refundable note */}
+                                        {modalPointsDiscount > 0 && (
+                                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-2">
+                                                Redeemed points ({priceSymbol}{modalPointsDiscount.toFixed(2)} discount)
+                                                are non-refundable and will not be returned upon cancellation.
+                                                The refund above reflects your cash payment only.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <h3 className="font-semibold text-[#1f2937] mb-3">Policy schedule</h3>
+
+                                        {cancellationSummary.displayPolicies.length === 0 ? (
+                                            <p className="text-sm text-[#717182]">
+                                                No non-zero cancellation charges were returned for this rate.
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {cancellationSummary.displayPolicies.map((policy, index) => (
+                                                    <div
+                                                        key={`${policy.cancelTime ?? 'unknown'}-${index}`}
+                                                        className="border rounded-lg p-4"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div>
+                                                                <p className="font-medium text-[#1f2937]">
+                                                                    After {formatLiteApiDate(policy.cancelTime)}
+                                                                </p>
+                                                                <p className="text-sm text-[#717182] mt-1">
+                                                                    Cancellation charge applies from this time.
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right shrink-0">
+                                                                <p className="font-semibold text-[#1f2937]">
+                                                                    {policy.currency ?? cancellationSummary.currency}{' '}
+                                                                    {Number(policy.amount ?? 0).toFixed(2)}
+                                                                </p>
+                                                                <p className="text-xs text-[#717182]">
+                                                                    Charge amount
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-4 border-t flex justify-end">
+                            <Button onClick={() => setShowCancellationPolicy(false)}>Close</Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
