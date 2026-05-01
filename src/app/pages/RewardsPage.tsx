@@ -83,38 +83,10 @@ export function RewardsPage() {
             icon: Laugh,
         },
         {
-            id: 1,
-            title: '10% Off Next Booking',
-            points: 500,
-            description: 'Get 10% discount on your next hotel booking',
-            icon: Gift,
-        },
-        {
-            id: 2,
-            title: 'Free Breakfast Upgrade',
-            points: 750,
-            description: 'Complimentary breakfast for two at participating hotels',
-            icon: Award,
-        },
-        {
-            id: 3,
-            title: 'Room Upgrade',
-            points: 1500,
-            description: 'Free room upgrade to next category (subject to availability)',
-            icon: Crown,
-        },
-        {
-            id: 4,
-            title: 'Late Checkout',
-            points: 300,
-            description: 'Enjoy late checkout until 2 PM at any hotel',
-            icon: Zap,
-        },
-        {
             id: 5,
-            title: '€50 Travel Credit',
-            points: 2000,
-            description: 'Redeem for €50 credit on any booking',
+            title: 'Travel Credit',
+            points: 100,
+            description: 'Redeem for credit on any booking',
             icon: Trophy,
         },
     ];
@@ -138,7 +110,7 @@ export function RewardsPage() {
                     </p>
                 </div>
 
-                <Card className="mb-8 bg-card p-6">
+                <Card className="mb-8 bg-gradient-to-br from-secondary to-secondary/80 p-6">
                     <div className="grid gap-6 md:grid-cols-3">
                         <div className="md:col-span-2">
                             <div className="mb-4 flex items-center gap-3">
@@ -232,7 +204,7 @@ export function RewardsPage() {
                                                         className={
                                                             isSlotMachine
                                                                 ? 'h-11 w-11 text-yellow-100 drop-shadow-[0_0_18px_rgba(255,240,150,0.95)]'
-                                                                : 'h-6 w-6 text-bold-text'
+                                                                : 'h-6 w-6 text-foreground'
                                                         }
                                                     />
                                                 </div>
@@ -252,7 +224,7 @@ export function RewardsPage() {
                                                         className={
                                                             isSlotMachine
                                                                 ? 'mb-4 text-sm text-white/90'
-                                                                : 'mb-3 text-sm text-muted-foreground'
+                                                                : 'mb-3 text-sm text-foreground'
                                                         }
                                                     >
                                                         {reward.description}
@@ -261,7 +233,7 @@ export function RewardsPage() {
                                                     {isSlotMachine && (
                                                         <div className="mb-4 flex flex-wrap items-center gap-2">
                                                             <span
-                                                                className="rounded-full border border-white/20 bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                                                                className="rounded-full border border-gray/20 bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
                                                                 Big smiles
                                                             </span>
                                                             <span
@@ -280,7 +252,7 @@ export function RewardsPage() {
                                                             className={
                                                                 isSlotMachine
                                                                     ? 'text-lg font-bold text-yellow-50'
-                                                                    : 'font-bold text-bold-text'
+                                                                    : 'font-bold text-foreground'
                                                             }
                                                         >
                                                             {reward.points} points
@@ -345,8 +317,8 @@ export function RewardsPage() {
                                                 </div>
 
                                                 <div>
-                                                    <p className="font-medium text-foreground">{item.title}</p>
-                                                    <p className="text-sm text-muted-foreground">{item.date}</p>
+                                                    <p className="font-bold text-foreground">{item.title}</p>
+                                                    <p className="text-sm text-muted-gray">{item.date}</p>
                                                 </div>
                                             </div>
 
@@ -371,7 +343,7 @@ export function RewardsPage() {
                                 <Star className="h-5 w-5 text-secondary"/>
                                 How to Earn Points
                             </h3>
-                            <ul className="space-y-3 text-sm text-muted-foreground">
+                            <ul className="space-y-3 text-sm text-muted-gray">
                                 <li className="flex items-start gap-2">
                                     <span className="mt-1 text-secondary">•</span>
                                     <span>Earn 1 point per €1 spent on bookings</span>
@@ -393,45 +365,6 @@ export function RewardsPage() {
                                     <span>Refer friends and earn 500 points</span>
                                 </li>
                             </ul>
-                        </Card>
-
-                        <Card className="p-6">
-                            <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground">
-                                <Trophy className="h-5 w-5 text-secondary"/>
-                                Membership Tiers
-                            </h3>
-
-                            <div className="space-y-4">
-                                {Object.entries(tierBenefits).map(([tier, benefits]) => (
-                                    <div
-                                        key={tier}
-                                        className={`rounded-lg p-4 ${
-                                            tier === currentTier
-                                                ? 'border-2 border-secondary bg-secondary/10'
-                                                : 'bg-muted/30'
-                                        }`}
-                                    >
-                                        <div className="mb-2 flex items-center gap-2">
-                                            <h4 className="font-bold text-foreground">{tier}</h4>
-                                            {tier === currentTier && (
-                                                <span
-                                                    className="rounded-full bg-secondary px-2 py-0.5 text-xs text-white">
-                                                    Current
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <ul className="space-y-1 text-sm text-muted-foreground">
-                                            {benefits.map((benefit, idx) => (
-                                                <li key={idx} className="flex items-center gap-2">
-                                                    <span className="text-secondary">✓</span>
-                                                    {benefit}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </div>
                         </Card>
                     </div>
                 </div>
