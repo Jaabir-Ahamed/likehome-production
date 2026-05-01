@@ -258,8 +258,8 @@ export function HotelListingPage() {
                 {/* Search Component */}
                 <div className="mb-8">
                     <SearchComponent
-                      initialLocation={searchParams.get('location') || ''}
-                      initialPlaceId={searchParams.get('placeId') || ''}
+                        initialLocation={searchParams.get('location') || ''}
+                        initialPlaceId={searchParams.get('placeId') || ''}
                     />
                 </div>
 
@@ -468,10 +468,14 @@ export function HotelListingPage() {
                                         <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem className="cursor-pointer" value="recommended">Recommended</SelectItem>
-                                        <SelectItem className="cursor-pointer" value="price-low">Lowest Price</SelectItem>
-                                        <SelectItem className="cursor-pointer" value="price-high">Highest Price</SelectItem>
-                                        <SelectItem className="cursor-pointer" value="rating">Highest Rating</SelectItem>
+                                        <SelectItem className="cursor-pointer"
+                                                    value="recommended">Recommended</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="price-low">Lowest
+                                            Price</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="price-high">Highest
+                                            Price</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="rating">Highest
+                                            Rating</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -495,7 +499,17 @@ export function HotelListingPage() {
                                     <div className="space-y-6">
                                         {filteredHotels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((hotel) => {
                                             const rateInfo = hotelRates.get(hotel.id);
-                                            const detailLink = `/hotel/${hotel.id}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(JSON.stringify(parsedOccupancies))}`;
+
+
+                                            const detailParams = new URLSearchParams({
+                                                placeId: placeIdParam ?? '',
+                                                location: searchParams.get('location') ?? '',
+                                                checkIn,
+                                                checkOut,
+                                                occupancies: JSON.stringify(parsedOccupancies),
+                                            });
+
+                                            const detailLink = `/hotel/${hotel.id}?${detailParams.toString()}`;
                                             return (
                                                 <Card key={hotel.id}
                                                       className="overflow-hidden hover:shadow-xl transition-shadow duration-300">

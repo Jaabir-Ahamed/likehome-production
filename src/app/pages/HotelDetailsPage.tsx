@@ -129,10 +129,10 @@ export function HotelDetailsPage() {
                 );
                 toast.dismiss('auto-prebook');
                 navigate(
-  `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
-    JSON.stringify(occupancies)
-  )}`
-);
+                    `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
+                        JSON.stringify(occupancies)
+                    )}`
+                );
             })
             .catch(() => {
                 toast.dismiss('auto-prebook');
@@ -148,33 +148,33 @@ export function HotelDetailsPage() {
         : manualNights;
 
     function handleToggleRate(rate: Rate) {
-    setSelectedRates((prev) => {
-        const alreadySelectedKey = Object.keys(prev).find(
-            (key) => prev[Number(key)]?.rateId === rate.rateId
-        );
+        setSelectedRates((prev) => {
+            const alreadySelectedKey = Object.keys(prev).find(
+                (key) => prev[Number(key)]?.rateId === rate.rateId
+            );
 
-        if (alreadySelectedKey) {
-            const next = {...prev};
-            delete next[Number(alreadySelectedKey)];
-            return next;
-        }
+            if (alreadySelectedKey) {
+                const next = {...prev};
+                delete next[Number(alreadySelectedKey)];
+                return next;
+            }
 
-        const nextRoomNumber = Array.from(
-            {length: occupancies.length},
-            (_, i) => i + 1
-        ).find((roomNumber) => !prev[roomNumber]);
+            const nextRoomNumber = Array.from(
+                {length: occupancies.length},
+                (_, i) => i + 1
+            ).find((roomNumber) => !prev[roomNumber]);
 
-        if (!nextRoomNumber) {
-            toast.error(`You already selected ${occupancies.length} rooms.`);
-            return prev;
-        }
+            if (!nextRoomNumber) {
+                toast.error(`You already selected ${occupancies.length} rooms.`);
+                return prev;
+            }
 
-        return {
-            ...prev,
-            [nextRoomNumber]: rate,
-        };
-    });
-}
+            return {
+                ...prev,
+                [nextRoomNumber]: rate,
+            };
+        });
+    }
 
     useEffect(() => {
         if (!id) return;
@@ -245,7 +245,7 @@ export function HotelDetailsPage() {
                     <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
                     <p className="text-[#717182] mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
                     <Button asChild>
-                        <Link to="/hotels">Back to Hotels</Link>
+                        <Link to={`/hotels${location.search}`}>Back to Hotels</Link>
                     </Button>
                 </Card>
             </div>
@@ -266,15 +266,15 @@ export function HotelDetailsPage() {
     const fallbackRoomImage = hotel.main_photo || hotel.hotelImages?.[0]?.urlHd || hotel.hotelImages?.[0]?.url || null;
     const allRates = Object.values(ratesByOccupancy).flat();
 
-const selectedRateIds = new Set(
-    Object.values(selectedRates).map((rate) => rate.rateId)
-);
+    const selectedRateIds = new Set(
+        Object.values(selectedRates).map((rate) => rate.rateId)
+    );
 
     return (
         <div className="w-full bg-gray-50 min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 <Button variant="ghost" asChild className="mb-6">
-                    <Link to="/hotels">
+                    <Link to={`/hotels${location.search}`}>
                         <ArrowLeft className="w-4 h-4 mr-2"/>
                         Back to Hotels
                     </Link>
@@ -424,49 +424,50 @@ const selectedRateIds = new Set(
                                 <p className="text-sm text-[#717182]">No rooms available for the selected dates.</p>
                             ) : (
                                 <div className="max-h-[700px] overflow-y-auto pr-3 space-y-4">
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-3">
-        <p className="text-sm text-[#717182]">
-            Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from this list.
-        </p>
-        <p className="text-xs text-[#717182] mt-1">
-            {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
-        </p>
-    </div>
+                                    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-3">
+                                        <p className="text-sm text-[#717182]">
+                                            Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from
+                                            this list.
+                                        </p>
+                                        <p className="text-xs text-[#717182] mt-1">
+                                            {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
+                                        </p>
+                                    </div>
 
-    {allRates.map((rate) => {
-        const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
-        const isSelected = selectedRateIds.has(rate.rateId);
+                                    {allRates.map((rate) => {
+                                        const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
+                                        const isSelected = selectedRateIds.has(rate.rateId);
 
-        return (
-            <div
-                key={`${rate.rateId}-${rate.occupancyNumber}`}
-                className={`border rounded-lg p-3 ${
-                    isSelected ? 'border-[#2563eb] bg-blue-50' : 'border-gray-200'
-                }`}
-            >
-                <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleToggleRate(rate)}
-                        className="mt-2 w-5 h-5"
-                    />
+                                        return (
+                                            <div
+                                                key={`${rate.rateId}-${rate.occupancyNumber}`}
+                                                className={`border rounded-lg p-3 ${
+                                                    isSelected ? 'border-[#2563eb] bg-blue-50' : 'border-gray-200'
+                                                }`}
+                                            >
+                                                <label className="flex items-start gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleToggleRate(rate)}
+                                                        className="mt-2 w-5 h-5"
+                                                    />
 
-                    <div className="flex-1">
-                        <RoomRateCard
-                            rate={rate}
-                            room={matchedRoom}
-                            actualNights={actualNights}
-                            isSelected={isSelected}
-                            onSelect={() => handleToggleRate(rate)}
-                            fallbackImage={fallbackRoomImage}
-                        />
-                    </div>
-                </label>
-            </div>
-        );
-    })}
-</div>
+                                                    <div className="flex-1">
+                                                        <RoomRateCard
+                                                            rate={rate}
+                                                            room={matchedRoom}
+                                                            actualNights={actualNights}
+                                                            isSelected={isSelected}
+                                                            onSelect={() => handleToggleRate(rate)}
+                                                            fallbackImage={fallbackRoomImage}
+                                                        />
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </Card>
 
@@ -709,11 +710,11 @@ const selectedRateIds = new Set(
                                             JSON.stringify({offerId: firstRate.offerId, hotelId: id})
                                         );
                                         sessionStorage.setItem(
-  'loginRedirect',
-  `${location.pathname}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
-    JSON.stringify(occupancies)
-  )}`
-);
+                                            'loginRedirect',
+                                            `${location.pathname}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
+                                                JSON.stringify(occupancies)
+                                            )}`
+                                        );
                                         navigate('/login');
                                         return;
                                     }
