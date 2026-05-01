@@ -89,6 +89,7 @@ export function HotelListingPage() {
     const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState('recommended');
     const [showMap, setShowMap] = useState(false);
+    const [hideUnavailable, setHideUnavailable] = useState(false);
 
     const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location')?.toLowerCase() || '');
 
@@ -190,6 +191,10 @@ export function HotelListingPage() {
             });
         }
 
+        if (hideUnavailable) {
+            result = result.filter(h => hotelRates.has(h.id));
+        }
+
         if (sortBy === 'price-low') {
             result.sort((a, b) => (hotelRates.get(a.id)?.pricePerNight ?? Infinity) - (hotelRates.get(b.id)?.pricePerNight ?? Infinity));
         } else if (sortBy === 'price-high') {
@@ -199,7 +204,7 @@ export function HotelListingPage() {
         }
 
         return result;
-    }, [apiHotels, guestRating, priceRange, propertyTypes, sortBy, hotelRates]);
+    }, [apiHotels, guestRating, priceRange, propertyTypes, sortBy, hotelRates, hideUnavailable]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -435,6 +440,7 @@ export function HotelListingPage() {
                                     setSelectedAmenities([]);
                                     setGuestRating(0);
                                     setPropertyTypes([]);
+                                    setHideUnavailable(false);
                                 }}
                             >
                                 Clear All Filters
@@ -462,7 +468,28 @@ export function HotelListingPage() {
                                 Showing {filteredHotels.length} properties
                             </p>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-bold-text">Sort by:</span>
+                                <div className="flex items-center gap-2 ml-2">
+                                    <span className="text-sm font-medium text-bold-text whitespace-nowrap">
+                                        Available Only:
+                                    </span>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={hideUnavailable}
+                                        onClick={() => setHideUnavailable(v => !v)}
+                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 ${
+                                            hideUnavailable ? 'bg-[#2563eb]' : 'bg-gray-200'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                hideUnavailable ? 'translate-x-5' : 'translate-x-0'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                <span className="text-sm font-medium text-bold-text">Sort By:</span>
                                 <Select value={sortBy} onValueChange={setSortBy}>
                                     <SelectTrigger className="w-[180px] cursor-pointer">
                                         <SelectValue/>
