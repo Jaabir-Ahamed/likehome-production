@@ -756,21 +756,26 @@ const guestsParam = occupancies.reduce(
   <div>
     <Label htmlFor="cardNumber">Card Number</Label>
     <Input
-      id="cardNumber"
-      placeholder="1234 5678 9012 3456"
-      value={cardData.cardNumber}
-      onChange={(e) => {
-        setCardData({
-          ...cardData,
-          cardNumber: e.target.value.replace(/\D/g, ''),
-        });
-        setCardErrors((prev) => ({ ...prev, cardNumber: '' }));
-      }}
-      className={cardErrors.cardNumber ? "border-red-500" : ""}
-      maxLength={19}
-      required
-      form="booking-form"
-    />
+  id="cardNumber"
+  placeholder="1234 5678 9012 3456"
+  value={cardData.cardNumber}
+  onChange={(e) => {
+    let value = e.target.value.replace(/\D/g, '');
+
+    value = value.match(/.{1,4}/g)?.join(' ') || '';
+
+    setCardData({
+      ...cardData,
+      cardNumber: value,
+    });
+
+    setCardErrors((prev) => ({ ...prev, cardNumber: '' }));
+  }}
+  className={cardErrors.cardNumber ? "border-red-500" : ""}
+  maxLength={19}
+  required
+  form="booking-form"
+/>
     {cardErrors.cardNumber && (
       <p className="text-red-500 text-sm mt-1">{cardErrors.cardNumber}</p>
     )}
