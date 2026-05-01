@@ -16,9 +16,26 @@ import {findBestHotelRoomMatch} from '../../lib/roomMatching';
 import type {HotelDetails, Rate} from '../../types/hotel';
 
 const PHONE_CODES = [
-    {code: '+1', short: 'USA'},
-    {code: '+44', short: 'GBR'},
-    {code: '+61', short: 'AUS'},
+    {code: '+1', short: 'USA', name: 'United States'},
+    {code: '+1', short: 'CAN', name: 'Canada'},
+    {code: '+44', short: 'GBR', name: 'United Kingdom'},
+    {code: '+61', short: 'AUS', name: 'Australia'},
+    {code: '+49', short: 'DEU', name: 'Germany'},
+    {code: '+33', short: 'FRA', name: 'France'},
+    {code: '+81', short: 'JPN', name: 'Japan'},
+    {code: '+86', short: 'CHN', name: 'China'},
+    {code: '+91', short: 'IND', name: 'India'},
+    {code: '+55', short: 'BRA', name: 'Brazil'},
+    {code: '+52', short: 'MEX', name: 'Mexico'},
+    {code: '+34', short: 'ESP', name: 'Spain'},
+    {code: '+39', short: 'ITA', name: 'Italy'},
+    {code: '+7', short: 'RUS', name: 'Russia'},
+    {code: '+82', short: 'KOR', name: 'South Korea'},
+    {code: '+65', short: 'SGP', name: 'Singapore'},
+    {code: '+971', short: 'UAE', name: 'United Arab Emirates'},
+    {code: '+966', short: 'SAU', name: 'Saudi Arabia'},
+    {code: '+31', short: 'NLD', name: 'Netherlands'},
+    {code: '+46', short: 'SWE', name: 'Sweden'},
 ];
 
 export function AmendBookingPage() {
