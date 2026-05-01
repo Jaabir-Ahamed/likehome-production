@@ -128,11 +128,17 @@ export function HotelDetailsPage() {
                     })
                 );
                 toast.dismiss('auto-prebook');
-                navigate(
-                    `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
-                        JSON.stringify(occupancies)
-                    )}`
-                );
+                const paymentParams = new URLSearchParams({
+                    prebookId: prebookData.prebookId,
+                    hotelId: id ?? '',
+                    checkIn,
+                    checkOut,
+                    occupancies: JSON.stringify(occupancies),
+                    location: searchParams.get('location') ?? '',
+                    placeId: searchParams.get('placeId') ?? '',
+                });
+
+                navigate(`/payment?${paymentParams.toString()}`);
             })
             .catch(() => {
                 toast.dismiss('auto-prebook');
@@ -710,11 +716,17 @@ export function HotelDetailsPage() {
                                             'pendingReservation',
                                             JSON.stringify({offerId: firstRate.offerId, hotelId: id})
                                         );
+                                        const loginRedirectParams = new URLSearchParams({
+                                            checkIn,
+                                            checkOut,
+                                            occupancies: JSON.stringify(occupancies),
+                                            location: searchParams.get('location') ?? '',
+                                            placeId: searchParams.get('placeId') ?? '',
+                                        });
+
                                         sessionStorage.setItem(
                                             'loginRedirect',
-                                            `${location.pathname}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
-                                                JSON.stringify(occupancies)
-                                            )}`
+                                            `${location.pathname}?${loginRedirectParams.toString()}`
                                         );
                                         navigate('/login');
                                         return;
@@ -740,11 +752,17 @@ export function HotelDetailsPage() {
                                             })
                                         );
 
-                                        navigate(
-                                            `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
-                                                JSON.stringify(occupancies)
-                                            )}`
-                                        );
+                                        const paymentParams = new URLSearchParams({
+                                            prebookId: prebookData.prebookId,
+                                            hotelId: id ?? '',
+                                            checkIn,
+                                            checkOut,
+                                            occupancies: JSON.stringify(occupancies),
+                                            location: searchParams.get('location') ?? '',
+                                            placeId: searchParams.get('placeId') ?? '',
+                                        });
+
+                                        navigate(`/payment?${paymentParams.toString()}`);
                                     } catch (err: any) {
                                         if (err?.context?.status === 409) {
                                             const body = await err.context.json().catch(() => null);
