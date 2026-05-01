@@ -399,9 +399,10 @@ export function HotelDetailsPage() {
                                     <Info className="w-6 h-6 text-[#f59e0b]"/>
                                     Important Information
                                 </h2>
-                                <pre className="text-sm text-[#1f2937] whitespace-pre-wrap font-sans leading-relaxed">
-                  {hotel.hotelImportantInformation}
-                </pre>
+                                <div
+                                    className="prose prose-sm max-w-none text-[#1f2937] [&_ul]:pl-5 [&_ul]:list-disc [&_li]:mb-2"
+                                    dangerouslySetInnerHTML={{__html: hotel.hotelImportantInformation}}
+                                />
                             </Card>
                         )}
 
