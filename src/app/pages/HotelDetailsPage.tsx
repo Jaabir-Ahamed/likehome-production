@@ -128,7 +128,11 @@ export function HotelDetailsPage() {
                     })
                 );
                 toast.dismiss('auto-prebook');
-                navigate(`/payment?prebookId=${prebookData.prebookId}`);
+                navigate(
+  `/payment?prebookId=${prebookData.prebookId}&checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
+    JSON.stringify(occupancies)
+  )}`
+);
             })
             .catch(() => {
                 toast.dismiss('auto-prebook');
@@ -143,12 +147,34 @@ export function HotelDetailsPage() {
         ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
         : manualNights;
 
-    function handleSelectRate(occupancyNumber: number, rate: Rate) {
-        setSelectedRates((prev) => ({
+    function handleToggleRate(rate: Rate) {
+    setSelectedRates((prev) => {
+        const alreadySelectedKey = Object.keys(prev).find(
+            (key) => prev[Number(key)]?.rateId === rate.rateId
+        );
+
+        if (alreadySelectedKey) {
+            const next = {...prev};
+            delete next[Number(alreadySelectedKey)];
+            return next;
+        }
+
+        const nextRoomNumber = Array.from(
+            {length: occupancies.length},
+            (_, i) => i + 1
+        ).find((roomNumber) => !prev[roomNumber]);
+
+        if (!nextRoomNumber) {
+            toast.error(`You already selected ${occupancies.length} rooms.`);
+            return prev;
+        }
+
+        return {
             ...prev,
-            [occupancyNumber]: rate,
-        }));
-    }
+            [nextRoomNumber]: rate,
+        };
+    });
+}
 
     useEffect(() => {
         if (!id) return;
@@ -206,7 +232,7 @@ export function HotelDetailsPage() {
 
     if (loading) {
         return (
-            <div className="w-full bg-background min-h-screen flex items-center justify-center">
+            <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"/>
             </div>
         );
@@ -214,9 +240,9 @@ export function HotelDetailsPage() {
 
     if (error || !hotel) {
         return (
-            <div className="w-full bg-background min-h-screen flex items-center justify-center">
+            <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
                 <Card className="p-8 text-center">
-                    <h2 className="text-2xl font-bold text-bold-text mb-4">Hotel Not Found</h2>
+                    <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
                     <p className="text-[#717182] mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
                     <Button asChild>
                         <Link to="/hotels">Back to Hotels</Link>
@@ -238,9 +264,14 @@ export function HotelDetailsPage() {
 
     const selectedCurrency = Object.values(selectedRates)[0]?.retailRate?.total?.[0]?.currency ?? 'USD';
     const fallbackRoomImage = hotel.main_photo || hotel.hotelImages?.[0]?.urlHd || hotel.hotelImages?.[0]?.url || null;
+    const allRates = Object.values(ratesByOccupancy).flat();
+
+const selectedRateIds = new Set(
+    Object.values(selectedRates).map((rate) => rate.rateId)
+);
 
     return (
-        <div className="w-full bg-background min-h-screen">
+        <div className="w-full bg-gray-50 min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 <Button variant="ghost" asChild className="mb-6">
                     <Link to="/hotels">
@@ -252,7 +283,7 @@ export function HotelDetailsPage() {
                 <div className="mb-6">
                     <div className="flex items-start justify-between mb-4">
                         <div>
-                            <h1 className="text-4xl font-bold text-bold-text mb-2">{hotel.name}</h1>
+                            <h1 className="text-4xl font-bold text-[#1f2937] mb-2">{hotel.name}</h1>
                             <p className="text-lg text-[#717182] flex items-center gap-2">
                                 <MapPin className="w-5 h-5"/>
                                 {hotel.city} • {hotel.address}
@@ -312,9 +343,9 @@ export function HotelDetailsPage() {
                     <div className="lg:col-span-2 space-y-8">
                         {hotel.hotelDescription && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4">About This Hotel</h2>
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
                                 <div
-                                    className="text-bold-text leading-relaxed prose prose-sm max-w-none"
+                                    className="text-[#1f2937] leading-relaxed prose prose-sm max-w-none"
                                     dangerouslySetInnerHTML={{__html: hotel.hotelDescription}}
                                 />
                             </Card>
@@ -322,12 +353,12 @@ export function HotelDetailsPage() {
 
                         {hotel.checkinCheckoutTimes && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4">Check-in & Check-out</h2>
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex items-start gap-3">
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
-                                            <p className="font-semibold text-bold-text">Check-in</p>
+                                            <p className="font-semibold text-[#1f2937]">Check-in</p>
                                             <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
                                             {hotel.checkinCheckoutTimes.checkin_end && (
                                                 <p className="text-[#717182]">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
@@ -337,7 +368,7 @@ export function HotelDetailsPage() {
                                     <div className="flex items-start gap-3">
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
-                                            <p className="font-semibold text-bold-text">Check-out</p>
+                                            <p className="font-semibold text-[#1f2937]">Check-out</p>
                                             <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
                                         </div>
                                     </div>
@@ -347,14 +378,14 @@ export function HotelDetailsPage() {
 
                         {hotel.hotelFacilities?.length > 0 && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4">Hotel Facilities</h2>
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Facilities</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                     {hotel.hotelFacilities.slice(0, 18).map((facility) => {
                                         const Icon = getFacilityIcon(facility);
                                         return (
                                             <div key={facility} className="flex items-center gap-2">
                                                 <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0"/>
-                                                <span className="text-sm text-bold-text">{facility}</span>
+                                                <span className="text-sm text-[#1f2937]">{facility}</span>
                                             </div>
                                         );
                                     })}
@@ -364,18 +395,18 @@ export function HotelDetailsPage() {
 
                         {hotel.hotelImportantInformation && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4 flex items-center gap-2">
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
                                     <Info className="w-6 h-6 text-[#f59e0b]"/>
                                     Important Information
                                 </h2>
-                                <pre className="text-sm text-bold-text whitespace-pre-wrap font-sans leading-relaxed">
+                                <pre className="text-sm text-[#1f2937] whitespace-pre-wrap font-sans leading-relaxed">
                   {hotel.hotelImportantInformation}
                 </pre>
                             </Card>
                         )}
 
                         <Card className="p-6">
-                            <h2 className="text-2xl font-bold text-bold-text mb-4">Available Rooms</h2>
+                            <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Available Rooms</h2>
 
                             {ratesLoading ? (
                                 <div className="space-y-3">
@@ -392,48 +423,56 @@ export function HotelDetailsPage() {
                             ) : Object.keys(ratesByOccupancy).length === 0 ? (
                                 <p className="text-sm text-[#717182]">No rooms available for the selected dates.</p>
                             ) : (
-                                <div className="space-y-6">
-                                    {Object.entries(ratesByOccupancy).map(([occNumber, rates]) => {
-                                        const occIndex = Number(occNumber) - 1;
-                                        const occ = occupancies[occIndex] ?? {adults: 1, children: []};
+                                <div className="max-h-[700px] overflow-y-auto pr-3 space-y-4">
+    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-3">
+        <p className="text-sm text-[#717182]">
+            Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from this list.
+        </p>
+        <p className="text-xs text-[#717182] mt-1">
+            {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
+        </p>
+    </div>
 
-                                        return (
-                                            <div key={occNumber} className="border border-gray-200 rounded-lg p-4">
-                                                <h3 className="font-bold text-lg text-bold-text mb-3">
-                                                    Room {occNumber} — {occ.adults} {occ.adults === 1 ? 'adult' : 'adults'}
-                                                    {occ.children?.length
-                                                        ? `, ${occ.children.length} ${occ.children.length === 1 ? 'child' : 'children'}`
-                                                        : ''}
-                                                </h3>
+    {allRates.map((rate) => {
+        const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
+        const isSelected = selectedRateIds.has(rate.rateId);
 
-                                                <div className="space-y-4">
-                                                    {rates.map((rate) => {
-                                                        const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
-                                                        const isSelected = selectedRates[Number(occNumber)]?.rateId === rate.rateId;
+        return (
+            <div
+                key={`${rate.rateId}-${rate.occupancyNumber}`}
+                className={`border rounded-lg p-3 ${
+                    isSelected ? 'border-[#2563eb] bg-blue-50' : 'border-gray-200'
+                }`}
+            >
+                <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleRate(rate)}
+                        className="mt-2 w-5 h-5"
+                    />
 
-                                                        return (
-                                                            <RoomRateCard
-                                                                key={rate.rateId}
-                                                                rate={rate}
-                                                                room={matchedRoom}
-                                                                actualNights={actualNights}
-                                                                isSelected={isSelected}
-                                                                onSelect={() => handleSelectRate(Number(occNumber), rate)}
-                                                                fallbackImage={fallbackRoomImage}
-                                                            />
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                    <div className="flex-1">
+                        <RoomRateCard
+                            rate={rate}
+                            room={matchedRoom}
+                            actualNights={actualNights}
+                            isSelected={isSelected}
+                            onSelect={() => handleToggleRate(rate)}
+                            fallbackImage={fallbackRoomImage}
+                        />
+                    </div>
+                </label>
+            </div>
+        );
+    })}
+</div>
                             )}
                         </Card>
 
                         {hotel.sentiment_analysis && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4">Guest Reviews</h2>
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Guest Reviews</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                     {hotel.sentiment_analysis.pros?.length > 0 && (
                                         <div>
@@ -444,7 +483,7 @@ export function HotelDetailsPage() {
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.pros.map((pro, i) => (
                                                     <li key={i}
-                                                        className="text-sm text-bold-text flex items-center gap-2">
+                                                        className="text-sm text-[#1f2937] flex items-center gap-2">
                                                         <Check className="w-3 h-3 text-green-500 flex-shrink-0"/>
                                                         {pro}
                                                     </li>
@@ -461,7 +500,7 @@ export function HotelDetailsPage() {
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.cons.map((con, i) => (
                                                     <li key={i}
-                                                        className="text-sm text-bold-text flex items-start gap-2">
+                                                        className="text-sm text-[#1f2937] flex items-start gap-2">
                                                         <span className="text-red-400 flex-shrink-0 mt-0.5">•</span>
                                                         {con}
                                                     </li>
@@ -476,7 +515,7 @@ export function HotelDetailsPage() {
                                             <div key={cat.name}>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span
-                                                        className="text-sm font-medium text-bold-text">{cat.name}</span>
+                                                        className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
                                                     <span
                                                         className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
                                                 </div>
@@ -495,11 +534,11 @@ export function HotelDetailsPage() {
 
                         {hotel.policies?.length > 0 && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-bold-text mb-4">Hotel Policies</h2>
+                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Policies</h2>
                                 <div className="space-y-4">
                                     {hotel.policies.map((policy) => (
                                         <div key={policy.id}>
-                                            <h3 className="font-semibold text-bold-text mb-1">{policy.name}</h3>
+                                            <h3 className="font-semibold text-[#1f2937] mb-1">{policy.name}</h3>
                                             <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
                                         </div>
                                     ))}
@@ -508,12 +547,12 @@ export function HotelDetailsPage() {
                         )}
 
                         <Card className="p-6">
-                            <h2 className="text-2xl font-bold text-bold-text mb-4">Location</h2>
+                            <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Location</h2>
                             <MapComponent location={locationString} height="400px"/>
-                            <div className="mt-4 p-4 bg-background rounded-lg">
-                                <p className="text-sm flex items-center gap-2">
+                            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                                <p className="text-sm text-[#717182] flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-[#2563eb]"/>
-                                    <span className="font-medium text-bold-text">{hotel.address}</span>
+                                    <span className="font-medium text-[#1f2937]">{hotel.address}</span>
                                     <span>•</span>
                                     <span>{hotel.city}</span>
                                 </p>
@@ -529,7 +568,7 @@ export function HotelDetailsPage() {
                                         <p className="text-sm text-[#717182] mb-1">
                                             Total for {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'}
                                         </p>
-                                        <p className="text-lg font-semibold text-bold-text">
+                                        <p className="text-lg font-semibold text-[#1f2937]">
                                             {selectedCurrency} {(selectedTotal / actualNights).toFixed(0)}/night
                                         </p>
                                         <p className="text-sm text-[#717182] mt-1">
@@ -540,7 +579,7 @@ export function HotelDetailsPage() {
                                 ) : (
                                     <>
                                         <p className="text-sm text-[#717182] mb-1">Nightly rate</p>
-                                        <p className="text-lg font-semibold text-bold-text">
+                                        <p className="text-lg font-semibold text-[#1f2937]">
                                             {checkIn && checkOut
                                                 ? occupancies.length > 1
                                                     ? `Select a room for each of ${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`
@@ -560,9 +599,8 @@ export function HotelDetailsPage() {
                             <Separator className="my-6"/>
 
                             <div className="space-y-4 mb-6">
-                                <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium text-bold-text mb-2 block">Rooms</label>
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 block">Rooms</label>
                                     <input
                                         type="number"
                                         min={1}
@@ -593,7 +631,7 @@ export function HotelDetailsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-medium text-bold-text mb-2 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
                                         <Users className="w-4 h-4"/>
                                         Guests
                                     </label>
@@ -621,15 +659,14 @@ export function HotelDetailsPage() {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                                     />
                                 </div>
-                                </div>
 
                                 <div>
-                                    <label className="text-sm font-medium text-bold-text mb-2 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
                                         <Calendar className="w-4 h-4"/>
                                         Stay
                                     </label>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 gap-3">
                                         <input
                                             type="date"
                                             value={checkIn}
@@ -637,7 +674,7 @@ export function HotelDetailsPage() {
                                                 setCheckIn(e.target.value);
                                                 setSelectedRates({});
                                             }}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                                         />
 
                                         <input
@@ -647,7 +684,7 @@ export function HotelDetailsPage() {
                                                 setCheckOut(e.target.value);
                                                 setSelectedRates({});
                                             }}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb] cursor-pointer"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                                         />
 
                                         {checkIn && checkOut && (
@@ -671,7 +708,12 @@ export function HotelDetailsPage() {
                                             'pendingReservation',
                                             JSON.stringify({offerId: firstRate.offerId, hotelId: id})
                                         );
-                                        sessionStorage.setItem('loginRedirect', location.pathname + location.search);
+                                        sessionStorage.setItem(
+  'loginRedirect',
+  `${location.pathname}?checkIn=${checkIn}&checkOut=${checkOut}&occupancies=${encodeURIComponent(
+    JSON.stringify(occupancies)
+  )}`
+);
                                         navigate('/login');
                                         return;
                                     }
