@@ -5,36 +5,36 @@ import {Button} from '../components/ui/button';
 import {Card} from '../components/ui/card';
 import {useCurrency} from '../contexts/CurrencyContext';
 import imgHeroBackground from '../../assets/910a43fa90ece96610082739bbdb02f24d6b7f70.png';
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {api} from '../../api/liteApi';
-
+ 
 type Occupancy = {
     adults: number;
     children: number[];
 };
-
+ 
 const STORAGE_KEY = 'likehome_search';
-
+ 
 function dateToString(date: Date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
-
+ 
 function getDefaultDates() {
     const checkIn = new Date();
     checkIn.setDate(checkIn.getDate() + 7);
-
+ 
     const checkOut = new Date(checkIn);
     checkOut.setDate(checkOut.getDate() + 2);
-
+ 
     return {
         checkIn: dateToString(checkIn),
         checkOut: dateToString(checkOut),
     };
 }
-
+ 
 function loadStored(): { checkIn: string; checkOut: string; occupancies: Occupancy[] } | null {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -43,7 +43,7 @@ function loadStored(): { checkIn: string; checkOut: string; occupancies: Occupan
         return null;
     }
 }
-
+ 
 const trendingDestinations = [
     {
         id: 1,
@@ -102,64 +102,27 @@ const trendingDestinations = [
         placeId: 'ChIJP3Sa8ziYEmsRUKgyFmh9AQM',
     },
 ];
-
-const topRatedHotels = [
-    {
-        id: 1,
-        name: 'The Grand Palace Hotel',
-        location: 'Paris, France',
-        rating: 4.9,
-        price: 320,
-        image: 'https://images.unsplash.com/photo-1572177215152-32f247303126?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3RlbCUyMGJlZHJvb218ZW58MXx8fHwxNzcxOTA0ODUxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 1243,
-    },
-    {
-        id: 2,
-        name: 'Ocean View Resort',
-        location: 'Bali, Indonesia',
-        rating: 4.8,
-        price: 180,
-        image: 'https://images.unsplash.com/photo-1729717949782-f40c4a07e3c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWFjaCUyMHJlc29ydCUyMGhvdGVsfGVufDF8fHx8MTc3MTg1Mjk5Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 892,
-    },
-    {
-        id: 3,
-        name: 'Metropolitan Suites',
-        location: 'New York, USA',
-        rating: 4.7,
-        price: 280,
-        image: 'https://images.unsplash.com/photo-1731336478850-6bce7235e320?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHN1aXRlJTIwbHV4dXJ5fGVufDF8fHx8MTc3MTgxOTE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 1567,
-    },
-    {
-        id: 4,
-        name: 'Skyline Boutique Hotel',
-        location: 'Tokyo, Japan',
-        rating: 4.9,
-        price: 240,
-        image: 'https://images.unsplash.com/photo-1664908790579-34b71154f603?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxib3V0aXF1ZSUyMGhvdGVsJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzcxODA2NDA3fDA&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 723,
-    },
-    {
-        id: 5,
-        name: 'City Lights Premium',
-        location: 'Dubai, UAE',
-        rating: 4.8,
-        price: 350,
-        image: 'https://images.unsplash.com/photo-1661191891844-2e7980ae1c94?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXR5JTIwaG90ZWwlMjByb29mdG9wfGVufDF8fHx8MTc3MTkwNDg1Mnww&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 1034,
-    },
-    {
-        id: 6,
-        name: 'Royal Plaza Hotel',
-        location: 'London, UK',
-        rating: 4.6,
-        price: 290,
-        image: 'https://images.unsplash.com/photo-1759462692354-404b2c995c99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMGxvYmJ5JTIwZWxlZ2FudHxlbnwxfHx8fDE3NzE4ODEyNzZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-        reviews: 945,
-    },
+ 
+// Real hotel IDs sourced directly from the LiteAPI database.
+// Details (name, image, rating, location) are fetched at runtime via api.getHotelDetails().
+const TOP_RATED_HOTEL_IDS = [
+    'lp9a471', // Dubai
+    'lp1ced2', // Tokyo
+    'lp22763', // Venice
+    'lp1fb31', // Rio de Janeiro
+    'lp30fb5', // Paris
+    'lp3551d', // Hawaii
 ];
-
+ 
+type TopRatedHotel = {
+    id: string;
+    name: string;
+    location: string;
+    rating: number;
+    reviewCount: number;
+    image: string;
+};
+ 
 const recommendedHotels = [
     {
         id: 9,
@@ -198,11 +161,14 @@ const recommendedHotels = [
         reviews: 712,
     },
 ];
-
+ 
 export function HomePage() {
     const navigate = useNavigate();
     const {convertPrice, getCurrencySymbol} = useCurrency();
-
+ 
+    // Keyed by hotel ID. Cards stream in individually as each fetch resolves.
+    const [topRatedHotels, setTopRatedHotels] = useState<Map<string, TopRatedHotel>>(new Map());
+ 
     useEffect(() => {
         const loadCountries = async () => {
             try {
@@ -211,7 +177,7 @@ export function HomePage() {
                 console.error(err);
             }
         };
-
+ 
         const loadFacilities = async () => {
             try {
                 const facilities = await api.getFacilities();
@@ -220,18 +186,51 @@ export function HomePage() {
                 console.error(err);
             }
         };
-
+ 
         loadCountries();
         loadFacilities();
+ 
+        // Fire all 6 fetches in parallel. Each updates state independently
+        // so cards appear as soon as their own data arrives.
+        TOP_RATED_HOTEL_IDS.forEach(async (hotelId) => {
+            try {
+                const result = await api.getHotelDetails(hotelId);
+                const d = result?.data;
+                if (!d) return;
+ 
+                const image =
+                    d.main_photo ??
+                    d.hotelImages?.[0]?.urlHd ??
+                    d.hotelImages?.[0]?.url ??
+                    '';
+ 
+                // Build a readable location string from whatever fields the API returns
+                const location = [d.city, d.address].filter(Boolean).join(', ');
+ 
+                setTopRatedHotels(prev =>
+                    new Map(prev).set(hotelId, {
+                        id: hotelId,
+                        name: d.name ?? 'Hotel',
+                        location,
+                        rating: d.rating ?? 0,
+                        reviewCount: d.reviewCount ?? 0,
+                        image,
+                    })
+                );
+            } catch (err) {
+                console.error(`Failed to fetch details for hotel ${hotelId}:`, err);
+                // Card stays as skeleton — no broken UI
+            }
+        });
     }, []);
-
+ 
     const defaults = getDefaultDates();
     const stored = loadStored();
-
+ 
     const checkIn = stored?.checkIn ?? defaults.checkIn;
     const checkOut = stored?.checkOut ?? defaults.checkOut;
     const occupancies = stored?.occupancies ?? [{adults: 2, children: []}];
-
+ 
     const handleDestinationSearch = (destination: { name: string; placeId?: string }) => {
         const queryParams = new URLSearchParams({
             checkIn,
@@ -239,14 +238,23 @@ export function HomePage() {
             occupancies: JSON.stringify(occupancies),
             location: destination.name,
         });
-
+ 
         if (destination.placeId) {
             queryParams.set('placeId', destination.placeId);
         }
-
+ 
         navigate(`/hotels?${queryParams.toString()}`);
     };
-
+ 
+    const buildHotelDetailLink = (hotelId: string): string => {
+        const params = new URLSearchParams({
+            checkIn,
+            checkOut,
+            occupancies: JSON.stringify(occupancies),
+        });
+        return `/hotel/${hotelId}?${params.toString()}`;
+    };
+ 
     return (
         <div className="w-full">
             <section className="relative h-[824px] w-full overflow-visible">
@@ -258,7 +266,7 @@ export function HomePage() {
                     />
                     <div className="absolute inset-0 bg-black/50"/>
                 </div>
-
+ 
                 <div
                     className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-center">
                     <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 max-w-4xl">
@@ -267,13 +275,13 @@ export function HomePage() {
                     <p className="text-2xl md:text-3xl text-white/90 mb-12 max-w-3xl">
                         Explore our selection of over 5000+ hotels spanning across 15 countries
                     </p>
-
+ 
                     <div className="w-full px-4">
                         <SearchComponent/>
                     </div>
                 </div>
             </section>
-
+ 
             <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
@@ -296,7 +304,7 @@ export function HomePage() {
                             </Link>
                         </Button>
                     </div>
-
+ 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {trendingDestinations.map((destination) => (
                             <button
@@ -329,7 +337,8 @@ export function HomePage() {
                     </div>
                 </div>
             </section>
-
+ 
+            {/* Top Rated Hotels — fully data-driven from real LiteAPI hotel IDs */}
             <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
@@ -352,54 +361,79 @@ export function HomePage() {
                             </Link>
                         </Button>
                     </div>
-
+ 
                     <div className="overflow-x-auto pb-4 -mx-4 px-4">
                         <div className="flex gap-6 w-max">
-                            {topRatedHotels.map((hotel) => (
-                                <Link key={hotel.id} to={`/hotel/${hotel.id}`}>
-                                    <Card
-                                        className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 w-[320px] md:w-[360px]">
-                                        <div className="relative h-64 overflow-hidden">
-                                            <img
-                                                src={hotel.image}
-                                                alt={hotel.name}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
-                                            <div
-                                                className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
-                                                <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]"/>
-                                                <span className="font-bold text-[#1f2937]">{hotel.rating}</span>
-                                                <span className="text-xs text-[#717182]">({hotel.reviews})</span>
-                                            </div>
-                                        </div>
-                                        <div className="p-6">
-                                            <h3 className="text-xl font-bold text-[bg-bold-text] mb-2">{hotel.name}</h3>
-                                            <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
-                                                <MapPin className="w-4 h-4"/>
-                                                {hotel.location}
-                                            </p>
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                          <span className="text-2xl font-bold text-[bg-bold-text]">
-                            {getCurrencySymbol()}
-                              {convertPrice(hotel.price)}
-                          </span>
-                                                    <span className="text-sm text-[bg-bold-text]">/night</span>
+                            {TOP_RATED_HOTEL_IDS.map((hotelId) => {
+                                const hotel = topRatedHotels.get(hotelId);
+ 
+                                // Skeleton while fetch is in-flight
+                                if (!hotel) {
+                                    return (
+                                        <div
+                                            key={hotelId}
+                                            className="w-[320px] md:w-[360px] rounded-lg overflow-hidden shadow-lg border border-border animate-pulse flex-shrink-0"
+                                        >
+                                            <div className="h-64 bg-muted"/>
+                                            <div className="p-6 space-y-3">
+                                                <div className="h-5 bg-muted rounded w-3/4"/>
+                                                <div className="h-4 bg-muted rounded w-1/2"/>
+                                                <div className="flex justify-end">
+                                                    <div className="h-9 bg-muted rounded w-28"/>
                                                 </div>
-                                                <Button
-                                                    className="bg-[#1d2d44] hover:bg-[#1e40af] dark:bg-background dark:hover:bg-[#1e40af] text-white cursor-pointer">
-                                                    Quick View
-                                                </Button>
                                             </div>
                                         </div>
-                                    </Card>
-                                </Link>
-                            ))}
+                                    );
+                                }
+ 
+                                return (
+                                    <Link key={hotelId} to={buildHotelDetailLink(hotelId)}>
+                                        <Card className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 w-[320px] md:w-[360px]">
+                                            <div className="relative h-64 overflow-hidden">
+                                                {hotel.image ? (
+                                                    <img
+                                                        src={hotel.image}
+                                                        alt={hotel.name}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-muted flex items-center justify-center text-[#717182] text-sm">
+                                                        No image
+                                                    </div>
+                                                )}
+                                                {hotel.rating > 0 && (
+                                                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
+                                                        <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]"/>
+                                                        <span className="font-bold text-[#1f2937]">{hotel.rating.toFixed(1)}</span>
+                                                        {hotel.reviewCount > 0 && (
+                                                            <span className="text-xs text-[#717182]">({hotel.reviewCount.toLocaleString()})</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-6">
+                                                <h3 className="text-xl font-bold text-[bg-bold-text] mb-2 line-clamp-1">{hotel.name}</h3>
+                                                {hotel.location && (
+                                                    <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
+                                                        <MapPin className="w-4 h-4 shrink-0"/>
+                                                        <span className="line-clamp-1">{hotel.location}</span>
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center justify-end">
+                                                    <Button className="bg-[#1d2d44] hover:bg-[#1e40af] dark:bg-background dark:hover:bg-[#1e40af] text-white cursor-pointer">
+                                                        Quick View
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             </section>
-
+ 
             <section className="py-16 md:py-24 bg-background">
                 <div className="container mx-auto px-4 lg:px-8">
                     <div className="flex items-center justify-between mb-12">
@@ -422,7 +456,7 @@ export function HomePage() {
                             </Link>
                         </Button>
                     </div>
-
+ 
                     <div className="overflow-x-auto pb-4 -mx-4 px-4">
                         <div className="flex gap-6 w-max">
                             {recommendedHotels.map((hotel) => (
@@ -469,7 +503,7 @@ export function HomePage() {
                     </div>
                 </div>
             </section>
-
+ 
             <section className="py-20 bg-gradient-to-r from-secondary to-secondary/80">
                 <div className="container mx-auto px-4 text-center">
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
