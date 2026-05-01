@@ -77,7 +77,8 @@ export function AmendBookingPage() {
                         {
                             firstName: room?.firstName ?? data?.holder?.firstName ?? '',
                             lastName: room?.lastName ?? data?.holder?.lastName ?? '',
-                            email: room?.email ?? data?.holder?.email ?? ''
+                            email: room?.email ?? data?.holder?.email ?? '',
+                            remarks: room?.remarks ?? data?.specialRemarks ?? ''
                         }
                     ])
                 );
@@ -88,7 +89,7 @@ export function AmendBookingPage() {
                 setHolderPhone(
                     data?.holder?.phone ?? {countryCode: '+1', number: ''}
                 );
-                setRemarks(data?.remarks);
+                setRemarks(data?.bookedRooms[0].remarks);
 
                 setEditCheckin(data?.checkin ?? '');
                 setEditCheckout(data?.checkout ?? '');

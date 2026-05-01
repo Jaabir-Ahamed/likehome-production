@@ -83,6 +83,7 @@ type RoomGuest = {
   firstName: string;
   lastName: string;
   email: string;
+  remarks: string;
 };
 
 type RewardAdjustmentRecord = {
@@ -150,7 +151,7 @@ export function PaymentPage() {
   const [prebookData, setPrebookData] = useState<PrebookData | null>(null);
 
   // 2D: roomGuestsList[roomIndex][guestIndex] — first guest per room is required, rest are optional
-  const [roomGuestsList, setRoomGuestsList] = useState<RoomGuest[][]>([[{ firstName: '', lastName: '', email: '' }]]);
+  const [roomGuestsList, setRoomGuestsList] = useState<RoomGuest[][]>([[{ firstName: '', lastName: '', email: '', remarks: '' }]]);
   // Phone for Room 1 only (holder)
   const [holderPhone, setHolderPhone] = useState({ countryCode: '+1', number: '' });
   // Payment card fields
@@ -180,14 +181,15 @@ export function PaymentPage() {
         prev.map((room, ri) =>
           ri === 0
             ? room.map((g, gi) =>
-              gi === 0
-                ? {
-                  firstName: g.firstName || firstName,
-                  lastName: g.lastName || lastName,
-                  email: g.email || profile.email || user.email || '',
-                }
-                : g
-            )
+                gi === 0
+                  ? {
+                      firstName: g.firstName || firstName,
+                      lastName: g.lastName || lastName,
+                      email: g.email || profile.email || user.email || '',
+                      remarks: g.remarks
+                    }
+                  : g
+              )
             : room
         )
       );
@@ -219,8 +221,8 @@ export function PaymentPage() {
         // Init room guest slots: one required guest per room
         const nums = getOccupancyNumbers(data);
         setRoomGuestsList(prev => {
-          const filled = prev[0]?.[0] ?? { firstName: '', lastName: '', email: '' };
-          return nums.map((_, i) => (i === 0 ? [filled] : [{ firstName: '', lastName: '', email: '' }]));
+          const filled = prev[0]?.[0] ?? { firstName: '', lastName: '', email: '', remarks: '' };
+          return nums.map((_, i) => (i === 0 ? [filled] : [{ firstName: '', lastName: '', email: '', remarks: '' }]));
         });
       } catch {
         // invalid JSON in sessionStorage — ignore
@@ -438,7 +440,7 @@ export function PaymentPage() {
             firstName: g.firstName,
             lastName: g.lastName,
             email: g.email || primaryGuest.email,
-            ...(remarks ? { remarks } : {}),
+            ...(g.remarks ? { remarks } : {}),
           };
         });
 
@@ -666,6 +668,18 @@ export function PaymentPage() {
                           {!isFirstRoom && (
                             <p className="text-xs text-[#717182] mt-1">Optional — defaults to Room 1 email</p>
                           )}
+
+                          <div className="pt-2">
+                            <Label htmlFor="remarks">Special Requests (optional)</Label>
+                            <textarea
+                              id="remarks"
+                              className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none bg-background mt-1"
+                              rows={2}
+                              placeholder="e.g. early check-in, ground floor room, extra pillows"
+                              value={guest.remarks}
+                              onChange={(e) => updateRoomGuest(roomIdx, 0, 'remarks', e.target.value)}
+                            />
+                          </div>
                         </div>
 
                         {/* Phone — Room 1 only (holder) */}
@@ -697,24 +711,11 @@ export function PaymentPage() {
                               />
                             </div>
                           </div>
-                        )}
+                          )}
                       </div>
                     </div>
                   );
                 })}
-
-                {/* Special requests */}
-                <div className="pt-2">
-                  <Label htmlFor="remarks">Special Requests (optional)</Label>
-                  <textarea
-                    id="remarks"
-                    className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none mt-1 bg-input-background"
-                    rows={2}
-                    placeholder="e.g. early check-in, ground floor room, extra pillows"
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                  />
-                </div>
               </form>
             </Card>
 
