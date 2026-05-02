@@ -55,7 +55,7 @@ export function RoomRateCard({
     return (
         <div
             className={`border rounded-xl overflow-hidden transition-all ${
-                isSelected ? 'border-2 border-[#2563eb] bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                isSelected ? 'border-2' : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
         >
             <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] bg-card">

@@ -755,7 +755,7 @@ export function PaymentPage() {
     const modalPointsDiscount = redeemDiscount;
 
     return (
-        <div className="w-full bg-gray-50 min-h-screen">
+        <div className="w-full bg-background min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 <Button variant="ghost" asChild className="mb-6">
                     <Link to={backHref}>
@@ -767,7 +767,7 @@ export function PaymentPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-2">
+                            <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
                                 Complete Your Booking
                             </h1>
                             <p className="text-lg text-[#717182]">
@@ -776,25 +776,30 @@ export function PaymentPage() {
                         </div>
 
                         {warnings.length > 0 && (
-                            <Card className="p-4 border-amber-300 bg-amber-50">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0"/>
-                                    <div>
-                                        <p className="font-semibold text-amber-800 mb-1">Rate details have changed</p>
-                                        <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
-                                            {warnings.map((w, i) => (
-                                                <li key={i}>{w}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </Card>
+                          <Card className="p-4 border-amber-300 bg-amber-50 
+                                          dark:bg-amber-950/40 dark:border-amber-800">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-300 mt-0.5 shrink-0" />
+
+                              <div>
+                                <p className="font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                                  Rate details have changed
+                                </p>
+
+                                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
+                                  {warnings.map((w, i) => (
+                                    <li key={i}>{w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </Card>
                         )}
 
                         <Card className="p-6">
                             <div className="flex items-baseline justify-between mb-1">
-                                <h2 className="text-xl font-bold text-[#1f2937]">Who's checking in?</h2>
-                                <span className="text-sm text-[#717182]">* Required</span>
+                                <h2 className="text-xl font-bold text-bold-text">Who's checking in?</h2>
+                                <span className="text-sm text-red-500">* Required</span>
                             </div>
                             <p className="text-sm text-[#717182] mb-6">
                                 Enter the name of the guest staying in each room exactly as it appears on their
@@ -815,7 +820,7 @@ export function PaymentPage() {
                                             <div className="flex items-center gap-3 mb-5">
                                                 {roomIdx > 0 && <Separator className="flex-1"/>}
                                                 <span
-                                                    className="text-sm font-semibold text-[#1f2937] whitespace-nowrap">
+                                                    className="text-sm font-semibold text-bold-text whitespace-nowrap">
                                                     Room {roomIdx + 1}
                                                 </span>
                                                 <Separator className="flex-1"/>
@@ -882,7 +887,7 @@ export function PaymentPage() {
                                                         </Label>
                                                         <div className="flex gap-2">
                                                             <select
-                                                                className="border border-input rounded-md px-3 py-2 text-sm bg-background w-36 shrink-0"
+                                                                className="border border-input rounded-md px-3 py-2 text-sm bg-input-background w-36 shrink-0"
                                                                 value={holderPhone.countryCode}
                                                                 onChange={(e) =>
                                                                     setHolderPhone({
@@ -924,7 +929,7 @@ export function PaymentPage() {
                                     <Label htmlFor="remarks">Special Requests (optional)</Label>
                                     <textarea
                                         id="remarks"
-                                        className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none bg-background mt-1"
+                                        className="w-full border border-input rounded-md px-3 py-2 text-sm resize-none bg-input-background mt-1"
                                         rows={2}
                                         placeholder="e.g. early check-in, ground floor room, extra pillows"
                                         value={remarks}
@@ -937,14 +942,16 @@ export function PaymentPage() {
                         <Card className="p-6">
                             <div className="flex items-center gap-2 mb-6">
                                 <CreditCard className="w-5 h-5 text-[#2563eb]"/>
-                                <h2 className="text-xl font-bold text-[#1f2937]">Payment Details</h2>
+                                <h2 className="text-xl font-bold text-bold-text">Payment Details</h2>
                                 <Lock className="w-4 h-4 text-green-600 ml-auto"/>
                                 <span className="text-sm text-green-600">Secure Payment</span>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="cardNumber">Card Number</Label>
+                                    <Label htmlFor="cardNumber">Card Number
+                                      <span className="text-red-500">*</span>
+                                    </Label>
                                     <Input
                                         id="cardNumber"
                                         placeholder="1234 5678 9012 3456"
@@ -971,7 +978,9 @@ export function PaymentPage() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="cardName">Cardholder Name</Label>
+                                    <Label htmlFor="cardName">Cardholder Name
+                                      <span className="text-red-500">*</span>
+                                    </Label>
                                     <Input
                                         id="cardName"
                                         placeholder="Name on card"
@@ -986,7 +995,9 @@ export function PaymentPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                                        <Label htmlFor="expiryDate">Expiry Date
+                                          <span className="text-red-500">*</span>
+                                        </Label>
                                         <Input
                                             id="expiryDate"
                                             placeholder="MM/YY"
@@ -1012,7 +1023,8 @@ export function PaymentPage() {
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="cvv">CVV</Label>
+                                        <Label htmlFor="cvv">CVV
+                                          <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="cvv"
                                             type="password"
@@ -1037,8 +1049,8 @@ export function PaymentPage() {
                                 </div>
                             </div>
 
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                                <p className="text-sm text-[#1f2937]">
+                            <div className="bg-blue-50 dark:bg-background border border-blue-200 rounded-lg p-4 mt-6">
+                                <p className="text-sm text-bold-text">
                                     By completing this booking, you agree to the{' '}
                                     <a href="#" className="text-[#2563eb] hover:underline">
                                         Terms & Conditions
@@ -1056,26 +1068,33 @@ export function PaymentPage() {
                             </div>
 
                             {overlapError && (
-                                <Card className="p-4 border-red-300 bg-red-50 mt-6">
-                                    <div className="flex items-start gap-3">
-                                        <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0"/>
-                                        <div>
-                                            <p className="font-semibold text-red-800 mb-1">Booking dates conflict</p>
-                                            <p className="text-sm text-red-700 mb-3">
-                                                You already have a hotel booking that overlaps these dates. Cancel or
-                                                change your existing booking before booking another stay.
-                                            </p>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                asChild
-                                                className="border-red-400 text-red-700 hover:bg-red-100"
-                                            >
-                                                <Link to="/bookings">View my bookings</Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card>
+                              <Card className="p-4 border-red-300 bg-red-50 mt-6
+                                              dark:bg-red-950/40 dark:border-red-800">
+                                <div className="flex items-start gap-3">
+                                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-300 mt-0.5 shrink-0" />
+
+                                  <div>
+                                    <p className="font-semibold text-red-800 dark:text-red-200 mb-1">
+                                      Booking dates conflict
+                                    </p>
+
+                                    <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                                      You already have a hotel booking that overlaps these dates. Cancel or
+                                      change your existing booking before booking another stay.
+                                    </p>
+
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      asChild
+                                      className="border-red-400 bg-red-50 dark:bg-red-950/40 text-red-700 hover:bg-red-100
+                                                dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+                                    >
+                                      <Link to="/bookings">View my bookings</Link>
+                                    </Button>
+                                  </div>
+                                </div>
+                              </Card>
                             )}
 
                             <Button
@@ -1120,7 +1139,7 @@ export function PaymentPage() {
                     {/* ── Right sidebar: Booking Summary ── */}
                     <div className="lg:col-span-1">
                         <Card className="p-6 sticky top-28">
-                            <h2 className="text-xl font-bold text-[#1f2937] mb-4">Booking Summary</h2>
+                            <h2 className="text-xl font-bold text-bold-text mb-4">Booking Summary</h2>
 
                             <div className="mb-6">
                                 {hotelImage && (
@@ -1130,7 +1149,7 @@ export function PaymentPage() {
                                         className="w-full h-48 object-cover rounded-lg mb-4"
                                     />
                                 )}
-                                <h3 className="font-bold text-[#1f2937] mb-1">{hotelName}</h3>
+                                <h3 className="font-bold text-bold-text mb-1">{hotelName}</h3>
                                 {hotelLocation && <p className="text-sm text-[#717182]">{hotelLocation}</p>}
                                 {prebookData.roomTypes?.[0]?.rates?.[0]?.boardName && (
                                     <p className="text-sm text-[#717182] mt-1">
@@ -1142,7 +1161,7 @@ export function PaymentPage() {
                             <Separator className="my-4"/>
 
                             <div className="space-y-3 mb-6">
-                                <div className="flex items-center gap-2 text-[#1f2937]">
+                                <div className="flex items-center gap-2 text-bold-text">
                                     <Calendar className="w-4 h-4 text-[#2563eb]"/>
                                     <span className="text-sm">
                                         {checkIn && checkOut
@@ -1151,7 +1170,7 @@ export function PaymentPage() {
                                     </span>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-[#1f2937]">
+                                <div className="flex items-center gap-2 text-bold-text">
                                     <Users className="w-4 h-4 text-[#2563eb]"/>
                                     <span className="text-sm">
                                         {occupancyNumbers.length} {occupancyNumbers.length === 1 ? 'Room' : 'Rooms'} •{' '}
@@ -1163,50 +1182,61 @@ export function PaymentPage() {
                             <Separator className="my-4"/>
 
                             <div className="space-y-3 mb-4">
-                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                    <p className="text-sm font-semibold text-amber-900 mb-2">Redeem Points</p>
-                                    <p className="text-xs text-amber-800 mb-2">
-                                        Balance:{' '}
-                                        {rewardsLoading ? 'Loading...' : `${pointsBalance.toLocaleString()} pts`}
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3
+                                                dark:bg-amber-950/40 dark:border-amber-800">
+                                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-2">
+                                    Redeem Points
+                                  </p>
+
+                                  <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                                    Balance:{' '}
+                                    {rewardsLoading ? 'Loading...' : `${pointsBalance.toLocaleString()} pts`}
+                                  </p>
+
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={maxRedeemablePoints}
+                                    step={1}
+                                    placeholder="Enter points to redeem"
+                                    value={pointsToRedeemInput}
+                                    onChange={(e) => setPointsToRedeemInput(e.target.value)}
+                                    disabled={processing || rewardsLoading}
+                                    className="bg-background dark:bg-input"
+                                  />
+
+                                  {redeemQuoteError && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                                      {redeemQuoteError}
                                     </p>
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        max={maxRedeemablePoints}
-                                        step={1}
-                                        placeholder="Enter points to redeem"
-                                        value={pointsToRedeemInput}
-                                        onChange={(e) => setPointsToRedeemInput(e.target.value)}
-                                        disabled={processing || rewardsLoading}
-                                    />
-                                    {redeemQuoteError && (
-                                        <p className="text-xs text-red-600 mt-2">{redeemQuoteError}</p>
-                                    )}
-                                    {!redeemQuoteError && parsedPointsToRedeem > 0 && (
-                                        <p className="text-xs text-amber-800 mt-2">
-                                            {redeemQuoteLoading
-                                                ? 'Calculating discount...'
-                                                : `${parsedPointsToRedeem.toLocaleString()} pts = ${priceSymbol}${redeemDiscount.toFixed(2)} off`}
-                                        </p>
-                                    )}
-                                    {!redeemQuoteError && (
-                                        <p className="text-xs text-amber-800 mt-2">
-                                            Max redeemable for this total: {maxRedeemablePoints.toLocaleString()} pts
-                                        </p>
-                                    )}
+                                  )}
+
+                                  {!redeemQuoteError && parsedPointsToRedeem > 0 && (
+                                    <p className="text-xs text-amber-800 dark:text-amber-300 mt-2">
+                                      {redeemQuoteLoading
+                                        ? 'Calculating discount...'
+                                        : `${parsedPointsToRedeem.toLocaleString()} pts = ${priceSymbol}${redeemDiscount.toFixed(2)} off`}
+                                    </p>
+                                  )}
+
+                                  {!redeemQuoteError && (
+                                    <p className="text-xs text-amber-800 dark:text-amber-300 mt-2">
+                                      Max redeemable for this total: {maxRedeemablePoints.toLocaleString()} pts
+                                    </p>
+                                  )}
                                 </div>
 
-                                <div className="flex justify-between text-[#1f2937]">
+                                <div className="flex justify-between text-bold-text">
                                     <span className="text-sm">Rate total</span>
                                     <span className="text-sm">
-                                        {priceSymbol}{basePrice}
+                                        {priceSymbol}{basePrice.toFixed(2)}
                                     </span>
                                 </div>
 
-                                <div className="flex justify-between text-[#1f2937]">
+                                <div className="flex justify-between text-bold-text">
                                     <span className="text-sm">Service fee</span>
                                     <span className="text-sm">
-                                        {priceSymbol}{serviceFee}
+                                        {priceSymbol}{serviceFee.toFixed(2)}
                                     </span>
                                 </div>
 
@@ -1221,12 +1251,12 @@ export function PaymentPage() {
 
                                 <Separator/>
 
-                                <div className="flex justify-between text-[#1f2937]">
+                                <div className="flex justify-between text-bold-text">
                                     <span>Points you'll earn</span>
                                     <span>+{dollarsToPoints(discountedTotal)} pts</span>
                                 </div>
 
-                                <div className="flex justify-between font-bold text-lg text-[#1f2937]">
+                                <div className="flex justify-between font-bold text-lg text-bold-text">
                                     <span>Total</span>
                                     <span>
                                         {priceSymbol}{discountedTotal.toFixed(2)}
@@ -1234,8 +1264,8 @@ export function PaymentPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                                <p className="text-xs text-[#717182] leading-relaxed">{cancellationText}</p>
+                            <div className="mt-6 p-4 bg-background rounded-lg">
+                                <p className="text-xs text-bold-text leading-relaxed">{cancellationText}</p>
                             </div>
                         </Card>
                     </div>
@@ -1247,7 +1277,7 @@ export function PaymentPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <Card className="w-full max-w-2xl p-0 overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b">
-                            <h2 className="text-lg font-bold text-[#1f2937]">Cancellation Policy</h2>
+                            <h2 className="text-lg font-bold text-bold-text">Cancellation Policy</h2>
                             <button
                                 type="button"
                                 onClick={() => setShowCancellationPolicy(false)}
@@ -1266,28 +1296,29 @@ export function PaymentPage() {
                             ) : (
                                 <>
                                     <div
-                                        className={`rounded-lg border p-4 ${
-                                            cancellationSummary.refundableTag === 'RFN'
-                                                ? 'bg-green-50 border-green-200'
-                                                : cancellationSummary.refundableTag === 'NRFN'
-                                                    ? 'bg-red-50 border-red-200'
-                                                    : 'bg-gray-50 border-gray-200'
-                                        }`}
+                                      className={`rounded-lg border p-4 ${
+                                        cancellationSummary.refundableTag === 'RFN'
+                                          ? 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800'
+                                          : cancellationSummary.refundableTag === 'NRFN'
+                                            ? 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800'
+                                            : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-700'
+                                      }`}
                                     >
-                                        <p className="font-semibold text-[#1f2937] mb-1">
-                                            {cancellationSummary.refundableTag === 'RFN'
-                                                ? 'Refundable booking'
-                                                : cancellationSummary.refundableTag === 'NRFN'
-                                                    ? 'Non-refundable booking'
-                                                    : 'Refundability unknown'}
-                                        </p>
-                                        <p className="text-sm text-[#4b5563]">
-                                            {cancellationSummary.summaryText}
-                                        </p>
+                                      <p className="font-semibold text-[#1f2937] dark:text-gray-100 mb-1">
+                                        {cancellationSummary.refundableTag === 'RFN'
+                                          ? 'Refundable booking'
+                                          : cancellationSummary.refundableTag === 'NRFN'
+                                            ? 'Non-refundable booking'
+                                            : 'Refundability unknown'}
+                                      </p>
+
+                                      <p className="text-sm text-[#4b5563] dark:text-gray-300">
+                                        {cancellationSummary.summaryText}
+                                      </p>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <h3 className="font-semibold text-[#1f2937]">How this works</h3>
+                                        <h3 className="font-semibold text-bold-text">How this works</h3>
                                         <p className="text-sm text-[#4b5563]">
                                             The charge amount shown for each policy is what you pay if you cancel
                                             after that deadline. If no policy has taken effect yet and the booking
@@ -1303,22 +1334,22 @@ export function PaymentPage() {
                                     </div>
 
                                     {/* ── Payment breakdown ── */}
-                                    <div className="rounded-lg bg-gray-50 p-4 space-y-2">
+                                    <div className="rounded-lg bg-card border p-4 space-y-2">
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[#717182]">Rate total</span>
-                                            <span className="font-medium text-[#1f2937]">
+                                            <span className="text-bold-text">Rate total</span>
+                                            <span className="font-medium text-bold-text">
                                                 {priceSymbol}{basePrice.toFixed(2)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[#717182]">Service fee</span>
-                                            <span className="font-medium text-[#1f2937]">
+                                            <span className="text-bold-text">Service fee</span>
+                                            <span className="font-medium text-bold-text">
                                                 {priceSymbol}{serviceFee.toFixed(2)}
                                             </span>
                                         </div>
                                         {modalPointsDiscount > 0 && (
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-[#717182]">Points discount applied</span>
+                                                <span className="text-bold-text">Points discount applied</span>
                                                 <span className="font-medium text-green-700">
                                                     -{priceSymbol}{modalPointsDiscount.toFixed(2)}
                                                 </span>
@@ -1326,8 +1357,8 @@ export function PaymentPage() {
                                         )}
                                         <Separator/>
                                         <div className="flex justify-between text-sm font-semibold">
-                                            <span className="text-[#1f2937]">Booking total (charged)</span>
-                                            <span className="text-[#1f2937]">
+                                            <span className="text-bold-text">Booking total (charged)</span>
+                                            <span className="text-bold-text">
                                                 {priceSymbol}{modalBookingTotal.toFixed(2)}
                                             </span>
                                         </div>
@@ -1357,7 +1388,7 @@ export function PaymentPage() {
                                     </div>
 
                                     <div>
-                                        <h3 className="font-semibold text-[#1f2937] mb-3">Policy schedule</h3>
+                                        <h3 className="font-semibold text-bold-text mb-3">Policy schedule</h3>
 
                                         {cancellationSummary.displayPolicies.length === 0 ? (
                                             <p className="text-sm text-[#717182]">
@@ -1372,7 +1403,7 @@ export function PaymentPage() {
                                                     >
                                                         <div className="flex items-start justify-between gap-4">
                                                             <div>
-                                                                <p className="font-medium text-[#1f2937]">
+                                                                <p className="font-medium text-bold-text">
                                                                     After {formatLiteApiDate(policy.cancelTime)}
                                                                 </p>
                                                                 <p className="text-sm text-[#717182] mt-1">
@@ -1380,7 +1411,7 @@ export function PaymentPage() {
                                                                 </p>
                                                             </div>
                                                             <div className="text-right shrink-0">
-                                                                <p className="font-semibold text-[#1f2937]">
+                                                                <p className="font-semibold text-bold-text">
                                                                     {policy.currency ?? cancellationSummary.currency}{' '}
                                                                     {Number(policy.amount ?? 0).toFixed(2)}
                                                                 </p>
@@ -1399,7 +1430,7 @@ export function PaymentPage() {
                         </div>
 
                         <div className="px-6 py-4 border-t flex justify-end">
-                            <Button onClick={() => setShowCancellationPolicy(false)}>Close</Button>
+                            <Button className="dark:bg-background cursor-pointer" onClick={() => setShowCancellationPolicy(false)}>Close</Button>
                         </div>
                     </Card>
                 </div>

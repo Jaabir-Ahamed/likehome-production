@@ -240,7 +240,7 @@ export function HotelDetailsPage() {
 
     if (loading) {
         return (
-            <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
+            <div className="w-full bg-background min-h-screen flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"/>
             </div>
         );
@@ -279,7 +279,7 @@ export function HotelDetailsPage() {
     );
 
     return (
-        <div className="w-full bg-gray-50 min-h-screen">
+        <div className="w-full bg-background min-h-screen">
             <div className="container mx-auto px-4 lg:px-8 py-8">
                 <Button variant="ghost" asChild className="mb-6">
                     <Link to={`/hotels${location.search}`}>
@@ -291,7 +291,7 @@ export function HotelDetailsPage() {
                 <div className="mb-6">
                     <div className="flex items-start justify-between mb-4">
                         <div>
-                            <h1 className="text-4xl font-bold text-[#1f2937] mb-2">{hotel.name}</h1>
+                            <h1 className="text-4xl font-bold text-bold-text mb-2">{hotel.name}</h1>
                             <p className="text-lg text-[#717182] flex items-center gap-2">
                                 <MapPin className="w-5 h-5"/>
                                 {hotel.city} • {hotel.address}
@@ -351,9 +351,9 @@ export function HotelDetailsPage() {
                     <div className="lg:col-span-2 space-y-8">
                         {hotel.hotelDescription && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">About This Hotel</h2>
+                                <h2 className="text-2xl font-bold text-bold-text mb-4">About This Hotel</h2>
                                 <div
-                                    className="text-[#1f2937] leading-relaxed prose prose-sm max-w-none"
+                                    className="text-bold-text leading-relaxed prose prose-sm max-w-none"
                                     dangerouslySetInnerHTML={{__html: hotel.hotelDescription}}
                                 />
                             </Card>
@@ -361,12 +361,12 @@ export function HotelDetailsPage() {
 
                         {hotel.checkinCheckoutTimes && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Check-in & Check-out</h2>
+                                <h2 className="text-2xl font-bold text-bold-text mb-4">Check-in & Check-out</h2>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex items-start gap-3">
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
-                                            <p className="font-semibold text-[#1f2937]">Check-in</p>
+                                            <p className="font-semibold text-bold-text">Check-in</p>
                                             <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
                                             {hotel.checkinCheckoutTimes.checkin_end && (
                                                 <p className="text-[#717182]">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
@@ -376,7 +376,7 @@ export function HotelDetailsPage() {
                                     <div className="flex items-start gap-3">
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
-                                            <p className="font-semibold text-[#1f2937]">Check-out</p>
+                                            <p className="font-semibold text-bold-text">Check-out</p>
                                             <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
                                         </div>
                                     </div>
@@ -386,14 +386,14 @@ export function HotelDetailsPage() {
 
                         {hotel.hotelFacilities?.length > 0 && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Facilities</h2>
+                                <h2 className="text-2xl font-bold bg-bold-text mb-4">Hotel Facilities</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                     {hotel.hotelFacilities.slice(0, 18).map((facility) => {
                                         const Icon = getFacilityIcon(facility);
                                         return (
                                             <div key={facility} className="flex items-center gap-2">
                                                 <Icon className="w-4 h-4 text-[#2563eb] flex-shrink-0"/>
-                                                <span className="text-sm text-[#1f2937]">{facility}</span>
+                                                <span className="text-sm text-bold-text">{facility}</span>
                                             </div>
                                         );
                                     })}
@@ -403,19 +403,29 @@ export function HotelDetailsPage() {
 
                         {hotel.hotelImportantInformation && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4 flex items-center gap-2">
+                                <h2 className="text-2xl font-bold text-bold-text mb-4 flex items-center gap-2">
                                     <Info className="w-6 h-6 text-[#f59e0b]"/>
                                     Important Information
                                 </h2>
                                 <div
-                                    className="prose prose-sm max-w-none text-[#1f2937] [&_ul]:pl-5 [&_ul]:list-disc [&_li]:mb-2"
+                                    className="prose prose-sm max-w-none text-bold-text [&_ul]:pl-5 [&_ul]:list-disc [&_li]:mb-2"
                                     dangerouslySetInnerHTML={{__html: hotel.hotelImportantInformation}}
                                 />
                             </Card>
                         )}
 
                         <Card className="p-6">
-                            <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Available Rooms</h2>
+                            <h2 className="text-2xl font-bold bg-bold-text mb-4">Available Rooms</h2>
+
+                                <div className="sticky top-0 z-10 bg-background pb-3 px-4 rounded-lg pt-3">
+                                    <p className="text-sm text-bold-text">
+                                        Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from
+                                        this list.
+                                    </p>
+                                    <p className="text-xs text-[#717182] mt-1">
+                                        {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
+                                    </p>
+                                </div>
 
                             {ratesLoading ? (
                                 <div className="space-y-3">
@@ -433,15 +443,6 @@ export function HotelDetailsPage() {
                                 <p className="text-sm text-[#717182]">No rooms available for the selected rate.</p>
                             ) : (
                                 <div className="max-h-[700px] overflow-y-auto pr-3 space-y-4">
-                                    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-3">
-                                        <p className="text-sm text-[#717182]">
-                                            Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from
-                                            this list.
-                                        </p>
-                                        <p className="text-xs text-[#717182] mt-1">
-                                            {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
-                                        </p>
-                                    </div>
 
                                     {allRates.map((rate) => {
                                         const matchedRoom = findBestHotelRoomMatch(rate, hotel.rooms ?? []);
@@ -451,7 +452,7 @@ export function HotelDetailsPage() {
                                             <div
                                                 key={`${rate.rateId}-${rate.occupancyNumber}`}
                                                 className={`border rounded-lg p-3 ${
-                                                    isSelected ? 'border-[#2563eb] bg-blue-50' : 'border-gray-200'
+                                                    isSelected ? 'border-[#2563eb] bg-blue-50 dark:bg-background' : 'border-gray-200'
                                                 }`}
                                             >
                                                 <label className="flex items-start gap-3 cursor-pointer">
@@ -459,7 +460,7 @@ export function HotelDetailsPage() {
                                                         type="checkbox"
                                                         checked={isSelected}
                                                         onChange={() => handleToggleRate(rate)}
-                                                        className="mt-2 w-5 h-5"
+                                                        className="mt-2 w-5 h-5 cursor-pointer"
                                                     />
 
                                                     <div className="flex-1">
@@ -482,7 +483,7 @@ export function HotelDetailsPage() {
 
                         {hotel.sentiment_analysis && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Guest Reviews</h2>
+                                <h2 className="text-2xl font-bold text-bold-text mb-4">Guest Reviews</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                     {hotel.sentiment_analysis.pros?.length > 0 && (
                                         <div>
@@ -493,7 +494,7 @@ export function HotelDetailsPage() {
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.pros.map((pro, i) => (
                                                     <li key={i}
-                                                        className="text-sm text-[#1f2937] flex items-center gap-2">
+                                                        className="text-sm text-bold-text flex items-center gap-2">
                                                         <Check className="w-3 h-3 text-green-500 flex-shrink-0"/>
                                                         {pro}
                                                     </li>
@@ -510,7 +511,7 @@ export function HotelDetailsPage() {
                                             <ul className="space-y-1">
                                                 {hotel.sentiment_analysis.cons.map((con, i) => (
                                                     <li key={i}
-                                                        className="text-sm text-[#1f2937] flex items-start gap-2">
+                                                        className="text-sm text-bold-text flex items-start gap-2">
                                                         <span className="text-red-400 flex-shrink-0 mt-0.5">•</span>
                                                         {con}
                                                     </li>
@@ -525,7 +526,7 @@ export function HotelDetailsPage() {
                                             <div key={cat.name}>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span
-                                                        className="text-sm font-medium text-[#1f2937]">{cat.name}</span>
+                                                        className="text-sm font-medium text-bold-text">{cat.name}</span>
                                                     <span
                                                         className="text-sm font-bold text-[#2563eb]">{cat.rating.toFixed(1)}</span>
                                                 </div>
@@ -557,12 +558,12 @@ export function HotelDetailsPage() {
                         )}
 
                         <Card className="p-6">
-                            <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Location</h2>
+                            <h2 className="text-2xl font-bold text-bold-text mb-4">Location</h2>
                             <MapComponent location={locationString} height="400px"/>
-                            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-[#717182] flex items-center gap-2">
+                            <div className="mt-4 p-4 bg-background rounded-lg">
+                                <p className="text-sm text-bold-text flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-[#2563eb]"/>
-                                    <span className="font-medium text-[#1f2937]">{hotel.address}</span>
+                                    <span className="font-medium text-bold-text">{hotel.address}</span>
                                     <span>•</span>
                                     <span>{hotel.city}</span>
                                 </p>
@@ -589,7 +590,7 @@ export function HotelDetailsPage() {
                                 ) : (
                                     <>
                                         <p className="text-sm text-[#717182] mb-1">Nightly rate</p>
-                                        <p className="text-lg font-semibold text-[#1f2937]">
+                                        <p className="text-lg font-semibold text-bold-text">
                                             {checkIn && checkOut
                                                 ? occupancies.length > 1
                                                     ? `Select a room for each of ${roomCount} ${roomCount === 1 ? 'room' : 'rooms'}`
@@ -609,8 +610,9 @@ export function HotelDetailsPage() {
                             <Separator className="my-6"/>
 
                             <div className="space-y-4 mb-6">
+                                <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium text-[#1f2937] mb-2 block">Rooms</label>
+                                    <label className="text-sm font-medium text-bold-text mb-2 block">Rooms</label>
                                     <input
                                         type="number"
                                         min={1}
@@ -641,7 +643,7 @@ export function HotelDetailsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-bold-text mb-2 flex items-center gap-2">
                                         <Users className="w-4 h-4"/>
                                         Guests
                                     </label>
@@ -669,14 +671,15 @@ export function HotelDetailsPage() {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                                     />
                                 </div>
+                            </div>
 
                                 <div>
-                                    <label className="text-sm font-medium text-[#1f2937] mb-2 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-bold-text mb-2 flex items-center gap-2">
                                         <Calendar className="w-4 h-4"/>
                                         Stay
                                     </label>
 
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <input
                                             type="date"
                                             value={checkIn}
