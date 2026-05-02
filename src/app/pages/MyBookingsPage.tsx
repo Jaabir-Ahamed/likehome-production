@@ -243,6 +243,7 @@ function BookingCard({
                          hotelSummary,
                          isHighlighted,
                      }: BookingCardProps) {
+    const { getCurrencySymbol } = useCurrency();
     const holderName = booking.holder
         ? `${booking.holder.firstName} ${booking.holder.lastName}`.trim()
         : null;
@@ -311,7 +312,7 @@ function BookingCard({
                             {booking.totalAmount != null && (
                                 <>
                                     <div className="mb-1 font-bold text-bold-text">
-                                        ${convertPrice(booking.totalAmount).toFixed(2)}
+                                        {getCurrencySymbol()}{convertPrice(booking.totalAmount).toFixed(2)}
                                     </div>
                                     <div className="text-sm text-[#6b7280]">Total</div>
                                 </>
@@ -436,7 +437,7 @@ function BookingCard({
 export function MyBookingsPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const {convertPrice} = useCurrency();
+    const {convertPrice, getCurrencySymbol} = useCurrency();
     const {user, loading: authLoading} = useAuth();
     const {addPoints, dollarsToPoints, redeemPoints, refreshPoints} = useRewards();
 

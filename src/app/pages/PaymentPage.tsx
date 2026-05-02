@@ -423,10 +423,10 @@ export function PaymentPage() {
         prebookData?.roomTypes?.[0]?.rates?.[0]?.retailRate?.total?.[0]?.amount ??
         0;
 
-    const basePrice = convertPrice(prebookPrice);
+    const basePrice = prebookPrice; //convertPrice(prebookPrice); // had to remove because points need converting 
     const serviceFee = Math.round(basePrice * 0.1);
     const finalTotal = basePrice + serviceFee;
-    const priceSymbol = getCurrencySymbol();
+    const priceSymbol = "$" // getCurrencySymbol(); // same as before. Points relies on dollar conversion.
 
     const parsedPointsToRedeem = useMemo(() => {
         const trimmed = pointsToRedeemInput.trim();

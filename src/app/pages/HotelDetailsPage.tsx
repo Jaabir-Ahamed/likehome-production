@@ -23,6 +23,7 @@ import {Separator} from '../components/ui/separator';
 import {MapComponent} from '../components/MapComponent';
 import {api} from '../../api/liteApi';
 import {useAuth} from '../contexts/AuthContext';
+import {useCurrency} from '../contexts/CurrencyContext';
 import {toast} from 'sonner';
 import {RoomRateCard} from '../components/RoomRateCard';
 import {findBestHotelRoomMatch} from '../../lib/roomMatching';
@@ -49,6 +50,7 @@ export function HotelDetailsPage() {
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const {user, loading: authLoading} = useAuth();
+    const {convertPrice, getCurrencySymbol} = useCurrency();
 
     const initialCheckIn = searchParams.get('checkIn') ?? '';
     const initialCheckOut = searchParams.get('checkOut') ?? '';
@@ -263,12 +265,12 @@ export function HotelDetailsPage() {
 
     const locationString = [hotel.address, hotel.city].filter(Boolean).join(', ');
 
-    const selectedTotal = Object.values(selectedRates).reduce((sum: number, rate: Rate) => {
+    const selectedTotalRaw = Object.values(selectedRates).reduce((sum: number, rate: Rate) => {
         const amount = rate?.retailRate?.total?.[0]?.amount ?? 0;
         return sum + amount;
     }, 0);
-
-    const selectedCurrency = Object.values(selectedRates)[0]?.retailRate?.total?.[0]?.currency ?? 'USD';
+    const selectedTotal = convertPrice(selectedTotalRaw);
+    const selectedCurrency = getCurrencySymbol() ?? Object.values(selectedRates)[0]?.retailRate?.total?.[0]?.currency ?? 'USD';
     const fallbackRoomImage = hotel.main_photo || hotel.hotelImages?.[0]?.urlHd || hotel.hotelImages?.[0]?.url || null;
     const allRates = Object.values(ratesByOccupancy).flat();
 
@@ -428,7 +430,7 @@ export function HotelDetailsPage() {
                                 <p className="text-sm text-[#717182]">Search from the hotel listing to see live rates
                                     and available rooms.</p>
                             ) : Object.keys(ratesByOccupancy).length === 0 ? (
-                                <p className="text-sm text-[#717182]">No rooms available for the selected dates.</p>
+                                <p className="text-sm text-[#717182]">No rooms available for the selected rate.</p>
                             ) : (
                                 <div className="max-h-[700px] overflow-y-auto pr-3 space-y-4">
                                     <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-3">

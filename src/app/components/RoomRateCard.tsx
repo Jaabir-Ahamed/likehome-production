@@ -4,6 +4,7 @@ import {Badge} from '../components/ui/badge';
 import {Button} from '../components/ui/button';
 import type {Rate, Room} from '../../types/hotel';
 import {formatBeds, getTopAmenities, isRateRefundable, stripHtml} from '../../lib/roomMatching';
+import {useCurrency} from '../contexts/CurrencyContext';
 
 export function RoomRateCard({
                                  rate,
@@ -37,9 +38,13 @@ export function RoomRateCard({
     const primaryPhoto = roomPhotos[0] ?? fallbackImage ?? null;
     const displayedPhoto = roomPhotos[selectedPhotoIndex] ?? primaryPhoto ?? null;
 
-    const price = rate.retailRate?.total?.[0]?.amount;
+    const rawPrice = rate.retailRate?.total?.[0]?.amount;
     const currency = rate.retailRate?.total?.[0]?.currency ?? 'USD';
-    const taxes = rate.retailRate?.taxesAndFees?.[0]?.amount;
+    const rawTaxes = rate.retailRate?.taxesAndFees?.[0]?.amount;
+    const { convertPrice, getCurrencySymbol} = useCurrency();
+    const currencySymbol = getCurrencySymbol();
+    const price = rawPrice != null ? convertPrice(rawPrice) : null;
+    const taxes = rawTaxes != null ? convertPrice(rawTaxes) : null;
     const pricePerNight = price != null ? price / actualNights : null;
 
     const beds = formatBeds(room?.bedTypes);
@@ -150,15 +155,15 @@ export function RoomRateCard({
                             {pricePerNight != null && (
                                 <>
                                     <p className="text-xl font-bold text-bold-text">
-                                        {currency} {pricePerNight.toFixed(0)}
+                                        {currencySymbol}{pricePerNight.toFixed(0)}
                                         <span className="text-sm font-normal text-bold-text">/night</span>
                                     </p>
                                     <p className="text-sm text-[#717182]">
-                                        {currency} {price!.toFixed(0)} total
+                                        {currencySymbol}{price!.toFixed(0)} total
                                     </p>
                                     {taxes != null && (
                                         <p className="text-xs text-[#717182] mt-1">
-                                            Includes {currency} {taxes.toFixed(0)} taxes & fees
+                                            Includes {currencySymbol}{taxes.toFixed(0)} taxes & fees
                                         </p>
                                     )}
                                 </>
