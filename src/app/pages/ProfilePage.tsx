@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRewards } from '../contexts/RewardsContext';
 import { api } from '../../api/liteApi';
 import { toast } from 'sonner';
+import { splitInternationalPhone } from '../../lib/internationalPhone';
 
 const PHONE_CODES = [
   { code: '+1', short: 'USA' },
@@ -33,17 +34,6 @@ const PHONE_CODES = [
   { code: '+31', short: 'NLD' },
   { code: '+46', short: 'SWE' },
 ];
-function splitPhoneParts(rawPhone: string): { phoneCode: string; phoneNumber: string } {
-  const normalized = rawPhone.trim();
-  if (!normalized) return { phoneCode: '+1', phoneNumber: '' };
-  const match = normalized.match(/^(\+\d{1,4})(.*)$/);
-  if (!match) return { phoneCode: '+1', phoneNumber: normalized };
-  return {
-    phoneCode: match[1],
-    phoneNumber: match[2].trim(),
-  };
-}
-
 export function ProfilePage() {
   const { user } = useAuth();
   const { points, pointsToDollars, loading: rewardsLoading } = useRewards();
@@ -72,32 +62,21 @@ export function ProfilePage() {
       try {
         const profile = await api.getProfile();
         if (profile) {
-          const metadataPhone = typeof user?.user_metadata?.phone === 'string' ? user.user_metadata.phone : '';
-          const metadataLocation = typeof user?.user_metadata?.location === 'string' ? user.user_metadata.location : '';
-          const metadataDateOfBirth = typeof user?.user_metadata?.date_of_birth === 'string' ? user.user_metadata.date_of_birth : '';
-          const metadataBio = typeof user?.user_metadata?.bio === 'string' ? user.user_metadata.bio : '';
-          const phoneFromProfile =
-            typeof profile.phone === 'string' && profile.phone.length > 0
-              ? profile.phone
-              : metadataPhone;
-          const { phoneCode, phoneNumber } = splitPhoneParts(phoneFromProfile);
+          const phoneFromProfile = profile.phone ?? '';
+          const { phoneCode, phoneNumber } = splitInternationalPhone(phoneFromProfile);
           setUserData({
             name: profile.full_name ?? '',
             email: profile.email ?? user?.email ?? '',
             phoneCode,
             phoneNumber,
-            location: metadataLocation,
-            dateOfBirth: metadataDateOfBirth,
+            location: profile.location ?? '',
+            dateOfBirth: profile.date_of_birth ?? '',
             joinedDate: new Date(profile.created_at).toLocaleDateString('en-US', {
               month: 'long',
               year: 'numeric',
             }),
-            bio: metadataBio,
-            avatarUrl:
-              (typeof (profile as { avatar_url?: string | null }).avatar_url === 'string' &&
-                (profile as { avatar_url?: string | null }).avatar_url) ||
-              (typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : '') ||
-              (typeof user?.user_metadata?.picture === 'string' ? user.user_metadata.picture : ''),
+            bio: profile.bio ?? '',
+            avatarUrl: profile.avatar_url ?? '',
           });
         }
       } catch {
@@ -121,14 +100,22 @@ export function ProfilePage() {
       const trimmedName = userData.name.trim();
       const trimmedPhoneCode = userData.phoneCode.trim() || '+1';
       const trimmedPhoneNumber = userData.phoneNumber.trim();
-      const trimmedPhone = `${trimmedPhoneCode}${trimmedPhoneNumber}`;
+      const trimmedPhone = trimmedPhoneNumber
+        ? `${trimmedPhoneCode}${trimmedPhoneNumber}`
+        : '';
       const trimmedLocation = userData.location.trim();
       const trimmedDateOfBirth = userData.dateOfBirth.trim();
       const trimmedBio = userData.bio.trim();
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ full_name: trimmedName })
+        .update({
+          full_name: trimmedName,
+          phone: trimmedPhone || null,
+          location: trimmedLocation || null,
+          date_of_birth: trimmedDateOfBirth || null,
+          bio: trimmedBio || null,
+        })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
@@ -149,7 +136,7 @@ export function ProfilePage() {
         typeof authData.user?.user_metadata?.phone === 'string'
           ? authData.user.user_metadata.phone
           : trimmedPhone;
-      const { phoneCode: nextPhoneCode, phoneNumber: nextPhoneNumber } = splitPhoneParts(nextPhone);
+      const { phoneCode: nextPhoneCode, phoneNumber: nextPhoneNumber } = splitInternationalPhone(nextPhone);
       const nextLocation =
         typeof authData.user?.user_metadata?.location === 'string'
           ? authData.user.user_metadata.location
@@ -167,7 +154,7 @@ export function ProfilePage() {
           ...prev,
           name: refreshed.full_name ?? trimmedName,
           email: refreshed.email ?? user.email ?? prev.email,
-          ...(splitPhoneParts(
+          ...(splitInternationalPhone(
             typeof refreshed.phone === 'string' && refreshed.phone.length > 0
               ? refreshed.phone
               : nextPhone

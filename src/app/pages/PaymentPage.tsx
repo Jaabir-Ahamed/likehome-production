@@ -11,6 +11,7 @@ import {useRewards} from '../contexts/RewardsContext';
 import {useAuth} from '../contexts/AuthContext';
 import {toast} from 'sonner';
 import {api} from '../../api/liteApi';
+import {splitInternationalPhone} from '../../lib/internationalPhone';
 
 const PHONE_CODES = [
     {code: '+1', short: 'USA', name: 'United States'},
@@ -338,12 +339,10 @@ export function PaymentPage() {
 
                 if (profile.phone) {
                     const phoneStr = profile.phone.trim();
-                    const match = phoneStr.match(/^(\+\d{1,3})\s*(.*)$/);
-                    if (match) {
-                        setHolderPhone((prev) =>
-                            prev.number ? prev : {countryCode: match[1], number: match[2]}
-                        );
-                    }
+                    const {phoneCode, phoneNumber} = splitInternationalPhone(phoneStr);
+                    setHolderPhone((prev) =>
+                        prev.number ? prev : {countryCode: phoneCode, number: phoneNumber}
+                    );
                 }
             })
             .catch(() => {

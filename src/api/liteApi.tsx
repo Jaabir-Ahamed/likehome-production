@@ -101,17 +101,37 @@ type Profile = {
     id: string;
     email: string;
     full_name: string;
-    /** Present when the Supabase `profiles` row includes a phone column. */
-    phone?: string | null;
+    phone: string | null;
     reward_points: number;
     role: string;
     created_at: string;
-    phone: string | null;
     location: string | null;
     date_of_birth: string | null;
     bio: string | null;
     avatar_url: string | null;
 };
+
+function nonEmptyString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+/** Prefer DB row; fall back to auth `user_metadata` so callers see one merged profile. */
+function mergeProfileFromAuthUser(row: Profile, user: { user_metadata?: Record<string, unknown> }): Profile {
+    const meta = user.user_metadata ?? {};
+    const metaStr = (key: string) => nonEmptyString(meta[key]);
+
+    const avatarFromRow = nonEmptyString(row.avatar_url);
+    const avatarFromMeta = metaStr('avatar_url') ?? metaStr('picture');
+
+    return {
+        ...row,
+        phone: nonEmptyString(row.phone) ?? metaStr('phone'),
+        location: nonEmptyString(row.location) ?? metaStr('location'),
+        date_of_birth: nonEmptyString(row.date_of_birth) ?? metaStr('date_of_birth'),
+        bio: nonEmptyString(row.bio) ?? metaStr('bio'),
+        avatar_url: avatarFromRow ?? avatarFromMeta,
+    };
+}
 
 type PointsToDollarsResponse = {
     dollars: number;
@@ -330,17 +350,17 @@ export const api = {
     },
     // returns null if no session, throws error if supabase query fails, returns Profile if successful
     getProfile: async (): Promise<Profile | null> => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
-    
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", user.id)
-                .single();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
 
-            if (error) throw error;
-            return data as Profile;
+        const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+        if (error) throw error;
+        return mergeProfileFromAuthUser(data as Profile, user);
     },
     // throws error if number is non-positive, if no session, or if supabase query fails. returns new total if successful
     addRewardPoints: async (points: number): Promise<number> => {

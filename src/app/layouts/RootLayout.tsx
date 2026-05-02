@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { Header } from "../components/Header";
 import { CurrencyProvider } from "../contexts/CurrencyContext";
-import { RewardsProvider } from "../contexts/RewardsContext";
 import { Toaster } from "../components/ui/sonner";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -41,16 +40,14 @@ function AuthRedirectHandler() {
 export function RootLayout() {
   return (
     <CurrencyProvider>
-      <RewardsProvider>
-        <AuthRedirectHandler />
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <Toaster />
-        </div>
-      </RewardsProvider>
+      <AuthRedirectHandler />
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <Toaster />
+      </div>
     </CurrencyProvider>
   );
 }
