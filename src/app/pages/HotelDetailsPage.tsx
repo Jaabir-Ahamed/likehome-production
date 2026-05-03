@@ -545,12 +545,12 @@ export function HotelDetailsPage() {
 
                         {hotel.policies?.length > 0 && (
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Policies</h2>
+                                <h2 className="text-2xl font-bold text-bold-text mb-4">Hotel Policies</h2>
                                 <div className="space-y-4">
                                     {hotel.policies.map((policy) => (
                                         <div key={policy.id}>
-                                            <h3 className="font-semibold text-[#1f2937] mb-1">{policy.name}</h3>
-                                            <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
+                                            <h3 className="font-semibold text-bold-text mb-1">{policy.name}</h3>
+                                            <p className="text-sm text-bold-text whitespace-pre-line">{policy.description}</p>
                                         </div>
                                     ))}
                                 </div>
