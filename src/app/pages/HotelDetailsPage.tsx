@@ -550,7 +550,7 @@ export function HotelDetailsPage() {
                                     {hotel.policies.map((policy) => (
                                         <div key={policy.id}>
                                             <h3 className="font-semibold text-bold-text mb-1">{policy.name}</h3>
-                                            <p className="text-sm text-bold-text whitespace-pre-line">{policy.description}</p>
+                                            <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
                                         </div>
                                     ))}
                                 </div>
