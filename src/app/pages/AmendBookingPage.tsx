@@ -719,7 +719,7 @@ export function AmendBookingPage() {
                                                                     key={rate.rateId}
                                                                     className={`border rounded-lg p-3 transition-colors ${
                                                                         isSelected
-                                                                            ? 'border-[#2563eb] bg-blue-50'
+                                                                            ? 'border-[#2563eb] bg-background'
                                                                             : 'border-gray-200'
                                                                     }`}
                                                                 >
