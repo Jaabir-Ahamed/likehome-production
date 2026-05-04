@@ -11,7 +11,7 @@ export function NotFoundPage() {
           <h2 className="text-3xl font-bold text-[#1f2937] mt-4 mb-2">
             Page Not Found
           </h2>
-          <p className="text-lg text-[#717182] max-w-md mx-auto">
+          <p className="text-lg text-subtle-text max-w-md mx-auto">
             Sorry, we couldn't find the page you're looking for. It might have been moved or deleted.
           </p>
         </div>

@@ -289,7 +289,7 @@ export function HomePage() {
                             <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Trending Destinations
                             </h2>
-                            <p className="text-lg text-[#717182]">
+                            <p className="text-lg text-subtle-text">
                                 Discover the most popular travel destinations
                             </p>
                         </div>
@@ -346,7 +346,7 @@ export function HomePage() {
                             <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Top Rated Hotels
                             </h2>
-                            <p className="text-lg text-[#717182]">
+                            <p className="text-lg text-subtle-text">
                                 Hand-picked hotels with exceptional reviews
                             </p>
                         </div>
@@ -397,7 +397,7 @@ export function HomePage() {
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full bg-muted flex items-center justify-center text-[#717182] text-sm">
+                                                    <div className="w-full h-full bg-muted flex items-center justify-center text-subtle-text text-sm">
                                                         No image
                                                     </div>
                                                 )}
@@ -406,7 +406,7 @@ export function HomePage() {
                                                         <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]"/>
                                                         <span className="font-bold text-[#1f2937]">{hotel.rating.toFixed(1)}</span>
                                                         {hotel.reviewCount > 0 && (
-                                                            <span className="text-xs text-[#717182]">({hotel.reviewCount.toLocaleString()})</span>
+                                                            <span className="text-xs text-subtle-text">({hotel.reviewCount.toLocaleString()})</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -414,7 +414,7 @@ export function HomePage() {
                                             <div className="p-6">
                                                 <h3 className="text-xl font-bold text-[bg-bold-text] mb-2 line-clamp-1">{hotel.name}</h3>
                                                 {hotel.location && (
-                                                    <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
+                                                    <p className="text-sm text-subtle-text mb-4 flex items-center gap-1">
                                                         <MapPin className="w-4 h-4 shrink-0"/>
                                                         <span className="line-clamp-1">{hotel.location}</span>
                                                     </p>
@@ -441,7 +441,7 @@ export function HomePage() {
                             <h2 className="text-3xl md:text-4xl font-bold text-[bg-bold-text] mb-2">
                                 Recommended for You
                             </h2>
-                            <p className="text-lg text-[#717182]">
+                            <p className="text-lg text-subtle-text">
                                 Handpicked hotels based on your preferences
                             </p>
                         </div>
@@ -473,12 +473,12 @@ export function HomePage() {
                                                 className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1">
                                                 <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]"/>
                                                 <span className="font-bold text-[#1f2937]">{hotel.rating}</span>
-                                                <span className="text-xs text-[#717182]">({hotel.reviews})</span>
+                                                <span className="text-xs text-subtle-text">({hotel.reviews})</span>
                                             </div>
                                         </div>
                                         <div className="p-6">
                                             <h3 className="text-xl font-bold text-[bg-bold-text] mb-2">{hotel.name}</h3>
-                                            <p className="text-sm text-[#717182] mb-4 flex items-center gap-1">
+                                            <p className="text-sm text-subtle-text mb-4 flex items-center gap-1">
                                                 <MapPin className="w-4 h-4"/>
                                                 {hotel.location}
                                             </p>

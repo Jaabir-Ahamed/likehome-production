@@ -91,7 +91,7 @@ export function RoomRateCard({
                         </div>
                     ) : (
                         <div
-                            className="w-full h-56 md:h-full min-h-[220px] flex items-center justify-center text-sm text-[#717182]">
+                            className="w-full h-56 md:h-full min-h-[220px] flex items-center justify-center text-sm text-subtle-text">
                             No room photo available
                         </div>
                     )}
@@ -130,11 +130,11 @@ export function RoomRateCard({
                                     <div className="flex items-center gap-2">
                                         <Bed className="w-4 h-4 text-[#2563eb] flex-shrink-0"/>
                                         <span className="font-medium text-bold-text">Beds:</span>
-                                        <span className="text-[#717182]">{beds}</span>
+                                        <span className="text-subtle-text">{beds}</span>
                                     </div>
                                 )}
 
-                                {roomDescription && <p className="line-clamp-3 text-[#717182]">{roomDescription}</p>}
+                                {roomDescription && <p className="line-clamp-3 text-subtle-text">{roomDescription}</p>}
                             </div>
 
                             {amenities.length > 0 && (
@@ -158,11 +158,11 @@ export function RoomRateCard({
                                         {currencySymbol}{pricePerNight.toFixed(0)}
                                         <span className="text-sm font-normal text-bold-text">/night</span>
                                     </p>
-                                    <p className="text-sm text-[#717182]">
+                                    <p className="text-sm text-subtle-text">
                                         {currencySymbol}{price!.toFixed(0)} total
                                     </p>
                                     {taxes != null && (
-                                        <p className="text-xs text-[#717182] mt-1">
+                                        <p className="text-xs text-subtle-text mt-1">
                                             Includes {currencySymbol}{taxes.toFixed(0)} taxes & fees
                                         </p>
                                     )}

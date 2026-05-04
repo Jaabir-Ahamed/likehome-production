@@ -146,7 +146,7 @@ export function ListPropertyDialog() {
               <ImageIcon className="w-7 h-7 text-[#2563eb] mt-0.5" />
               <div>
                 <p className="font-medium text-bold-text mb-1">Photo Upload</p>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   After submitting this form, our team will contact you to arrange professional photography or guide you through uploading your property photos.
                 </p>
               </div>

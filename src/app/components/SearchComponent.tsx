@@ -201,9 +201,9 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
         <div className="md:col-span-4">
           <label className="block text-sm font-medium text-bold-text mb-2">Location</label>
           <div className="relative" ref={placesRef}>
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182] z-10" />
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-subtle-text z-10" />
             {isLoadingPlaces && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717182] animate-spin z-10" />
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-subtle-text animate-spin z-10" />
             )}
             <Input
               type="text"
@@ -226,10 +226,10 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
                     onClick={() => handlePlaceSelect(place)}
                     className="w-full flex items-start gap-3 px-4 py-3 bg-background hover:bg-background/70 dark:hover:bg-background/90 text-left transition-color cursor-pointer"
                   >
-                    <MapPin className="w-4 h-4 text-[#717182] mt-0.5 shrink-0" />
+                    <MapPin className="w-4 h-4 text-subtle-text mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-bold-text">{place.displayName}</p>
-                      <p className="text-xs text-[#717182]">{place.formattedAddress}</p>
+                      <p className="text-xs text-subtle-text">{place.formattedAddress}</p>
                     </div>
                   </button>
                 ))}
@@ -242,7 +242,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-bold-text mb-2">Check-in</label>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-subtle-text" />
             <Input
               type="date"
               value={checkIn}
@@ -266,7 +266,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-bold-text mb-2">Check-out</label>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-subtle-text" />
             <Input
               type="date"
               value={checkOut}
@@ -286,7 +286,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
               onClick={() => setShowRooms((v) => !v)}
               className="w-full h-12 bg-input-background rounded-lg flex items-center gap-2 px-3 text-sm text-[#1f2937] transition-colors cursor-pointer"
             >
-              <Users className="w-5 h-5 text-[#717182] shrink-0" />
+              <Users className="w-5 h-5 text-subtle-text shrink-0" />
               <span className="truncate text-medium text-foreground">{summarizeOccupancies(occupancies)}</span>
             </button>
 
@@ -303,7 +303,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
                       {occupancies.length > 1 && (
                         <button
                           onClick={() => removeRoom(ri)}
-                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-[#717182] hover:text-red-500 transition-colors"
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-subtle-text hover:text-red-500 transition-colors"
                           aria-label="Remove room"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -345,7 +345,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
                       </div>
                       {room.children.map((age, ci) => (
                         <div key={ci} className="flex items-center gap-2">
-                          <span className="text-xs text-[#717182] w-16 shrink-0">Age</span>
+                          <span className="text-xs text-subtle-text w-16 shrink-0">Age</span>
                           <input
                             type="number"
                             min={0}
@@ -356,7 +356,7 @@ export function SearchComponent({ initialLocation = '', initialPlaceId = '' }) {
                           />
                           <button
                             onClick={() => removeChild(ri, ci)}
-                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-[#717182] hover:text-red-500 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-subtle-text hover:text-red-500 transition-colors"
                           >
                             <X className="w-3 h-3" />
                           </button>

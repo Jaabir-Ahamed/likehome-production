@@ -172,7 +172,7 @@ export function Header() {
                                     {notificationsList.length > 0 && (
                                         <button
                                             onClick={clearAllNotifications}
-                                            className="text-[#717182] hover:text-[#1f2937] transition-colors p-1 rounded hover:bg-gray-100"
+                                            className="text-subtle-text hover:text-[#1f2937] transition-colors p-1 rounded hover:bg-gray-100"
                                             title="Clear all notifications"
                                         >
                                             <X className="w-5 h-5"/>
@@ -182,7 +182,7 @@ export function Header() {
                                 <ScrollArea className="h-[400px]">
                                     <div className="p-2">
                                         {notificationsList.length === 0 ? (
-                                            <div className="p-8 text-center text-[#717182]">
+                                            <div className="p-8 text-center text-subtle-text">
                                                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-30"/>
                                                 <p>No notifications</p>
                                             </div>

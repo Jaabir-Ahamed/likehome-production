@@ -307,7 +307,7 @@ export function FavoritesPage() {
                       <div>
                           <span
                               className="text-2xl font-bold text-bold-text">{getCurrencySymbol()}{convertPrice(hotel.price)}</span>
-                          <span className="text-sm text-[#717182]">/night</span>
+                          <span className="text-sm text-subtle-text">/night</span>
                       </div>
                     </div>
                     <Link to={`/hotel/${hotel.id}`}>

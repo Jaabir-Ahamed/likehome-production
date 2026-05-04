@@ -255,7 +255,7 @@ export function HotelListingPage() {
                     <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
                         Find Your Perfect Stay
                     </h1>
-                    <p className="text-lg text-[#717182]">
+                    <p className="text-lg text-subtle-text">
                         {placeIdParam ? `${filteredHotels.length} hotels available` : 'Search a location to find hotels'}
                     </p>
                 </div>
@@ -302,7 +302,7 @@ export function HotelListingPage() {
                                                 onValueChange={setPriceRange}
                                                 className="w-full cursor-pointer"
                                             />
-                                            <div className="flex items-center justify-between text-sm text-[#717182]">
+                                            <div className="flex items-center justify-between text-sm text-subtle-text">
                                                 <span>${priceRange[0]}</span>
                                                 <span>${priceRange[1]}</span>
                                             </div>
@@ -464,7 +464,7 @@ export function HotelListingPage() {
                         {/* Sorting Bar */}
                         <div
                             className="bg-card rounded-lg shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <p className="text-sm text-[#717182]">
+                            <p className="text-sm text-subtle-text">
                                 Showing {filteredHotels.length} properties
                             </p>
                             <div className="flex items-center gap-2">
@@ -514,12 +514,12 @@ export function HotelListingPage() {
                                 {isLoadingHotels && (
                                     <div className="flex items-center justify-center py-20">
                                         <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]"/>
-                                        <span className="ml-3 text-[#717182]">Searching hotels…</span>
+                                        <span className="ml-3 text-subtle-text">Searching hotels…</span>
                                     </div>
                                 )}
                                 {hotelsError && !isLoadingHotels && (
                                     <Card className="p-12 text-center">
-                                        <p className="text-xl text-[#717182]">{hotelsError}</p>
+                                        <p className="text-xl text-subtle-text">{hotelsError}</p>
                                     </Card>
                                 )}
                                 {!isLoadingHotels && !hotelsError && (
@@ -552,7 +552,7 @@ export function HotelListingPage() {
                                                                 />
                                                             ) : (
                                                                 <div
-                                                                    className="w-full h-56 md:h-full flex items-center justify-center text-[#717182]">
+                                                                    className="w-full h-56 md:h-full flex items-center justify-center text-subtle-text">
                                                                     No image
                                                                 </div>
                                                             )}
@@ -570,7 +570,7 @@ export function HotelListingPage() {
                                                                 <h3 className="text-xl font-bold text-bold-text mb-1">{hotel.name}</h3>
 
                                                                 {hotel.address != null && (
-                                                                    <p className="text-sm text-[#717182] flex items-center gap-1 mb-2">
+                                                                    <p className="text-sm text-subtle-text flex items-center gap-1 mb-2">
                                                                         <MapPin className="w-3.5 h-3.5"/>
                                                                         {[hotel.city, hotel.country.toUpperCase()].filter(Boolean).join(', ')}
                                                                     </p>
@@ -601,7 +601,7 @@ export function HotelListingPage() {
                                                                 )}
 
                                                                 {hotel.hotelDescription && (
-                                                                    <p className="text-sm text-[#717182] line-clamp-2">
+                                                                    <p className="text-sm text-subtle-text line-clamp-2">
                                                                         {stripHtml(hotel.hotelDescription)}
                                                                     </p>
                                                                 )}
@@ -613,7 +613,7 @@ export function HotelListingPage() {
                                                                 <div>
                                                                     {isLoadingRates ? (
                                                                         <div
-                                                                            className="flex items-center gap-1.5 text-[#717182] text-sm">
+                                                                            className="flex items-center gap-1.5 text-subtle-text text-sm">
                                                                             <Loader2
                                                                                 className="w-4 h-4 animate-spin"/>
                                                                             <span>Loading prices…</span>
@@ -623,15 +623,15 @@ export function HotelListingPage() {
                                                                             <p className="text-2xl font-bold text-bold-text">
                                                                                 {getCurrencySymbol()}{convertPrice(rateInfo.pricePerNight).toFixed(0)}
                                                                                 <span
-                                                                                    className="text-sm font-normal text-[#717182] ml-1">/ night</span>
+                                                                                    className="text-sm font-normal text-subtle-text ml-1">/ night</span>
                                                                             </p>
-                                                                            <p className="text-sm text-[#717182]">
+                                                                            <p className="text-sm text-subtle-text">
                                                                                 {getCurrencySymbol()}{convertPrice(rateInfo.totalPrice).toFixed(0)} total
                                                                                 · {nights} {nights === 1 ? 'night' : 'nights'}
                                                                             </p>
                                                                         </>
                                                                     ) : (
-                                                                        <p className="text-sm text-[#717182]">Pricing
+                                                                        <p className="text-sm text-subtle-text">Pricing
                                                                             unavailable</p>
                                                                     )}
                                                                 </div>
@@ -647,7 +647,7 @@ export function HotelListingPage() {
                                         })}
                                         {filteredHotels.length === 0 && (
                                             <Card className="p-12 text-center">
-                                                <p className="text-xl text-[#717182]">
+                                                <p className="text-xl text-subtle-text">
                                                     {apiHotels.length > 0 ? 'No hotels match your filters' : 'No hotels found for this location'}
                                                 </p>
                                             </Card>
@@ -678,7 +678,7 @@ export function HotelListingPage() {
                                                     {pages.map((page, idx) =>
                                                         page === '...' ? (
                                                             <span key={`ellipsis-${idx}`}
-                                                                  className="px-1 text-[#717182] select-none">…</span>
+                                                                  className="px-1 text-subtle-text select-none">…</span>
                                                         ) : (
                                                             <Button
                                                                 key={page}
@@ -713,7 +713,7 @@ export function HotelListingPage() {
                             </>
                         ) : (
                             <Card className="p-12 text-center">
-                                <p className="text-xl text-[#717182]">Search a location above to find hotels</p>
+                                <p className="text-xl text-subtle-text">Search a location above to find hotels</p>
                             </Card>
                         )}
                     </main>

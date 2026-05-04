@@ -57,7 +57,7 @@ export function SettingsPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
             Settings
           </h1>
-          <p className="text-lg text-[#717182]">
+          <p className="text-lg text-subtle-text">
             Manage your account preferences and privacy settings
           </p>
         </div>
@@ -70,7 +70,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-bold-text">Appearance</h2>
-              <p className="text-sm text-[#717182]">Customize how LikeHome looks</p>
+              <p className="text-sm text-subtle-text">Customize how LikeHome looks</p>
             </div>
           </div>
 
@@ -80,7 +80,7 @@ export function SettingsPage() {
                 <Label htmlFor="dark-mode" className="text-base font-medium text-bold-text">
                   Dark Mode
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Switch between light and dark themes
                 </p>
               </div>
@@ -122,7 +122,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-bold-text">Privacy</h2>
-              <p className="text-sm text-[#717182]">Control your privacy and data</p>
+              <p className="text-sm text-subtle-text">Control your privacy and data</p>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export function SettingsPage() {
                   <Eye className="w-4 h-4" />
                   Profile Visibility
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Who can see your profile information
                 </p>
               </div>
@@ -156,7 +156,7 @@ export function SettingsPage() {
                 <Label htmlFor="booking-history" className="text-base font-medium text-bold-text">
                   Show Booking History
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Display your booking history on your profile
                 </p>
               </div>
@@ -175,7 +175,7 @@ export function SettingsPage() {
                   <Database className="w-4 h-4" />
                   Data Sharing
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Share anonymous data to improve our services
                 </p>
               </div>
@@ -194,7 +194,7 @@ export function SettingsPage() {
                   <Cookie className="w-4 h-4" />
                   Cookie Preferences
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Allow cookies for better experience
                 </p>
               </div>
@@ -215,7 +215,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-bold-text">Location</h2>
-              <p className="text-sm text-[#717182]">Manage location permissions</p>
+              <p className="text-sm text-subtle-text">Manage location permissions</p>
             </div>
           </div>
 
@@ -225,7 +225,7 @@ export function SettingsPage() {
                 <Label htmlFor="location" className="text-base font-medium text-bold-text">
                   Location Services
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Allow LikeHome to access your location for better recommendations
                 </p>
               </div>
@@ -255,7 +255,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-bold-text">Notifications</h2>
-              <p className="text-sm text-[#717182]">Choose what notifications you receive</p>
+              <p className="text-sm text-subtle-text">Choose what notifications you receive</p>
             </div>
           </div>
 
@@ -266,7 +266,7 @@ export function SettingsPage() {
                   <Smartphone className="w-4 h-4" />
                   Push Notifications
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Receive push notifications about bookings and deals
                 </p>
               </div>
@@ -284,7 +284,7 @@ export function SettingsPage() {
                 <Label htmlFor="email-notif" className="text-base font-medium text-bold-text">
                   Email Notifications
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Get email updates about your bookings
                 </p>
               </div>
@@ -302,7 +302,7 @@ export function SettingsPage() {
                 <Label htmlFor="marketing" className="text-base font-medium text-bold-text">
                   Marketing Emails
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Receive promotional offers and deals
                 </p>
               </div>
@@ -323,7 +323,7 @@ export function SettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-bold-text">Security</h2>
-              <p className="text-sm text-[#717182]">Protect your account</p>
+              <p className="text-sm text-subtle-text">Protect your account</p>
             </div>
           </div>
 
@@ -334,7 +334,7 @@ export function SettingsPage() {
                   <UserCheck className="w-4 h-4" />
                   Two-Factor Authentication
                 </Label>
-                <p className="text-sm text-[#717182]">
+                <p className="text-sm text-subtle-text">
                   Add an extra layer of security to your account
                 </p>
               </div>

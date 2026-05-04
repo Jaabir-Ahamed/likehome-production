@@ -255,7 +255,7 @@ export function CitiesPage() {
                             </div>
                             <div>
                                 <div className="text-3xl font-bold text-bold-text">12</div>
-                                <div className="text-[#717182]">Top Cities</div>
+                                <div className="text-subtle-text">Top Cities</div>
                             </div>
                         </div>
 
@@ -265,7 +265,7 @@ export function CitiesPage() {
                             </div>
                             <div>
                                 <div className="text-3xl font-bold text-bold-text">16,500+</div>
-                                <div className="text-[#717182]">Hotels Available</div>
+                                <div className="text-subtle-text">Hotels Available</div>
                             </div>
                         </div>
 
@@ -275,7 +275,7 @@ export function CitiesPage() {
                             </div>
                             <div>
                                 <div className="text-3xl font-bold text-bold-text">2M+</div>
-                                <div className="text-[#717182]">Happy Travelers</div>
+                                <div className="text-subtle-text">Happy Travelers</div>
                             </div>
                         </div>
                     </div>
@@ -285,7 +285,7 @@ export function CitiesPage() {
             <div className="container mx-auto px-4 lg:px-8 py-16">
                 <div className="mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">Most Popular Cities</h2>
-                    <p className="text-lg text-[#717182]">
+                    <p className="text-lg text-subtle-text">
                         Browse through our handpicked selection of top travel destinations
                     </p>
                 </div>
@@ -321,17 +321,17 @@ export function CitiesPage() {
                             </div>
 
                             <div className="p-6">
-                                <p className="text-[#717182] mb-4 line-clamp-2">{city.description}</p>
+                                <p className="text-subtle-text mb-4 line-clamp-2">{city.description}</p>
 
                                 <div className="flex items-center gap-6 mb-4 pb-4 border-b">
                                     <div>
-                                        <div className="text-sm text-[#717182]">Hotels</div>
+                                        <div className="text-sm text-subtle-text">Hotels</div>
                                         <div className="text-lg font-bold text-bold-text">
                                             {city.hotels.toLocaleString()}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-sm text-[#717182]">Avg. Price</div>
+                                        <div className="text-sm text-subtle-text">Avg. Price</div>
                                         <div className="text-lg font-bold text-bold-text">${city.avgPrice}</div>
                                     </div>
                                 </div>
@@ -342,7 +342,7 @@ export function CitiesPage() {
                                         {city.attractions.map((attraction, index) => (
                                             <span
                                                 key={index}
-                                                className="text-xs bg-input-background text-[#717182] px-2 py-1 rounded-md"
+                                                className="text-xs bg-input-background text-subtle-text px-2 py-1 rounded-md"
                                             >
                         {attraction}
                       </span>

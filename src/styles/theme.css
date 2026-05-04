@@ -41,6 +41,7 @@
   --sidebar-border: rgba(13, 19, 33, 0.1);
   --sidebar-ring: #1d2d44;
   --bold-text: #1f2937;
+  --subtle-text: #717182;
   --room-input: #ffffff;
 }
 
@@ -81,6 +82,7 @@
   --sidebar-border: rgba(107, 140, 175, 0.15);
   --sidebar-ring: #6b8caf;
   --bold-text: #ffffff;
+  --subtle-text: #b0afc4;
   --room-input: #0a0e16;
 }
 
@@ -123,6 +125,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-bold-text: var(--bold-text);
+  --color-subtle-text: var(--subtle-text);
 }
 
 @layer base {

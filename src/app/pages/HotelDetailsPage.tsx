@@ -251,7 +251,7 @@ export function HotelDetailsPage() {
             <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
                 <Card className="p-8 text-center">
                     <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Hotel Not Found</h2>
-                    <p className="text-[#717182] mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
+                    <p className="text-subtle-text mb-6">{error ?? "The hotel you're looking for doesn't exist."}</p>
                     <Button asChild>
                         <Link to={`/hotels${location.search}`}>Back to Hotels</Link>
                     </Button>
@@ -292,7 +292,7 @@ export function HotelDetailsPage() {
                     <div className="flex items-start justify-between mb-4">
                         <div>
                             <h1 className="text-4xl font-bold text-bold-text mb-2">{hotel.name}</h1>
-                            <p className="text-lg text-[#717182] flex items-center gap-2">
+                            <p className="text-lg text-subtle-text flex items-center gap-2">
                                 <MapPin className="w-5 h-5"/>
                                 {hotel.city} • {hotel.address}
                             </p>
@@ -321,7 +321,7 @@ export function HotelDetailsPage() {
                             </div>
                         )}
                         {hotel.reviewCount > 0 &&
-                            <span className="text-[#717182]">({hotel.reviewCount.toLocaleString()} reviews)</span>}
+                            <span className="text-subtle-text">({hotel.reviewCount.toLocaleString()} reviews)</span>}
                     </div>
                 </div>
 
@@ -367,9 +367,9 @@ export function HotelDetailsPage() {
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
                                             <p className="font-semibold text-bold-text">Check-in</p>
-                                            <p className="text-[#717182]">From {hotel.checkinCheckoutTimes.checkin_start}</p>
+                                            <p className="text-subtle-text">From {hotel.checkinCheckoutTimes.checkin_start}</p>
                                             {hotel.checkinCheckoutTimes.checkin_end && (
-                                                <p className="text-[#717182]">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
+                                                <p className="text-subtle-text">Until {hotel.checkinCheckoutTimes.checkin_end}</p>
                                             )}
                                         </div>
                                     </div>
@@ -377,7 +377,7 @@ export function HotelDetailsPage() {
                                         <Clock className="w-5 h-5 text-[#2563eb] mt-0.5"/>
                                         <div>
                                             <p className="font-semibold text-bold-text">Check-out</p>
-                                            <p className="text-[#717182]">By {hotel.checkinCheckoutTimes.checkout}</p>
+                                            <p className="text-subtle-text">By {hotel.checkinCheckoutTimes.checkout}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -422,7 +422,7 @@ export function HotelDetailsPage() {
                                         Select {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'} from
                                         this list.
                                     </p>
-                                    <p className="text-xs text-[#717182] mt-1">
+                                    <p className="text-xs text-subtle-text mt-1">
                                         {Object.keys(selectedRates).length} of {occupancies.length} rooms selected
                                     </p>
                                 </div>
@@ -437,10 +437,10 @@ export function HotelDetailsPage() {
                                     ))}
                                 </div>
                             ) : !checkIn || !checkOut ? (
-                                <p className="text-sm text-[#717182]">Search from the hotel listing to see live rates
+                                <p className="text-sm text-subtle-text">Search from the hotel listing to see live rates
                                     and available rooms.</p>
                             ) : Object.keys(ratesByOccupancy).length === 0 ? (
-                                <p className="text-sm text-[#717182]">No rooms available for the selected rate.</p>
+                                <p className="text-sm text-subtle-text">No rooms available for the selected rate.</p>
                             ) : (
                                 <div className="max-h-[700px] overflow-y-auto pr-3 space-y-4">
 
@@ -550,7 +550,7 @@ export function HotelDetailsPage() {
                                     {hotel.policies.map((policy) => (
                                         <div key={policy.id}>
                                             <h3 className="font-semibold text-bold-text mb-1">{policy.name}</h3>
-                                            <p className="text-sm text-[#717182] whitespace-pre-line">{policy.description}</p>
+                                            <p className="text-sm text-subtle-text whitespace-pre-line">{policy.description}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -576,20 +576,20 @@ export function HotelDetailsPage() {
                             <div className="mb-6">
                                 {isSelectionComplete ? (
                                     <>
-                                        <p className="text-sm text-[#717182] mb-1">
+                                        <p className="text-sm text-subtle-text mb-1">
                                             Total for {occupancies.length} {occupancies.length === 1 ? 'room' : 'rooms'}
                                         </p>
                                         <p className="text-lg font-semibold text-[#1f2937]">
                                             {selectedCurrency} {(selectedTotal / actualNights).toFixed(0)}/night
                                         </p>
-                                        <p className="text-sm text-[#717182] mt-1">
+                                        <p className="text-sm text-subtle-text mt-1">
                                             {selectedCurrency} {selectedTotal.toFixed(0)} total ({actualNights}{' '}
                                             {actualNights === 1 ? 'night' : 'nights'})
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="text-sm text-[#717182] mb-1">Nightly rate</p>
+                                        <p className="text-sm text-subtle-text mb-1">Nightly rate</p>
                                         <p className="text-lg font-semibold text-bold-text">
                                             {checkIn && checkOut
                                                 ? occupancies.length > 1
@@ -598,7 +598,7 @@ export function HotelDetailsPage() {
                                                 : 'Select dates for pricing'}
                                         </p>
                                         {occupancies.length > 1 && checkIn && checkOut && (
-                                            <p className="text-xs text-[#717182] mt-1">
+                                            <p className="text-xs text-subtle-text mt-1">
                                                 {Object.keys(selectedRates).length} of {occupancies.length} rooms
                                                 selected
                                             </p>
@@ -701,7 +701,7 @@ export function HotelDetailsPage() {
                                         />
 
                                         {checkIn && checkOut && (
-                                            <div className="text-sm text-[#717182]">
+                                            <div className="text-sm text-subtle-text">
                                                 {actualNights} {actualNights === 1 ? 'night' : 'nights'}
                                             </div>
                                         )}
@@ -794,7 +794,7 @@ export function HotelDetailsPage() {
                                 )}
                             </Button>
 
-                            <p className="text-xs text-center text-[#717182] mt-4">You won't be charged yet</p>
+                            <p className="text-xs text-center text-subtle-text mt-4">You won't be charged yet</p>
                         </Card>
                     </div>
                 </div>

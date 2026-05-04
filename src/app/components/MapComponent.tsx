@@ -154,7 +154,7 @@ export function MapComponent({ location, height = '400px', className = '' }: Map
       {geo.status === 'loading' && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-100/90 gap-2">
           <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]" aria-hidden />
-          <span className="text-sm text-[#717182]">Locating on map…</span>
+          <span className="text-sm text-subtle-text">Locating on map…</span>
         </div>
       )}
 
@@ -170,7 +170,7 @@ export function MapComponent({ location, height = '400px', className = '' }: Map
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-          <p className="text-sm text-[#717182] px-6 text-center">{placeholderMessage}</p>
+          <p className="text-sm text-subtle-text px-6 text-center">{placeholderMessage}</p>
         </div>
       )}
 

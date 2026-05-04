@@ -513,7 +513,7 @@ export function AmendBookingPage() {
         return (
             <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-[#2563eb]"/>
-                <span className="ml-3 text-[#717182]">Searching for your Booking…</span>
+                <span className="ml-3 text-subtle-text">Searching for your Booking…</span>
             </div>
         );
     }
@@ -692,7 +692,7 @@ export function AmendBookingPage() {
                                             ))}
                                         </div>
                                     ) : Object.keys(ratesByOccupancy).length === 0 ? (
-                                        <p className="text-sm text-[#717182]">
+                                        <p className="text-sm text-subtle-text">
                                             No replacement rooms available for the selected dates.
                                         </p>
                                     ) : (

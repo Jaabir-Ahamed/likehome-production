@@ -543,7 +543,7 @@ export function PaymentPage() {
             <div className="w-full bg-gray-50 min-h-screen flex items-center justify-center">
                 <Card className="p-8 text-center">
                     <h2 className="text-2xl font-bold text-[#1f2937] mb-4">Booking Not Found</h2>
-                    <p className="text-[#717182] mb-6">
+                    <p className="text-subtle-text mb-6">
                         Prebook data has expired or is missing. Please start a new search.
                     </p>
                     <Button asChild>
@@ -770,7 +770,7 @@ export function PaymentPage() {
                             <h1 className="text-3xl md:text-4xl font-bold text-bold-text mb-2">
                                 Complete Your Booking
                             </h1>
-                            <p className="text-lg text-[#717182]">
+                            <p className="text-lg text-subtle-text">
                                 You're just one step away from your perfect stay
                             </p>
                         </div>
@@ -806,7 +806,7 @@ export function PaymentPage() {
                                 <h2 className="text-xl font-bold text-bold-text">Who's checking in?</h2>
                                 <span className="text-sm text-red-500">* Required</span>
                             </div>
-                            <p className="text-sm text-[#717182] mb-6">
+                            <p className="text-sm text-subtle-text mb-6">
                                 Enter the name of the guest staying in each room exactly as it appears on their
                                 ID.
                             </p>
@@ -879,7 +879,7 @@ export function PaymentPage() {
                                                         required={isFirstRoom}
                                                     />
                                                     {!isFirstRoom && (
-                                                        <p className="text-xs text-[#717182] mt-1">
+                                                        <p className="text-xs text-subtle-text mt-1">
                                                             Optional — defaults to Room 1 email
                                                         </p>
                                                     )}
@@ -1155,9 +1155,9 @@ export function PaymentPage() {
                                     />
                                 )}
                                 <h3 className="font-bold text-bold-text mb-1">{hotelName}</h3>
-                                {hotelLocation && <p className="text-sm text-[#717182]">{hotelLocation}</p>}
+                                {hotelLocation && <p className="text-sm text-subtle-text">{hotelLocation}</p>}
                                 {prebookData.roomTypes?.[0]?.rates?.[0]?.boardName && (
-                                    <p className="text-sm text-[#717182] mt-1">
+                                    <p className="text-sm text-subtle-text mt-1">
                                         {prebookData.roomTypes[0].rates?.[0]?.boardName}
                                     </p>
                                 )}
@@ -1295,7 +1295,7 @@ export function PaymentPage() {
 
                         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                             {!cancellationSummary ? (
-                                <p className="text-sm text-[#717182]">
+                                <p className="text-sm text-subtle-text">
                                     Cancellation policy details are not available for this rate.
                                 </p>
                             ) : (
@@ -1368,14 +1368,14 @@ export function PaymentPage() {
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm mt-1">
-                                            <span className="text-[#717182]">Cancel now charge</span>
+                                            <span className="text-subtle-text">Cancel now charge</span>
                                             <span className="font-medium text-[#ef4444]">
                                                 {cancellationSummary.currency}{' '}
                                                 {modalCancelCharge.toFixed(2)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-[#717182]">Cancel now refund</span>
+                                            <span className="text-subtle-text">Cancel now refund</span>
                                             <span className="font-medium text-green-700">
                                                 {cancellationSummary.currency}{' '}
                                                 {modalCancelRefund.toFixed(2)}
@@ -1396,7 +1396,7 @@ export function PaymentPage() {
                                         <h3 className="font-semibold text-bold-text mb-3">Policy schedule</h3>
 
                                         {cancellationSummary.displayPolicies.length === 0 ? (
-                                            <p className="text-sm text-[#717182]">
+                                            <p className="text-sm text-subtle-text">
                                                 No non-zero cancellation charges were returned for this rate.
                                             </p>
                                         ) : (
@@ -1411,7 +1411,7 @@ export function PaymentPage() {
                                                                 <p className="font-medium text-bold-text">
                                                                     After {formatLiteApiDate(policy.cancelTime)}
                                                                 </p>
-                                                                <p className="text-sm text-[#717182] mt-1">
+                                                                <p className="text-sm text-subtle-text mt-1">
                                                                     Cancellation charge applies from this time.
                                                                 </p>
                                                             </div>
@@ -1420,7 +1420,7 @@ export function PaymentPage() {
                                                                     {policy.currency ?? cancellationSummary.currency}{' '}
                                                                     {Number(policy.amount ?? 0).toFixed(2)}
                                                                 </p>
-                                                                <p className="text-xs text-[#717182]">
+                                                                <p className="text-xs text-subtle-text">
                                                                     Charge amount
                                                                 </p>
                                                             </div>
