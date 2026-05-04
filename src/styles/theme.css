@@ -129,6 +129,21 @@
   --color-subtle-text: var(--subtle-text);
 }
 
+/* Explicit dark-mode overrides for custom text tokens.
+   Two-class selectors (specificity 0,2,0) beat the single-class
+   Tailwind utilities (0,1,0), and being outside @layer means they
+   outrank any layered rule — guaranteeing visibility on dark backgrounds
+   regardless of how the build environment resolves CSS variables. */
+.dark .text-bold-text,
+.text-bold-text:is(.dark *) {
+  color: #ffffff;
+}
+
+.dark .text-subtle-text,
+.text-subtle-text:is(.dark *) {
+  color: #b0afc4;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
